@@ -1,5 +1,10 @@
 # TAPD MCP Server
 
+[![CI](https://github.com/xihe-lab/tapd-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/xihe-lab/tapd-mcp-server/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@xihe-lab/tapd-mcp-server.svg)](https://www.npmjs.com/package/@xihe-lab/tapd-mcp-server)
+[![license](https://img.shields.io/github/license/xihe-lab/tapd-mcp-server.svg)](https://github.com/xihe-lab/tapd-mcp-server/blob/main/LICENSE)
+[![Node.js](https://img.shields.io/node/v/@xihe-lab/tapd-mcp-server.svg)](https://nodejs.org/)
+
 通过 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 将腾讯 TAPD 接入 Claude、Cursor 等 AI 助手，用自然语言管理需求、缺陷、任务和迭代。
 
 ## 快速接入
