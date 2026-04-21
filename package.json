@@ -24,7 +24,7 @@
     "cursor"
   ],
   "author": "xihe-lab",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xihe-lab/tapd-mcp-server.git"
