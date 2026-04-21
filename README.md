@@ -25,6 +25,7 @@
 {
   "mcpServers": {
     "tapd": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@xihe-lab/tapd-mcp-server"],
       "env": {
@@ -44,6 +45,7 @@
 {
   "mcpServers": {
     "tapd": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@xihe-lab/tapd-mcp-server"],
       "env": {
@@ -63,6 +65,7 @@
 {
   "mcpServers": {
     "tapd": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@xihe-lab/tapd-mcp-server"],
       "env": {
