@@ -15,17 +15,34 @@
 
 ### 2. 配置 MCP 客户端
 
-需要 Node.js >= 18.0.0。无需手动安装，MCP 客户端会自动通过 npx 拉取。
+需要 Node.js >= 18.0.0。
 
-#### Claude Desktop
+#### 方式一：一键安装命令
 
-编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）：
+注意替换 `your_access_token` 和 `your_workspace_id`：
+
+```bash
+claude mcp add -s user tapd \
+  --env TAPD_ACCESS_TOKEN=your_access_token \
+  --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \
+  -- npx -y "@xihe-lab/tapd-mcp-server"
+```
+
+若忘记替换凭证，重新安装前需先卸载旧的配置：
+
+```bash
+claude mcp list
+claude mcp remove tapd
+```
+
+#### 方式二：手动配置
+
+编辑 Claude Code 的配置文件（用户目录下 `.claude.json`）：
 
 ```json
 {
   "mcpServers": {
     "tapd": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@xihe-lab/tapd-mcp-server"],
       "env": {
@@ -37,45 +54,12 @@
 }
 ```
 
-#### Cursor / VS Code
+其他客户端配置方式：
 
-在项目根目录创建 `.cursor/mcp.json` 或 `.vscode/mcp.json`：
+- **Claude Desktop**：编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）
+- **Cursor / VS Code**：在项目根目录创建 `.cursor/mcp.json` 或 `.vscode/mcp.json`
 
-```json
-{
-  "mcpServers": {
-    "tapd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@xihe-lab/tapd-mcp-server"],
-      "env": {
-        "TAPD_ACCESS_TOKEN": "your_access_token",
-        "TAPD_DEFAULT_WORKSPACE_ID": "your_workspace_id"
-      }
-    }
-  }
-}
-```
-
-#### Claude Code (CLI)
-
-在项目 `.claude/settings.local.json` 中配置：
-
-```json
-{
-  "mcpServers": {
-    "tapd": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@xihe-lab/tapd-mcp-server"],
-      "env": {
-        "TAPD_ACCESS_TOKEN": "your_access_token",
-        "TAPD_DEFAULT_WORKSPACE_ID": "your_workspace_id"
-      }
-    }
-  }
-}
-```
+配置格式与上方相同。
 
 ### 3. 开始使用
 
