@@ -67,7 +67,7 @@ export class TapdClient {
       body = new URLSearchParams(
         Object.entries(params)
           .filter(([, value]) => value !== undefined)
-          .map(([key, value]) => [key, String(value)])
+          .map(([key, value]) => [key, String(value).replace(/\\n/g, '\n')])
       ).toString();
     }
 

@@ -138,6 +138,30 @@ claude mcp remove tapd
 
 支持。设置 `TAPD_API_USER` 和 `TAPD_API_PASSWORD` 即可，与 Access Token 二选一。
 
+## 更新
+
+### 更新到最新版本
+
+MCP 客户端使用 `npx` 运行时会自动下载最新版本。如需手动更新：
+
+```bash
+# 清除 npx 缓存
+npx clear-cache
+
+# 或强制使用最新版本
+npx -y @xihe-lab/tapd-mcp-server@latest
+```
+
+### 查看当前版本
+
+```bash
+npm view @xihe-lab/tapd-mcp-server version
+```
+
+### 查看更新日志
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解各版本的变更内容。
+
 ## 本地开发
 
 如需二次开发：

@@ -19,7 +19,7 @@ export const taskTools: ToolDef[] = [
       priority: z.string().optional().describe('Priority, recommend using priority_label'),
       priority_label: z.string().optional().describe('Priority (recommended)'),
       story_id: z.string().optional().describe('Related story ID, supports multiple IDs'),
-      iteration_id: z.number().optional().describe('Iteration ID, supports enum query'),
+      iteration_id: z.string().optional().describe('Iteration ID, supports enum query'),
       progress: z.number().optional().describe('Progress'),
       effort: z.string().optional().describe('Estimated effort'),
       effort_completed: z.string().optional().describe('Completed effort'),
@@ -51,8 +51,8 @@ export const taskTools: ToolDef[] = [
       cc: z.string().optional().describe('CC person'),
       priority: z.string().optional().describe('Priority'),
       priority_label: z.string().optional().describe('Priority label (recommended)'),
-      story_id: z.number().optional().describe('Related story ID'),
-      iteration_id: z.number().optional().describe('Iteration ID'),
+      story_id: z.string().optional().describe('Related story ID'),
+      iteration_id: z.string().optional().describe('Iteration ID'),
       status: z.string().optional().describe('Status (open, progressing, done)'),
       progress: z.number().optional().describe('Progress'),
       effort: z.string().optional().describe('Estimated effort'),
@@ -61,9 +61,11 @@ export const taskTools: ToolDef[] = [
       label: z.string().optional().describe('Label'),
     }),
     handler: async (client, params) => {
+      const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
-        owner: params.owner ?? TapdClient.getNickName(),
+        owner: params.owner ?? nickName,
+        creator: params.creator ?? nickName,
       };
       return client.post('/tasks', finalParams);
     },
@@ -80,8 +82,8 @@ export const taskTools: ToolDef[] = [
       cc: z.string().optional().describe('CC person'),
       priority: z.string().optional().describe('Priority'),
       priority_label: z.string().optional().describe('Priority label (recommended)'),
-      story_id: z.number().optional().describe('Related story ID'),
-      iteration_id: z.number().optional().describe('Iteration ID'),
+      story_id: z.string().optional().describe('Related story ID'),
+      iteration_id: z.string().optional().describe('Iteration ID'),
       status: z.string().optional().describe('Status (open, progressing, done)'),
       progress: z.number().optional().describe('Progress'),
       effort: z.string().optional().describe('Estimated effort'),
@@ -112,7 +114,7 @@ export const taskTools: ToolDef[] = [
       priority: z.string().optional().describe('Priority, recommend using priority_label'),
       priority_label: z.string().optional().describe('Priority (recommended)'),
       story_id: z.string().optional().describe('Related story ID, supports multiple IDs'),
-      iteration_id: z.number().optional().describe('Iteration ID, supports enum query'),
+      iteration_id: z.string().optional().describe('Iteration ID, supports enum query'),
       progress: z.number().optional().describe('Progress'),
       effort: z.string().optional().describe('Estimated effort'),
       effort_completed: z.string().optional().describe('Completed effort'),
@@ -126,6 +128,43 @@ export const taskTools: ToolDef[] = [
     }),
     handler: async (client, params) => {
       return client.get('/tasks/count', params);
+    },
+  },
+  {
+    name: 'tapd_batch_update_tasks',
+    description: 'Batch update multiple tasks in TAPD (supports updating story_id)',
+    inputSchema: z.object({
+      workspace_id: z.number().describe('Project ID (required)'),
+      tasks: z.array(z.object({
+        id: z.string().describe('Task ID (required)'),
+        name: z.string().optional().describe('Task name'),
+        description: z.string().optional().describe('Detailed description'),
+        owner: z.string().optional().describe('Owner'),
+        cc: z.string().optional().describe('CC person'),
+        priority: z.string().optional().describe('Priority'),
+        priority_label: z.string().optional().describe('Priority label (recommended)'),
+        story_id: z.string().optional().describe('Related story ID'),
+        iteration_id: z.string().optional().describe('Iteration ID'),
+        status: z.string().optional().describe('Status (open, progressing, done)'),
+        progress: z.number().optional().describe('Progress'),
+        effort: z.string().optional().describe('Estimated effort'),
+        begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
+        due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
+        label: z.string().optional().describe('Label'),
+      })).describe('Array of tasks to update (max 50 per request)'),
+    }),
+    handler: async (client, params) => {
+      // TAPD API expects workitems as a JSON string
+      const workitemsJson = JSON.stringify(params.tasks.map((t: { id: string } & Record<string, unknown>) => ({
+        id: t.id,
+        ...Object.fromEntries(
+          Object.entries(t).filter(([k]) => k !== 'id')
+        ),
+      })));
+      return client.post('/tasks/batch_update_task', {
+        workspace_id: params.workspace_id,
+        workitems: workitemsJson,
+      });
     },
   },
 ];
