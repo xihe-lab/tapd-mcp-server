@@ -35,6 +35,14 @@ export class TapdClient {
     );
   }
 
+  /**
+   * Get user nickname from environment variable TAPD_NICK_NAME
+   * Used as default value for owner/creator/current_user parameters
+   */
+  static getNickName(): string | undefined {
+    return process.env.TAPD_NICK_NAME;
+  }
+
   async request<T>(
     method: 'GET' | 'POST',
     path: string,

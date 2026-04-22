@@ -33,12 +33,13 @@ TAPD 是腾讯敏捷研发管理平台，覆盖需求、计划、研发、测试
 
 #### 方式一：一键安装命令
 
-注意替换 `your_access_token` 和 `your_workspace_id`：
+注意替换 `your_access_token`、`your_workspace_id` 和 `your_nick_name`：
 
 ```bash
 claude mcp add -s user tapd \
   --env TAPD_ACCESS_TOKEN=your_access_token \
   --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \
+  --env TAPD_NICK_NAME=your_nick_name \
   -- npx -y "@xihe-lab/tapd-mcp-server"
 ```
 
@@ -64,7 +65,8 @@ claude mcp remove tapd
         "TAPD_API_USER": "",
         "TAPD_API_PASSWORD": "",
         "TAPD_API_BASE_URL": "https://api.tapd.cn",
-        "TAPD_DEFAULT_WORKSPACE_ID": ""
+        "TAPD_DEFAULT_WORKSPACE_ID": "",
+        "TAPD_NICK_NAME": ""
       }
     }
   }
@@ -98,6 +100,7 @@ claude mcp remove tapd
 | `TAPD_API_USER` + `TAPD_API_PASSWORD` | 二选一 | API 账号 + API 密钥 |
 | `TAPD_API_BASE_URL` | 否 | API 基础地址，默认 `https://api.tapd.cn` |
 | `TAPD_DEFAULT_WORKSPACE_ID` | 否 | 默认项目 ID，省去每次传 workspace_id |
+| `TAPD_NICK_NAME` | 否 | 用户昵称，作为 owner/creator 等参数的默认值 |
 
 注意：`TAPD_API_USER`/`TAPD_API_PASSWORD`（API 账号密码）与 `TAPD_ACCESS_TOKEN`（个人访问令牌）为两种调用方式，选一种即可。
 

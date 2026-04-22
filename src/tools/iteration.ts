@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
-import type { TapdClient } from '../tapd-client.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const iterationTools: ToolDef[] = [
   {
@@ -39,11 +39,16 @@ export const iterationTools: ToolDef[] = [
       enddate: z.string().optional().describe("End date"),
       description: z.string().optional().describe("Iteration description"),
       status: z.string().optional().describe("Status: open/done"),
+      creator: z.string().optional().describe("Creator (defaults to TAPD_NICK_NAME env, required by API)"),
       workitem_type_id: z.number().optional().describe("Iteration category"),
       plan_app_id: z.number().optional().describe("Plan application ID"),
     }),
     handler: async (client: TapdClient, params) => {
-      return client.post("/iterations", params);
+      const finalParams = {
+        ...params,
+        creator: params.creator || TapdClient.getNickName(),
+      };
+      return client.post("/iterations", finalParams);
     },
   },
   {
@@ -57,11 +62,16 @@ export const iterationTools: ToolDef[] = [
       enddate: z.string().optional().describe("End date"),
       description: z.string().optional().describe("Iteration description"),
       status: z.string().optional().describe("Status: open/done"),
+      current_user: z.string().optional().describe("Current user for operation (defaults to TAPD_NICK_NAME env, required by API)"),
       workitem_type_id: z.number().optional().describe("Iteration category"),
       plan_app_id: z.number().optional().describe("Plan application ID"),
     }),
     handler: async (client: TapdClient, params) => {
-      return client.post("/iterations", params);
+      const finalParams = {
+        ...params,
+        current_user: params.current_user || TapdClient.getNickName(),
+      };
+      return client.post("/iterations", finalParams);
     },
   },
   {

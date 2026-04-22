@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const bugTools: ToolDef[] = [
   {
@@ -75,7 +76,7 @@ export const bugTools: ToolDef[] = [
       priority: z.string().optional().describe('Priority'),
       priority_label: z.string().optional().describe('Priority label (recommended)'),
       severity: z.string().optional().describe('Severity'),
-      current_owner: z.string().optional().describe('Current owner'),
+      current_owner: z.string().optional().describe('Current owner (defaults to TAPD_NICK_NAME env)'),
       description: z.string().optional().describe('Detailed description'),
       module: z.string().optional().describe('Module'),
       iteration_id: z.string().optional().describe('Iteration ID'),
@@ -115,7 +116,11 @@ export const bugTools: ToolDef[] = [
       estimate: z.number().optional().describe('Estimated resolve time'),
     }),
     handler: async (client, params) => {
-      return client.post('/bugs', params);
+      const finalParams = {
+        ...params,
+        current_owner: params.current_owner || TapdClient.getNickName(),
+      };
+      return client.post('/bugs', finalParams);
     },
   },
   {

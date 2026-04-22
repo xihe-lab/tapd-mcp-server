@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const storyTools: ToolDef[] = [
   {
@@ -61,7 +62,7 @@ export const storyTools: ToolDef[] = [
       priority: z.string().optional().describe('Priority'),
       priority_label: z.string().optional().describe('Priority label (recommended)'),
       description: z.string().optional().describe('Detailed description'),
-      owner: z.string().optional().describe('Owner'),
+      owner: z.string().optional().describe('Owner (defaults to TAPD_NICK_NAME env)'),
       developer: z.string().optional().describe('Developer'),
       cc: z.string().optional().describe('CC person'),
       iteration_id: z.string().optional().describe('Iteration ID'),
@@ -80,7 +81,11 @@ export const storyTools: ToolDef[] = [
       template_id: z.number().optional().describe('Template ID'),
     }),
     handler: async (client, params) => {
-      return client.post('/stories', params);
+      const finalParams = {
+        ...params,
+        owner: params.owner || TapdClient.getNickName(),
+      };
+      return client.post('/stories', finalParams);
     },
   },
   {

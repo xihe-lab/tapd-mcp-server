@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const taskTools: ToolDef[] = [
   {
@@ -45,7 +46,7 @@ export const taskTools: ToolDef[] = [
       workspace_id: z.number().describe('Project ID (required)'),
       name: z.string().optional().describe('Task name'),
       description: z.string().optional().describe('Detailed description'),
-      owner: z.string().optional().describe('Owner'),
+      owner: z.string().optional().describe('Owner (defaults to TAPD_NICK_NAME env)'),
       creator: z.string().optional().describe('Creator'),
       cc: z.string().optional().describe('CC person'),
       priority: z.string().optional().describe('Priority'),
@@ -60,7 +61,11 @@ export const taskTools: ToolDef[] = [
       label: z.string().optional().describe('Label'),
     }),
     handler: async (client, params) => {
-      return client.post('/tasks', params);
+      const finalParams = {
+        ...params,
+        owner: params.owner || TapdClient.getNickName(),
+      };
+      return client.post('/tasks', finalParams);
     },
   },
   {

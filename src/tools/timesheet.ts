@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const timesheetTools: ToolDef[] = [
   {
@@ -24,7 +25,7 @@ export const timesheetTools: ToolDef[] = [
     description: "Create a new timesheet entry",
     inputSchema: z.object({
       workspace_id: z.number().describe("Project ID"),
-      user: z.string().describe("User name"),
+      user: z.string().optional().describe("User name (defaults to TAPD_NICK_NAME env)"),
       item_type: z.string().describe("Type: story, bug, or task"),
       item_id: z.string().describe("ID of the story, bug, or task"),
       timesheet_date: z.string().describe("Date of work (YYYY-MM-DD)"),
@@ -33,7 +34,11 @@ export const timesheetTools: ToolDef[] = [
       cc: z.string().optional().describe("Copy to users, separated by |"),
     }),
     handler: async (client, params) => {
-      return client.post("/timesheets", params);
+      const finalParams = {
+        ...params,
+        user: params.user || TapdClient.getNickName(),
+      };
+      return client.post("/timesheets", finalParams);
     },
   },
   {
