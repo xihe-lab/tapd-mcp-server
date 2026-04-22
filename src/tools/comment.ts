@@ -36,7 +36,7 @@ export const commentTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        author: params.author || TapdClient.getNickName(),
+        author: params.author ?? TapdClient.getNickName(),
       };
       return client.post("/comments", finalParams);
     },

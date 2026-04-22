@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { ToolDef } from './types.js';
 import { TapdClient } from './tapd-client.js';
+import type { z } from 'zod';
 
 function createTapdClient(): TapdClient {
   return TapdClient.fromEnv();
@@ -20,11 +21,12 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
   const client = createTapdClient();
 
   for (const tool of tools) {
+    const schemaShape = (tool.inputSchema as z.ZodObject<z.ZodRawShape>).shape ?? tool.inputSchema;
     server.tool(
       tool.name,
       tool.description,
-      (tool.inputSchema as any).shape ?? tool.inputSchema,
-      async (args: any) => {
+      schemaShape,
+      async (args: Record<string, unknown>) => {
         try {
           const result = await tool.handler(client, args);
           return {
@@ -59,13 +61,13 @@ export async function start(tools: ToolDef[]): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  process.on('SIGINT', async () => {
-    await server.close();
+  process.on('SIGINT', () => {
+    void server.close();
     process.exit(0);
   });
 
-  process.on('SIGTERM', async () => {
-    await server.close();
+  process.on('SIGTERM', () => {
+    void server.close();
     process.exit(0);
   });
 }

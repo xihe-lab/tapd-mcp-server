@@ -37,7 +37,7 @@ export const timesheetTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        owner: params.owner || TapdClient.getNickName(),
+        owner: params.owner ?? TapdClient.getNickName(),
       };
       return client.post("/timesheets", finalParams);
     },

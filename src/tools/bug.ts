@@ -118,7 +118,7 @@ export const bugTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        current_owner: params.current_owner || TapdClient.getNickName(),
+        current_owner: params.current_owner ?? TapdClient.getNickName(),
       };
       return client.post('/bugs', finalParams);
     },

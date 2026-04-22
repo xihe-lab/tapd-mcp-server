@@ -83,7 +83,7 @@ export const storyTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        owner: params.owner || TapdClient.getNickName(),
+        owner: params.owner ?? TapdClient.getNickName(),
       };
       return client.post('/stories', finalParams);
     },

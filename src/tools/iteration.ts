@@ -46,7 +46,7 @@ export const iterationTools: ToolDef[] = [
     handler: async (client: TapdClient, params) => {
       const finalParams = {
         ...params,
-        creator: params.creator || TapdClient.getNickName(),
+        creator: params.creator ?? TapdClient.getNickName(),
       };
       return client.post("/iterations", finalParams);
     },
@@ -69,7 +69,7 @@ export const iterationTools: ToolDef[] = [
     handler: async (client: TapdClient, params) => {
       const finalParams = {
         ...params,
-        current_user: params.current_user || TapdClient.getNickName(),
+        current_user: params.current_user ?? TapdClient.getNickName(),
       };
       return client.post("/iterations", finalParams);
     },
