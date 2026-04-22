@@ -155,12 +155,12 @@ export const taskTools: ToolDef[] = [
     }),
     handler: async (client, params) => {
       // TAPD API expects workitems as a JSON string
-      const workitemsJson = JSON.stringify(params.tasks.map((t: { id: string } & Record<string, unknown>) => ({
-        id: t.id,
-        ...Object.fromEntries(
-          Object.entries(t).filter(([k]) => k !== 'id')
-        ),
-      })));
+      const tasks = params.tasks as ({ id: string } & Record<string, string | number | undefined>)[];
+      const workitems = tasks.map((task) => {
+        const { id, ...rest } = task;
+        return { id, ...rest };
+      });
+      const workitemsJson = JSON.stringify(workitems);
       return client.post('/tasks/batch_update_task', {
         workspace_id: params.workspace_id,
         workitems: workitemsJson,

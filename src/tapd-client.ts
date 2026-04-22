@@ -79,8 +79,8 @@ export class TapdClient {
 
     if (!response.ok) {
       // Try to get error message from response body
-      const text = await response.text();
-      throw new Error(`TAPD API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`TAPD API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
     }
 
     // Check if response is JSON
