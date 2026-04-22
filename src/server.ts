@@ -2,7 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { ToolDef } from './types.js';
 import { TapdClient } from './tapd-client.js';
-import type { z } from 'zod';
 
 function createTapdClient(): TapdClient {
   return TapdClient.fromEnv();
@@ -21,12 +20,13 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
   const client = createTapdClient();
 
   for (const tool of tools) {
-    const schemaShape = (tool.inputSchema as z.ZodObject<z.ZodRawShape>).shape ?? tool.inputSchema;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (tool.inputSchema as any).shape ?? tool.inputSchema;
     server.tool(
       tool.name,
       tool.description,
-      schemaShape,
-      async (args: Record<string, unknown>) => {
+      schema,
+      async (args: unknown) => {
         try {
           const result = await tool.handler(client, args);
           return {
