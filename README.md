@@ -140,16 +140,35 @@ claude mcp remove tapd
 
 ## 更新
 
-### 更新到最新版本
+MCP 客户端使用 `npx` 运行时会自动检查并下载最新版本。如需确保使用最新版本：
 
-MCP 客户端使用 `npx` 运行时会自动下载最新版本。如需手动更新：
+### Claude Code
+
+重新安装配置（会自动使用最新版本）：
 
 ```bash
-# 清除 npx 缓存
-npx clear-cache
+claude mcp remove tapd
+claude mcp add -s user tapd \
+  --env TAPD_ACCESS_TOKEN=your_access_token \
+  --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \
+  --env TAPD_NICK_NAME=your_nick_name \
+  -- npx -y "@xihe-lab/tapd-mcp-server"
+```
 
-# 或强制使用最新版本
-npx -y @xihe-lab/tapd-mcp-server@latest
+### Claude Desktop / Cursor
+
+修改配置文件中的版本号为 `@latest` 或删除版本锁定：
+
+```json
+{
+  "mcpServers": {
+    "tapd": {
+      "command": "npx",
+      "args": ["-y", "@xihe-lab/tapd-mcp-server@latest"],
+      "env": { ... }
+    }
+  }
+}
 ```
 
 ### 查看当前版本
