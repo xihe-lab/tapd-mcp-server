@@ -57,11 +57,11 @@ export class TapdClient {
     let body: string | undefined;
 
     if (method === 'GET' && params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          url.searchParams.append(key, String(value));
-        }
-      });
+      // Filter out undefined values and check if there are any params left
+      const filteredParams = Object.entries(params).filter(([, value]) => value !== undefined);
+      for (const [key, value] of filteredParams) {
+        url.searchParams.append(key, String(value));
+      }
     } else if (method === 'POST' && params) {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
       body = new URLSearchParams(
@@ -78,7 +78,16 @@ export class TapdClient {
     });
 
     if (!response.ok) {
+      // Try to get error message from response body
+      const text = await response.text();
       throw new Error(`TAPD API error: ${response.status} ${response.statusText}`);
+    }
+
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`TAPD API returned non-JSON response: ${text.slice(0, 100)}`);
     }
 
     const result = await response.json() as TapdResponse<T>;
