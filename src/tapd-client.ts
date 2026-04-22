@@ -2,31 +2,32 @@ export class TapdClient {
   private authHeader: string;
   private baseUrl: string;
 
-  private constructor(authHeader: string) {
+  private constructor(authHeader: string, baseUrl?: string) {
     this.authHeader = authHeader;
-    this.baseUrl = 'https://api.tapd.cn';
+    this.baseUrl = baseUrl || process.env.TAPD_API_BASE_URL || 'https://api.tapd.cn';
   }
 
-  static fromAccessToken(accessToken: string): TapdClient {
-    return new TapdClient(`Bearer ${accessToken}`);
+  static fromAccessToken(accessToken: string, baseUrl?: string): TapdClient {
+    return new TapdClient(`Bearer ${accessToken}`, baseUrl);
   }
 
-  static fromBasicAuth(apiUser: string, apiPassword: string): TapdClient {
+  static fromBasicAuth(apiUser: string, apiPassword: string, baseUrl?: string): TapdClient {
     const credentials = `${apiUser}:${apiPassword}`;
-    return new TapdClient(`Basic ${Buffer.from(credentials).toString('base64')}`);
+    return new TapdClient(`Basic ${Buffer.from(credentials).toString('base64')}`, baseUrl);
   }
 
   static fromEnv(): TapdClient {
     const apiUser = process.env.TAPD_API_USER;
     const apiPassword = process.env.TAPD_API_PASSWORD;
     const accessToken = process.env.TAPD_ACCESS_TOKEN;
+    const baseUrl = process.env.TAPD_API_BASE_URL;
 
     if (apiUser && apiPassword) {
-      return TapdClient.fromBasicAuth(apiUser, apiPassword);
+      return TapdClient.fromBasicAuth(apiUser, apiPassword, baseUrl);
     }
 
     if (accessToken) {
-      return TapdClient.fromAccessToken(accessToken);
+      return TapdClient.fromAccessToken(accessToken, baseUrl);
     }
 
     throw new Error(

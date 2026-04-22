@@ -5,17 +5,31 @@
 [![license](https://img.shields.io/npm/l/@xihe-lab/tapd-mcp-server.svg)](https://github.com/xihe-lab/tapd-mcp-server/blob/main/LICENSE)
 [![Node.js](https://img.shields.io/node/v/@xihe-lab/tapd-mcp-server.svg)](https://www.npmjs.com/package/@xihe-lab/tapd-mcp-server)
 
-通过 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 将腾讯 TAPD 接入 Claude、Cursor 等 AI 助手，用自然语言管理需求、缺陷、任务和迭代。
+TAPD 是腾讯敏捷研发管理平台，覆盖需求、计划、研发、测试、发布研发全生命周期。通过 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 接入 Claude、Cursor 等 AI 助手，用自然语言管理需求、缺陷、任务和迭代。
 
-## 快速接入
+## 系统要求
+
+- Node.js >= 18.0.0
+- TAPD Access Token（推荐）或 TAPD API 账号密码
+
+## 快速开始
 
 ### 1. 获取凭证
 
-在 [TAPD 开放平台](https://open.tapd.cn) 创建应用，获取 Access Token。
+#### 方式一：个人访问令牌（推荐）
+
+`TAPD_ACCESS_TOKEN` 为 TAPD 个人令牌：
+
+1. 登录 TAPD，进入 **我的设置 → 个人访问令牌**
+2. 点击"创建个人访问令牌"
+3. 令牌只显示一次，注意保存
+
+#### 方式二：API 账号密码（兼容）
+
+- 未注册：前往 [TAPD 开放平台](https://open.tapd.cn) 注册
+- 已注册未授权 API：登录 TAPD，进入 **公司管理 → API账号管理**，复制 API 账号和 API 密钥
 
 ### 2. 配置 MCP 客户端
-
-需要 Node.js >= 18.0.0。
 
 #### 方式一：一键安装命令
 
@@ -46,8 +60,11 @@ claude mcp remove tapd
       "command": "npx",
       "args": ["-y", "@xihe-lab/tapd-mcp-server"],
       "env": {
-        "TAPD_ACCESS_TOKEN": "your_access_token",
-        "TAPD_DEFAULT_WORKSPACE_ID": "your_workspace_id"
+        "TAPD_ACCESS_TOKEN": "",
+        "TAPD_API_USER": "",
+        "TAPD_API_PASSWORD": "",
+        "TAPD_API_BASE_URL": "https://api.tapd.cn",
+        "TAPD_DEFAULT_WORKSPACE_ID": ""
       }
     }
   }
@@ -77,9 +94,12 @@ claude mcp remove tapd
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `TAPD_ACCESS_TOKEN` | 二选一 | Access Token（推荐） |
-| `TAPD_API_USER` + `TAPD_API_PASSWORD` | 二选一 | 公司 ID + API Token（Basic Auth） |
+| `TAPD_ACCESS_TOKEN` | 二选一 | 个人访问令牌（推荐） |
+| `TAPD_API_USER` + `TAPD_API_PASSWORD` | 二选一 | API 账号 + API 密钥 |
+| `TAPD_API_BASE_URL` | 否 | API 基础地址，默认 `https://api.tapd.cn` |
 | `TAPD_DEFAULT_WORKSPACE_ID` | 否 | 默认项目 ID，省去每次传 workspace_id |
+
+注意：`TAPD_API_USER`/`TAPD_API_PASSWORD`（API 账号密码）与 `TAPD_ACCESS_TOKEN`（个人访问令牌）为两种调用方式，选一种即可。
 
 ## 支持的能力
 
