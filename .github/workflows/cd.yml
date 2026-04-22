@@ -10,8 +10,14 @@ on:
         required: false
         default: 'patch'
 
+# Only one CD run at a time
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
+    name: Publish to npm
     runs-on: ubuntu-latest
     environment: npm publish
     permissions:
@@ -19,7 +25,8 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -49,7 +56,7 @@ jobs:
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Bump version
+      - name: Bump version (manual trigger)
         if: github.event_name == 'workflow_dispatch'
         run: |
           npm version ${{ github.event.inputs.version }} -m "chore: bump version to %s"
@@ -60,7 +67,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view @xihe-lab/tapd-mcp-server@$VERSION version 2>/dev/null; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "Version $VERSION already published, skipping"
+            echo "::notice::Version $VERSION already published, skipping"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
@@ -94,6 +101,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ format('v{0}', steps.current.outputs.version) }}
+          generate_release_notes: false
           body: |
             ## Changelog
 
@@ -108,10 +116,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
-        if: steps.check.outputs.published == 'false'
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "### Published @xihe-lab/tapd-mcp-server@$VERSION" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Changelog:**" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.changelog.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check.outputs.published }}" == "false" ]; then
+            echo "### ✅ Published @xihe-lab/tapd-mcp-server@$VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Changelog:**" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.changelog.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⏭️ Skipped - Version $VERSION already published" >> $GITHUB_STEP_SUMMARY
+          fi
