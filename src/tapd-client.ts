@@ -4,7 +4,7 @@ export class TapdClient {
 
   private constructor(authHeader: string, baseUrl?: string) {
     this.authHeader = authHeader;
-    this.baseUrl = baseUrl || process.env.TAPD_API_BASE_URL || 'https://api.tapd.cn';
+    this.baseUrl = baseUrl ?? process.env.TAPD_API_BASE_URL ?? 'https://api.tapd.cn';
   }
 
   static fromAccessToken(accessToken: string, baseUrl?: string): TapdClient {
@@ -81,10 +81,10 @@ export class TapdClient {
       throw new Error(`TAPD API error: ${response.status} ${response.statusText}`);
     }
 
-    const result: TapdResponse<T> = await response.json();
+    const result = await response.json() as TapdResponse<T>;
 
     if (result.status !== 1) {
-      throw new Error(`TAPD API error: ${result.info || 'Unknown error'}`);
+      throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
     }
 
     return result.data;

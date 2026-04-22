@@ -20,11 +20,13 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
   const client = createTapdClient();
 
   for (const tool of tools) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schema = (tool.inputSchema as any).shape ?? tool.inputSchema;
     server.tool(
       tool.name,
       tool.description,
-      (tool.inputSchema as any).shape ?? tool.inputSchema,
-      async (args: any) => {
+      schema,
+      async (args: unknown) => {
         try {
           const result = await tool.handler(client, args);
           return {
@@ -59,13 +61,13 @@ export async function start(tools: ToolDef[]): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  process.on('SIGINT', async () => {
-    await server.close();
+  process.on('SIGINT', () => {
+    void server.close();
     process.exit(0);
   });
 
-  process.on('SIGTERM', async () => {
-    await server.close();
+  process.on('SIGTERM', () => {
+    void server.close();
     process.exit(0);
   });
 }

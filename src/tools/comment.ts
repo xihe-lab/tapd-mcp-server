@@ -24,14 +24,21 @@ export const commentTools: ToolDef[] = [
     description: "Create a new comment on a story, bug, or task",
     inputSchema: z.object({
       workspace_id: z.number().describe("Project ID"),
-      entry_type: z.string().describe("Entity type: bug, task, or story"),
+      entry_type: z.string().describe("Entity type: bug, bug_remark, stories, or tasks"),
       entry_id: z.string().describe("Entity ID to comment on"),
       description: z.string().describe("Comment content"),
+      author: z.string().optional().describe("Author (defaults to TAPD_NICK_NAME env)"),
       cc: z.string().optional().describe("Copy to users, separated by |"),
       attachments: z.string().optional().describe("Attachment file IDs, separated by |"),
+      root_id: z.string().optional().describe("Root comment ID for replies"),
+      reply_id: z.string().optional().describe("Comment ID being replied to"),
     }),
     handler: async (client, params) => {
-      return client.post("/comments", params);
+      const finalParams = {
+        ...params,
+        author: params.author ?? TapdClient.getNickName(),
+      };
+      return client.post("/comments", finalParams);
     },
   },
 ];

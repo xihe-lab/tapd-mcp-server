@@ -25,4 +25,7 @@ async function main(): Promise<void> {
 }
 
 // Start the server
-main();
+main().catch((error) => {
+  console.error('Failed to start TAPD MCP server:', error);
+  process.exit(1);
+});

@@ -118,7 +118,7 @@ export const bugTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        current_owner: params.current_owner || TapdClient.getNickName(),
+        current_owner: params.current_owner ?? TapdClient.getNickName(),
       };
       return client.post('/bugs', finalParams);
     },
@@ -127,7 +127,7 @@ export const bugTools: ToolDef[] = [
     name: 'tapd_update_bug',
     description: 'Update an existing bug in TAPD',
     inputSchema: z.object({
-      id: z.number().describe('Bug ID (required)'),
+      id: z.string().describe('Bug ID (required)'),
       workspace_id: z.number().describe('Project ID (required)'),
       title: z.string().optional().describe('Bug title'),
       priority: z.string().optional().describe('Priority'),

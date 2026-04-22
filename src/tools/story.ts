@@ -83,7 +83,7 @@ export const storyTools: ToolDef[] = [
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        owner: params.owner || TapdClient.getNickName(),
+        owner: params.owner ?? TapdClient.getNickName(),
       };
       return client.post('/stories', finalParams);
     },
@@ -92,7 +92,7 @@ export const storyTools: ToolDef[] = [
     name: 'tapd_update_story',
     description: 'Update an existing story in TAPD',
     inputSchema: z.object({
-      id: z.number().describe('Story ID (required)'),
+      id: z.string().describe('Story ID (required)'),
       workspace_id: z.number().describe('Project ID (required)'),
       name: z.string().optional().describe('Story name'),
       priority: z.string().optional().describe('Priority'),
