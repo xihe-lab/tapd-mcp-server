@@ -8,7 +8,7 @@ export const iterationTools: ToolDef[] = [
     description: "Get iterations with optional filters",
     inputSchema: z.object({
       workspace_id: z.number().describe("Project ID"),
-      id: z.number().optional().describe("Iteration ID, supports multi-ID query"),
+      id: z.string().optional().describe("Iteration ID, supports multi-ID query"),
       name: z.string().optional().describe("Iteration title, supports fuzzy matching"),
       status: z.string().optional().describe("Status: open/done or custom Chinese status"),
       startdate: z.string().optional().describe("Start date, supports time query"),
@@ -55,7 +55,7 @@ export const iterationTools: ToolDef[] = [
     name: "tapd_update_iteration",
     description: "Update an existing iteration",
     inputSchema: z.object({
-      id: z.number().describe("Iteration ID"),
+      id: z.string().describe("Iteration ID"),
       workspace_id: z.number().describe("Project ID"),
       name: z.string().optional().describe("Iteration name"),
       startdate: z.string().optional().describe("Start date"),

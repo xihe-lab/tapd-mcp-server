@@ -25,18 +25,19 @@ export const timesheetTools: ToolDef[] = [
     description: "Create a new timesheet entry",
     inputSchema: z.object({
       workspace_id: z.number().describe("Project ID"),
-      user: z.string().optional().describe("User name (defaults to TAPD_NICK_NAME env)"),
-      item_type: z.string().describe("Type: story, bug, or task"),
-      item_id: z.string().describe("ID of the story, bug, or task"),
-      timesheet_date: z.string().describe("Date of work (YYYY-MM-DD)"),
-      spent_time: z.number().describe("Hours spent"),
-      content: z.string().describe("Work description"),
+      owner: z.string().optional().describe("Owner (defaults to TAPD_NICK_NAME env)"),
+      entity_type: z.string().describe("Type: story, task, or bug"),
+      entity_id: z.string().describe("ID of the story, bug, or task"),
+      spentdate: z.string().describe("Date of work (YYYY-MM-DD)"),
+      timespent: z.number().describe("Hours spent"),
+      memo: z.string().optional().describe("Work description"),
+      timeremain: z.string().optional().describe("Remaining hours"),
       cc: z.string().optional().describe("Copy to users, separated by |"),
     }),
     handler: async (client, params) => {
       const finalParams = {
         ...params,
-        user: params.user || TapdClient.getNickName(),
+        owner: params.owner || TapdClient.getNickName(),
       };
       return client.post("/timesheets", finalParams);
     },

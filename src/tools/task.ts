@@ -72,7 +72,7 @@ export const taskTools: ToolDef[] = [
     name: 'tapd_update_task',
     description: 'Update an existing task in TAPD',
     inputSchema: z.object({
-      id: z.number().describe('Task ID (required)'),
+      id: z.string().describe('Task ID (required)'),
       workspace_id: z.number().describe('Project ID (required)'),
       name: z.string().optional().describe('Task name'),
       description: z.string().optional().describe('Detailed description'),
