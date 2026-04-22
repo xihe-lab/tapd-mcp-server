@@ -17,8 +17,8 @@ export const iterationTools: ToolDef[] = [
       created: z.string().optional().describe("Creation time, supports time query"),
       modified: z.string().optional().describe("Modification time, supports time query"),
       completed: z.string().optional().describe("Completion time"),
-      workitem_type_id: z.number().optional().describe("Iteration category"),
-      plan_app_id: z.number().optional().describe("Plan application ID"),
+      workitem_type_id: z.string().optional().describe("Iteration category"),
+      plan_app_id: z.string().optional().describe("Plan application ID"),
       locker: z.string().optional().describe("Locked by user"),
       limit: z.number().optional().describe("Return count limit, default 30, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
@@ -40,8 +40,8 @@ export const iterationTools: ToolDef[] = [
       description: z.string().optional().describe("Iteration description"),
       status: z.string().optional().describe("Status: open/done"),
       creator: z.string().optional().describe("Creator (defaults to TAPD_NICK_NAME env, required by API)"),
-      workitem_type_id: z.number().optional().describe("Iteration category"),
-      plan_app_id: z.number().optional().describe("Plan application ID"),
+      workitem_type_id: z.string().optional().describe("Iteration category"),
+      plan_app_id: z.string().optional().describe("Plan application ID"),
     }),
     handler: async (client: TapdClient, params) => {
       const finalParams = {
@@ -63,8 +63,8 @@ export const iterationTools: ToolDef[] = [
       description: z.string().optional().describe("Iteration description"),
       status: z.string().optional().describe("Status: open/done"),
       current_user: z.string().optional().describe("Current user for operation (defaults to TAPD_NICK_NAME env, required by API)"),
-      workitem_type_id: z.number().optional().describe("Iteration category"),
-      plan_app_id: z.number().optional().describe("Plan application ID"),
+      workitem_type_id: z.string().optional().describe("Iteration category"),
+      plan_app_id: z.string().optional().describe("Plan application ID"),
     }),
     handler: async (client: TapdClient, params) => {
       const finalParams = {
@@ -87,8 +87,8 @@ export const iterationTools: ToolDef[] = [
       created: z.string().optional().describe("Creation time, supports time query"),
       modified: z.string().optional().describe("Modification time, supports time query"),
       completed: z.string().optional().describe("Completion time"),
-      workitem_type_id: z.number().optional().describe("Iteration category"),
-      plan_app_id: z.number().optional().describe("Plan application ID"),
+      workitem_type_id: z.string().optional().describe("Iteration category"),
+      plan_app_id: z.string().optional().describe("Plan application ID"),
       locker: z.string().optional().describe("Locked by user"),
     }),
     handler: async (client: TapdClient, params) => {

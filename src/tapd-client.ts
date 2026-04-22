@@ -67,7 +67,7 @@ export class TapdClient {
       body = new URLSearchParams(
         Object.entries(params)
           .filter(([, value]) => value !== undefined)
-          .map(([key, value]) => [key, String(value)])
+          .map(([key, value]) => [key, String(value).replace(/\\n/g, '\n')])
       ).toString();
     }
 
@@ -79,8 +79,8 @@ export class TapdClient {
 
     if (!response.ok) {
       // Try to get error message from response body
-      const text = await response.text();
-      throw new Error(`TAPD API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`TAPD API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
     }
 
     // Check if response is JSON

@@ -34,7 +34,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.number().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan'),
       version_report: z.string().optional().describe('Found version, enum query'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -82,7 +82,7 @@ export const bugTools: ToolDef[] = [
       iteration_id: z.string().optional().describe('Iteration ID'),
       label: z.string().optional().describe('Label, multiple values separated by |'),
       effort: z.number().optional().describe('Estimated effort'),
-      template_id: z.number().optional().describe('Template ID'),
+      template_id: z.string().optional().describe('Template ID'),
       cc: z.string().optional().describe('CC person'),
       te: z.string().optional().describe('Tester'),
       de: z.string().optional().describe('Developer'),
@@ -91,7 +91,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.number().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan'),
       version_report: z.string().optional().describe('Found version'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -116,9 +116,11 @@ export const bugTools: ToolDef[] = [
       estimate: z.number().optional().describe('Estimated resolve time'),
     }),
     handler: async (client, params) => {
+      const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
-        current_owner: params.current_owner ?? TapdClient.getNickName(),
+        current_owner: params.current_owner ?? nickName,
+        reporter: params.reporter ?? nickName,
       };
       return client.post('/bugs', finalParams);
     },
@@ -148,7 +150,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.number().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan'),
       version_report: z.string().optional().describe('Found version'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -207,7 +209,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.number().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan'),
       version_report: z.string().optional().describe('Found version, enum query'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
