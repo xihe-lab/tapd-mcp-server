@@ -107,8 +107,8 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.published == 'false'
         run: |
-          # Remove .npmrc to force npm to use OIDC
-          rm -f "$NPM_CONFIG_USERCONFIG"
+          # Create clean .npmrc with only registry config (no auth)
+          echo 'registry=https://registry.npmjs.org' > "$NPM_CONFIG_USERCONFIG"
           npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ''
