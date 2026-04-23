@@ -43,6 +43,7 @@ jobs:
         run: npm run build
 
   # Create tag only on main branch after CI passes
+  # Version is managed manually in package.json by developer
   tag:
     name: Create Tag
     runs-on: ubuntu-latest
@@ -75,56 +76,16 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Determine version bump type from commits
-        if: steps.check.outputs.exists == 'false'
-        id: bump
-        run: |
-          # Get the previous tag
-          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-
-          if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log "$PREV_TAG..HEAD" --pretty=format:"%s" --no-merges)
-          else
-            COMMITS=$(git log --pretty=format:"%s" --no-merges -50)
-          fi
-
-          echo "commits<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-          # Check for breaking changes
-          if echo "$COMMITS" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE"; then
-            BUMP_TYPE="major"
-          # Check for features
-          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
-            BUMP_TYPE="minor"
-          # Default to patch
-          else
-            BUMP_TYPE="patch"
-          fi
-
-          echo "type=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
-
-      - name: Bump version and create tag
+      - name: Create and push tag
         if: steps.check.outputs.exists == 'false'
         run: |
+          VERSION=$(node -p "require('./package.json').version")
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Bump version (without creating git tag, we'll create it manually)
-          npm version ${{ steps.bump.outputs.type }} --no-git-tag-version -m "chore: release %s [skip ci]"
-
-          # Get new version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-
-          # Commit version change
-          git add package.json
-          git commit -m "chore: release $NEW_VERSION [skip ci]"
-
-          # Create and push annotated tag
-          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-          git push origin main
-          git push origin "v$NEW_VERSION"
+          # Create annotated tag
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
 
       - name: Summary
         run: |
@@ -132,10 +93,7 @@ jobs:
           if [ "${{ steps.check.outputs.exists }}" == "false" ]; then
             echo "### ✅ Created tag v$VERSION" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Bump type:** ${{ steps.bump.outputs.type }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Commits since last tag:**" >> $GITHUB_STEP_SUMMARY
-            echo "${{ steps.bump.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+            echo "Version is managed manually in package.json." >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ⏭️ Skipped - Tag v${{ steps.current.outputs.version }} already exists" >> $GITHUB_STEP_SUMMARY
+            echo "### ⏭️ Skipped - Tag v$VERSION already exists" >> $GITHUB_STEP_SUMMARY
           fi
