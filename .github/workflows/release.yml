@@ -107,8 +107,8 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.published == 'false'
         run: |
-          # Clear any existing auth from .npmrc to use OIDC
-          rm -f ~/.npmrc
+          # Unset NODE_AUTH_TOKEN to use OIDC trusted publishing
+          unset NODE_AUTH_TOKEN
           npm publish --provenance --access public
 
       - name: Create and push tag
