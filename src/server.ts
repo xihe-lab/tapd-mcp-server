@@ -6,9 +6,7 @@ import { TapdClient } from './tapd-client.js';
 let client: TapdClient | null = null;
 
 function getTapdClient(): TapdClient {
-  if (!client) {
-    client = TapdClient.fromEnv();
-  }
+  client ??= TapdClient.fromEnv();
   return client;
 }
 
