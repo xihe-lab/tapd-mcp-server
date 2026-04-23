@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
+import { TapdClient } from '../tapd-client.js';
 
 export const testTools: ToolDef[] = [
   {
@@ -40,6 +41,46 @@ export const testTools: ToolDef[] = [
     }),
     handler: async (client, params) => {
       return client.get("/test_plans", params);
+    },
+  },
+  {
+    name: "tapd_create_test_plan",
+    description: "Create a new test plan in TAPD",
+    inputSchema: z.object({
+      workspace_id: z.number().describe("Project ID (required)"),
+      name: z.string().describe("Test plan name (required)"),
+      description: z.string().optional().describe("Test plan description"),
+      owner: z.string().optional().describe("Owner (defaults to TAPD_NICK_NAME env)"),
+      creator: z.string().optional().describe("Creator (defaults to TAPD_NICK_NAME env)"),
+      begin: z.string().optional().describe("Start date (YYYY-MM-DD)"),
+      end: z.string().optional().describe("End date (YYYY-MM-DD)"),
+      status: z.string().optional().describe("Status"),
+      category_id: z.string().optional().describe("Category ID"),
+      iteration_id: z.string().optional().describe("Iteration ID"),
+    }),
+    handler: async (client, params) => {
+      const nickName = TapdClient.getNickName();
+      const finalParams = {
+        ...params,
+        owner: params.owner ?? nickName,
+        creator: params.creator ?? nickName,
+      };
+      return client.post("/test_plans", finalParams);
+    },
+  },
+  {
+    name: "tapd_get_test_plan_count",
+    description: "Get the count of test plans",
+    inputSchema: z.object({
+      workspace_id: z.number().describe("Project ID (required)"),
+      id: z.string().optional().describe("Test plan ID"),
+      name: z.string().optional().describe("Test plan name"),
+      status: z.string().optional().describe("Status"),
+      creator: z.string().optional().describe("Creator"),
+      owner: z.string().optional().describe("Owner"),
+    }),
+    handler: async (client, params) => {
+      return client.get("/test_plans/count", params);
     },
   },
 ];

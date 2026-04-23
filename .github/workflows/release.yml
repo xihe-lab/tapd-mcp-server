@@ -1,18 +1,27 @@
-name: Publish to npm
+name: Release - Publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+
+# Only one release run at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
+    name: Publish to npm
     runs-on: ubuntu-latest
+    environment: npm publish
     permissions:
       contents: write
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -26,38 +35,87 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set version from tag
+      - name: Build
+        run: npm run build
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Get version from tag
+        id: version
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           VERSION=${TAG#v}
-          echo "Setting version to $VERSION"
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches package.json
+        run: |
+          TAG_VERSION=${{ steps.version.outputs.version }}
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PACKAGE_VERSION)"
+            exit 1
+          fi
+
+      - name: Check if version already published
+        id: check
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if npm view @xihe-lab/tapd-mcp-server@$VERSION version 2>/dev/null; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Version $VERSION already published, skipping"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Generate changelog
+        if: steps.check.outputs.published == 'false'
         id: changelog
         run: |
+          CURRENT_TAG=${{ steps.version.outputs.tag }}
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
           if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+            COMMITS=$(git log "${PREVIOUS_TAG}..${CURRENT_TAG}" --pretty=format:"- %s (%h)" --no-merges)
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
           fi
+
           echo "commits<<EOF" >> "$GITHUB_OUTPUT"
           echo "$COMMITS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Update GitHub Release with changelog
+      - name: Update GitHub Release
+        if: steps.check.outputs.published == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: false
           body: |
             ## Changelog
 
             ${{ steps.changelog.outputs.commits }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
-        run: npm run build
-
-      - name: Publish
+      - name: Publish to npm
+        if: steps.check.outputs.published == 'false'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if [ "${{ steps.check.outputs.published }}" == "false" ]; then
+            echo "### ✅ Published @xihe-lab/tapd-mcp-server@$VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Changelog:**" >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.changelog.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⏭️ Skipped - Version $VERSION already published" >> $GITHUB_STEP_SUMMARY
+          fi

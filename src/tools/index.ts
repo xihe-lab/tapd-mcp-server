@@ -13,6 +13,10 @@ import { settingsTools } from './settings.js';
 import { testTools } from './test.js';
 import { wikiTools } from './wiki.js';
 import { releaseTools } from './release.js';
+import { attachmentTools } from './attachment.js';
+import { miniItemTools } from './mini-item.js';
+import { miniWorkspaceTools } from './mini-workspace.js';
+import { miniCommentTools } from './mini-comment.js';
 
 export const allTools: ToolDef[] = [
   ...workspaceTools,
@@ -28,4 +32,8 @@ export const allTools: ToolDef[] = [
   ...testTools,
   ...wikiTools,
   ...releaseTools,
+  ...attachmentTools,
+  ...miniItemTools,
+  ...miniWorkspaceTools,
+  ...miniCommentTools,
 ];

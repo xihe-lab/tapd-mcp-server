@@ -3,8 +3,13 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import type { ToolDef } from './types.js';
 import { TapdClient } from './tapd-client.js';
 
-function createTapdClient(): TapdClient {
-  return TapdClient.fromEnv();
+let client: TapdClient | null = null;
+
+function getTapdClient(): TapdClient {
+  if (!client) {
+    client = TapdClient.fromEnv();
+  }
+  return client;
 }
 
 export function createServer(): McpServer {
@@ -17,8 +22,6 @@ export function createServer(): McpServer {
 }
 
 export function registerTools(server: McpServer, tools: ToolDef[]): void {
-  const client = createTapdClient();
-
   for (const tool of tools) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const schema = (tool.inputSchema as any).shape ?? tool.inputSchema;
@@ -28,7 +31,8 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
       schema,
       async (args: unknown) => {
         try {
-          const result = await tool.handler(client, args);
+          const tapdClient = getTapdClient();
+          const result = await tool.handler(tapdClient, args);
           return {
             content: [
               {
