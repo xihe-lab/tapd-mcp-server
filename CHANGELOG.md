@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-23
+
+### Added
+
+- **Mini workspace tools** for TAPD 轻协作功能:
+  - `tapd_mini_get_items` - 获取轻协作工作项列表
+  - `tapd_mini_get_item_count` - 获取工作项数量
+  - `tapd_mini_create_item` - 创建新工作项
+  - `tapd_mini_update_item` - 更新工作项
+  - `tapd_mini_get_comments` - 获取工作项评论
+  - `tapd_mini_get_comment_count` - 获取评论数量
+  - `tapd_mini_create_comment` - 创建评论
+  - `tapd_mini_get_changes` - 获取工作项变更历史
+  - `tapd_mini_get_categories` - 获取工作项分类
+  - `tapd_mini_get_attachments` - 获取附件列表
+  - `tapd_mini_get_attachment_download_url` - 获取附件下载链接
+  - `tapd_mini_get_workspace_info` - 获取轻协作空间信息
+  - `tapd_mini_get_workspace_users` - 获取空间成员列表
+  - `tapd_mini_get_user_projects` - 获取用户参与的轻协作项目
+- `tapd_create_test_plan` - 创建测试计划
+- `tapd_get_test_plan_count` - 获取测试计划数量
+
+### Changed
+
+- Improved CI/CD pipeline with releases branch trigger workflow
+- Version management now manual in package.json instead of auto-bump
+- Server version updated to match package.json version
+
+### Fixed
+
+- Use nullish coalescing operator (`??=`) in getTapdClient function for better code style
+
+## [1.0.6] - 2026-04-22
+
+### Fixed
+
+- Various CI/CD improvements and bug fixes
+
 ## [1.0.4] - 2026-04-22
 
 ### Fixed
