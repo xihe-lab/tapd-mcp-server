@@ -4,6 +4,32 @@ import { TapdClient } from '../tapd-client.js';
 
 export const testTools: ToolDef[] = [
   {
+    name: "tapd_create_test_case",
+    description: "Create a new test case in TAPD",
+    inputSchema: z.object({
+      workspace_id: z.number().describe("Project ID (required)"),
+      name: z.string().describe("Test case name (required)"),
+      category_id: z.string().optional().describe("Category ID"),
+      priority: z.string().optional().describe("Priority level"),
+      creator: z.string().optional().describe("Creator (defaults to TAPD_NICK_NAME env)"),
+      owner: z.string().optional().describe("Owner"),
+      description: z.string().optional().describe("Test case description"),
+      teststeps: z.string().optional().describe("Test steps"),
+      expectresult: z.string().optional().describe("Expected result"),
+      status: z.string().optional().describe("Status"),
+      iteration_id: z.string().optional().describe("Iteration ID"),
+      custom_field_one: z.string().optional().describe("Custom field 1"),
+    }),
+    handler: async (client, params) => {
+      const nickName = TapdClient.getNickName();
+      const finalParams = {
+        ...params,
+        creator: params.creator ?? nickName,
+      };
+      return client.post("/tcases", finalParams);
+    },
+  },
+  {
     name: "tapd_get_test_cases",
     description: "Get test cases from TAPD",
     inputSchema: z.object({
@@ -21,7 +47,7 @@ export const testTools: ToolDef[] = [
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
     handler: async (client, params) => {
-      return client.get("/test_cases", params);
+      return client.get("/tcases", params);
     },
   },
   {
