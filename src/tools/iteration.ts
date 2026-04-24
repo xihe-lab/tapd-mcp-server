@@ -20,6 +20,7 @@ export const iterationTools: ToolDef[] = [
       workitem_type_id: z.string().optional().describe("Iteration category"),
       plan_app_id: z.string().optional().describe("Plan application ID"),
       locker: z.string().optional().describe("Locked by user"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
       limit: z.number().optional().describe("Return count limit, default 30, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order"),
@@ -42,6 +43,7 @@ export const iterationTools: ToolDef[] = [
       creator: z.string().optional().describe("Creator (defaults to TAPD_NICK_NAME env, required by API)"),
       workitem_type_id: z.string().optional().describe("Iteration category"),
       plan_app_id: z.string().optional().describe("Plan application ID"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
     handler: async (client: TapdClient, params) => {
       const finalParams = {
@@ -65,6 +67,7 @@ export const iterationTools: ToolDef[] = [
       current_user: z.string().optional().describe("Current user for operation (defaults to TAPD_NICK_NAME env, required by API)"),
       workitem_type_id: z.string().optional().describe("Iteration category"),
       plan_app_id: z.string().optional().describe("Plan application ID"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
     handler: async (client: TapdClient, params) => {
       const finalParams = {
@@ -90,6 +93,7 @@ export const iterationTools: ToolDef[] = [
       workitem_type_id: z.string().optional().describe("Iteration category"),
       plan_app_id: z.string().optional().describe("Plan application ID"),
       locker: z.string().optional().describe("Locked by user"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
     handler: async (client: TapdClient, params) => {
       return client.get("/iterations/count", params);

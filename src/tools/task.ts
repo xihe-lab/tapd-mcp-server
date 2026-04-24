@@ -30,6 +30,7 @@ export const taskTools: ToolDef[] = [
       created: z.string().optional().describe('Creation time, Format: YYYY-MM-DD HH:mm'),
       modified: z.string().optional().describe('Modification time, Format: YYYY-MM-DD HH:mm'),
       completed: z.string().optional().describe('Completion time, Format: YYYY-MM-DD HH:mm'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
       limit: z.number().optional().describe('Return count, default 30, max 200'),
       page: z.number().optional().describe('Page number, default 1'),
       order: z.string().optional().describe('Sort order'),
@@ -59,6 +60,7 @@ export const taskTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       label: z.string().optional().describe('Label'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
@@ -93,6 +95,7 @@ export const taskTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       label: z.string().optional().describe('Label'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.post('/tasks', params);
@@ -125,6 +128,7 @@ export const taskTools: ToolDef[] = [
       created: z.string().optional().describe('Creation time, Format: YYYY-MM-DD HH:mm'),
       modified: z.string().optional().describe('Modification time, Format: YYYY-MM-DD HH:mm'),
       completed: z.string().optional().describe('Completion time, Format: YYYY-MM-DD HH:mm'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.get('/tasks/count', params);
@@ -151,6 +155,7 @@ export const taskTools: ToolDef[] = [
         begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
         due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
         label: z.string().optional().describe('Label'),
+        custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
       })).describe('Array of tasks to update (max 50 per request)'),
     }),
     handler: async (client, params) => {

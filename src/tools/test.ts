@@ -18,7 +18,7 @@ export const testTools: ToolDef[] = [
       expectresult: z.string().optional().describe("Expected result"),
       status: z.string().optional().describe("Status"),
       iteration_id: z.string().optional().describe("Iteration ID"),
-      custom_field_one: z.string().optional().describe("Custom field 1"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
     handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
@@ -39,8 +39,12 @@ export const testTools: ToolDef[] = [
       status: z.string().optional().describe("Status of the test case"),
       category_id: z.string().optional().describe("Category ID"),
       creator: z.string().optional().describe("Creator name"),
+      owner: z.string().optional().describe("Owner"),
       priority: z.string().optional().describe("Priority level"),
       iteration_id: z.string().optional().describe("Iteration ID"),
+      created: z.string().optional().describe("Creation time, supports time query"),
+      modified: z.string().optional().describe("Modification time, supports time query"),
+      custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),

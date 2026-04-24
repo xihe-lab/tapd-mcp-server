@@ -44,6 +44,10 @@ export const storyTools: ToolDef[] = [
       source: z.string().optional().describe('Story source'),
       type: z.string().optional().describe('Story type'),
       description: z.string().optional().describe('Detailed description, supports fuzzy matching'),
+      business_value: z.string().optional().describe('Business value'),
+      test_focus: z.string().optional().describe('Test focus'),
+      size: z.string().optional().describe('Size/scale'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
       limit: z.number().optional().describe('Return count, default 30, max 200'),
       page: z.number().optional().describe('Page number, default 1'),
       order: z.string().optional().describe('Sort order'),
@@ -80,6 +84,10 @@ export const storyTools: ToolDef[] = [
       type: z.string().optional().describe('Story type'),
       label: z.string().optional().describe('Label'),
       template_id: z.string().optional().describe('Template ID'),
+      business_value: z.string().optional().describe('Business value'),
+      test_focus: z.string().optional().describe('Test focus'),
+      size: z.string().optional().describe('Size/scale'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
@@ -121,6 +129,10 @@ export const storyTools: ToolDef[] = [
       type: z.string().optional().describe('Story type'),
       label: z.string().optional().describe('Label'),
       status: z.string().optional().describe('Status'),
+      business_value: z.string().optional().describe('Business value'),
+      test_focus: z.string().optional().describe('Test focus'),
+      size: z.string().optional().describe('Size/scale'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.post('/stories', params);
@@ -167,6 +179,10 @@ export const storyTools: ToolDef[] = [
       source: z.string().optional().describe('Story source'),
       type: z.string().optional().describe('Story type'),
       description: z.string().optional().describe('Detailed description, supports fuzzy matching'),
+      business_value: z.string().optional().describe('Business value'),
+      test_focus: z.string().optional().describe('Test focus'),
+      size: z.string().optional().describe('Size/scale'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.get('/stories/count', params);

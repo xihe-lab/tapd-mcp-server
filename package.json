@@ -48,6 +48,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "@opentapd/tapd-node-sdk": "^1.67.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
