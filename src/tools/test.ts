@@ -69,6 +69,25 @@ export const testTools: ToolDef[] = [
     },
   },
   {
+    name: "tapd_update_test_plan",
+    description: "Update an existing test plan in TAPD",
+    inputSchema: z.object({
+      workspace_id: z.number().describe("Project ID (required)"),
+      id: z.string().describe("Test plan ID (required)"),
+      name: z.string().optional().describe("Test plan name"),
+      description: z.string().optional().describe("Test plan description"),
+      owner: z.string().optional().describe("Owner"),
+      begin: z.string().optional().describe("Start date (YYYY-MM-DD)"),
+      end: z.string().optional().describe("End date (YYYY-MM-DD)"),
+      status: z.string().optional().describe("Status"),
+      category_id: z.string().optional().describe("Category ID"),
+      iteration_id: z.string().optional().describe("Iteration ID"),
+    }),
+    handler: async (client, params) => {
+      return client.post("/test_plans", params);
+    },
+  },
+  {
     name: "tapd_get_test_plan_count",
     description: "Get the count of test plans",
     inputSchema: z.object({
