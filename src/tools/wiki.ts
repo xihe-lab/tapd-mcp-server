@@ -19,7 +19,7 @@ export const wikiTools: ToolDef[] = [
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
     handler: async (client, params) => {
-      return client.get("/wikis", params);
+      return client.get("/tapd_wikis", params);
     },
   },
   {
