@@ -40,10 +40,11 @@ export const workspaceTools: ToolDef[] = [
     name: "tapd_get_workspace_users",
     description: "Get all users in a workspace",
     inputSchema: z.object({
-      workspace_id: z.number().describe("Project ID"),
+      workspace_id: z.number().describe("项目ID (必填)"),
+      fields: z.string().optional().describe("需要查的字段值: user,role_id,email,tof_id 可选，以,分隔"),
     }),
     handler: async (client: TapdClient, params) => {
-      return client.get("/workspaces/get_workspace_users", params);
+      return client.get("/users", params);
     },
   },
 ];

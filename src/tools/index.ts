@@ -17,6 +17,9 @@ import { attachmentTools } from './attachment.js';
 import { miniItemTools } from './mini-item.js';
 import { miniWorkspaceTools } from './mini-workspace.js';
 import { miniCommentTools } from './mini-comment.js';
+import { changeTools } from './changes.js';
+import { customFieldTools } from './custom-fields.js';
+import { relationTools } from './relations.js';
 
 export const allTools: ToolDef[] = [
   ...workspaceTools,
@@ -36,4 +39,7 @@ export const allTools: ToolDef[] = [
   ...miniItemTools,
   ...miniWorkspaceTools,
   ...miniCommentTools,
+  ...changeTools,
+  ...customFieldTools,
+  ...relationTools,
 ];
