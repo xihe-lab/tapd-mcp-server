@@ -53,8 +53,8 @@ export const storyTools: ToolDef[] = [
       order: z.string().optional().describe('Sort order'),
       fields: z.string().optional().describe('Specify return fields'),
     }),
-    handler: async (client, params) => {
-      return client.get('/stories', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('getStories', params);
     },
   },
   {
@@ -89,14 +89,14 @@ export const storyTools: ToolDef[] = [
       size: z.string().optional().describe('Size/scale'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
+    handler: async (client: TapdClient, params) => {
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
         owner: params.owner ?? nickName,
         creator: params.creator ?? nickName,
       };
-      return client.post('/stories', finalParams);
+      return client.callSdk('addStory', finalParams);
     },
   },
   {
@@ -134,8 +134,8 @@ export const storyTools: ToolDef[] = [
       size: z.string().optional().describe('Size/scale'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
-      return client.post('/stories', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('updateStory', params);
     },
   },
   {
@@ -184,8 +184,8 @@ export const storyTools: ToolDef[] = [
       size: z.string().optional().describe('Size/scale'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
-      return client.get('/stories/count', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('getStoriesCount', params);
     },
   },
 ];

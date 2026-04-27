@@ -36,8 +36,8 @@ export const taskTools: ToolDef[] = [
       order: z.string().optional().describe('Sort order'),
       fields: z.string().optional().describe('Specify return fields'),
     }),
-    handler: async (client, params) => {
-      return client.get('/tasks', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('getTasks', params);
     },
   },
   {
@@ -62,14 +62,14 @@ export const taskTools: ToolDef[] = [
       label: z.string().optional().describe('Label'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
+    handler: async (client: TapdClient, params) => {
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
         owner: params.owner ?? nickName,
         creator: params.creator ?? nickName,
       };
-      return client.post('/tasks', finalParams);
+      return client.callSdk('addTask', finalParams);
     },
   },
   {
@@ -97,8 +97,8 @@ export const taskTools: ToolDef[] = [
       label: z.string().optional().describe('Label'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
-      return client.post('/tasks', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('updateTask', params);
     },
   },
   {
@@ -130,8 +130,8 @@ export const taskTools: ToolDef[] = [
       completed: z.string().optional().describe('Completion time, Format: YYYY-MM-DD HH:mm'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client, params) => {
-      return client.get('/tasks/count', params);
+    handler: async (client: TapdClient, params) => {
+      return client.callSdk('getTasksCount', params);
     },
   },
   {
@@ -158,7 +158,7 @@ export const taskTools: ToolDef[] = [
         custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
       })).describe('Array of tasks to update (max 50 per request)'),
     }),
-    handler: async (client, params) => {
+    handler: async (client: TapdClient, params) => {
       // TAPD API expects workitems as a JSON string
       const tasks = params.tasks as ({ id: string } & Record<string, string | number | undefined>)[];
       const workitems = tasks.map((task) => {
@@ -166,7 +166,7 @@ export const taskTools: ToolDef[] = [
         return { id, ...rest };
       });
       const workitemsJson = JSON.stringify(workitems);
-      return client.post('/tasks/batch_update_task', {
+      return client.callSdk('batchUpdateTask', {
         workspace_id: params.workspace_id,
         workitems: workitemsJson,
       });
