@@ -1,6 +1,3 @@
-import SDK from '@opentapd/tapd-node-sdk';
-import fs from 'fs';
-
 /**
  * TAPD API Client
  *
@@ -8,14 +5,11 @@ import fs from 'fs';
  * - Basic Auth: using api_user + api_password
  * - OAuth/Bearer Token: using access_token
  *
- * Provides two ways to call API:
- * - callSdk(): use official TAPD Node SDK (recommended)
- * - get/post(): use custom HTTP client (fallback)
+ * Uses custom HTTP client for all API calls.
  */
 export class TapdClient {
   private authHeader: string;
   private baseUrl: string;
-  private sdk: SDK | null = null;
   private authType: 'basic' | 'oauth';
   private apiUser?: string;
   private apiPassword?: string;
@@ -84,86 +78,6 @@ export class TapdClient {
   static getNickName(): string | undefined {
     return process.env.TAPD_NICK_NAME;
   }
-
-  /**
-   * Get or create SDK instance (lazy initialization)
-   */
-  getSdk(): SDK {
-    if (!this.sdk) {
-      if (this.authType === 'oauth') {
-        const token = this.authHeader.replace('Bearer ', '');
-        this.sdk = new SDK({
-          client: '',
-          secret: '',
-          accessToken: token,
-          address: this.baseUrl,
-        });
-      } else {
-        this.sdk = new SDK({
-          client: this.apiUser ?? process.env.TAPD_API_USER ?? '',
-          secret: this.apiPassword ?? process.env.TAPD_API_PASSWORD ?? '',
-          address: this.baseUrl,
-        });
-      }
-    }
-    return this.sdk;
-  }
-
-  /**
-   * Call SDK method directly, returns data portion of response
-   */
-  async callSdk<T>(methodName: string, params?: Record<string, unknown>): Promise<T> {
-    const sdk = this.getSdk();
-    const method = sdk[methodName as keyof SDK];
-
-    if (typeof method !== 'function') {
-      throw new Error(`SDK method "${methodName}" not found`);
-    }
-
-    // Call SDK method dynamically - type assertion for dynamic method call
-    type SdkMethod = (p?: Record<string, unknown>) => Promise<TapdResponse<T>>;
-    const sdkMethod = method as SdkMethod;
-    const result = await sdkMethod(params);
-
-    if (result.status !== 200 && result.status !== 1) {
-      throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
-    }
-
-    return result.data;
-  }
-
-  /**
-   * Upload file using SDK
-   */
-  async uploadFile(
-    type: 'image' | 'attachment',
-    params: {
-      workspace_id: string | number;
-      file: string | fs.ReadStream;
-      filename?: string;
-    }
-  ): Promise<unknown> {
-    const sdk = this.getSdk();
-
-    const fileStream = typeof params.file === 'string'
-      ? fs.createReadStream(params.file)
-      : params.file;
-
-    if (type === 'image') {
-      return sdk.uploadImage({
-        workspace_id: params.workspace_id,
-        image: fileStream,
-      });
-    }
-
-    return sdk.uploadAttachment({
-      workspace_id: params.workspace_id,
-      filename: params.filename ?? 'attachment',
-      file: fileStream,
-    });
-  }
-
-  // ============ Original HTTP Client Methods (Fallback) ============
 
   /**
    * Make HTTP request to TAPD API
