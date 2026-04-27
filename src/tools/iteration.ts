@@ -27,7 +27,7 @@ export const iterationTools: ToolDef[] = [
       fields: z.string().optional().describe("Specify return fields"),
     }),
     handler: async (client: TapdClient, params) => {
-      return client.callSdk('getIterations', params);
+      return client.get("/iterations", params);
     },
   },
   {
@@ -50,7 +50,7 @@ export const iterationTools: ToolDef[] = [
         ...params,
         creator: params.creator ?? TapdClient.getNickName(),
       };
-      return client.callSdk('addIteration', finalParams);
+      return client.post("/iterations", finalParams);
     },
   },
   {
@@ -74,7 +74,7 @@ export const iterationTools: ToolDef[] = [
         ...params,
         current_user: params.current_user ?? TapdClient.getNickName(),
       };
-      return client.callSdk('updateIteration', finalParams);
+      return client.post("/iterations", finalParams);
     },
   },
   {
@@ -96,7 +96,7 @@ export const iterationTools: ToolDef[] = [
       custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
     handler: async (client: TapdClient, params) => {
-      return client.callSdk('getIterationsCount', params);
+      return client.get("/iterations/count", params);
     },
   },
 ];

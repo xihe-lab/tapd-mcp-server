@@ -20,13 +20,13 @@ export const testTools: ToolDef[] = [
       iteration_id: z.string().optional().describe("Iteration ID"),
       custom_field_one: z.string().optional().describe("Custom field 1 (supports 1-200)"),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
         creator: params.creator ?? nickName,
       };
-      return client.callSdk('addTcase', finalParams);
+      return client.post("/tcases", finalParams);
     },
   },
   {
@@ -50,26 +50,8 @@ export const testTools: ToolDef[] = [
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getTcases', params);
-    },
-  },
-  {
-    name: "tapd_get_test_case_count",
-    description: "Get the count of test cases",
-    inputSchema: z.object({
-      workspace_id: z.number().describe("Project ID (required)"),
-      id: z.string().optional().describe("Test case ID"),
-      name: z.string().optional().describe("Test case name"),
-      status: z.string().optional().describe("Status"),
-      category_id: z.string().optional().describe("Category ID"),
-      creator: z.string().optional().describe("Creator"),
-      owner: z.string().optional().describe("Owner"),
-      priority: z.string().optional().describe("Priority"),
-      iteration_id: z.string().optional().describe("Iteration ID"),
-    }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getTcasesCount', params);
+    handler: async (client, params) => {
+      return client.get("/tcases", params);
     },
   },
   {
@@ -87,8 +69,8 @@ export const testTools: ToolDef[] = [
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getTestPlans', params);
+    handler: async (client, params) => {
+      return client.get("/test_plans", params);
     },
   },
   {
@@ -106,14 +88,14 @@ export const testTools: ToolDef[] = [
       category_id: z.string().optional().describe("Category ID"),
       iteration_id: z.string().optional().describe("Iteration ID"),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
         owner: params.owner ?? nickName,
         creator: params.creator ?? nickName,
       };
-      return client.callSdk('addTestPlan', finalParams);
+      return client.post("/test_plans", finalParams);
     },
   },
   {
@@ -131,8 +113,8 @@ export const testTools: ToolDef[] = [
       category_id: z.string().optional().describe("Category ID"),
       iteration_id: z.string().optional().describe("Iteration ID"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('updateTestPlan', params);
+    handler: async (client, params) => {
+      return client.post("/test_plans", params);
     },
   },
   {
@@ -146,8 +128,8 @@ export const testTools: ToolDef[] = [
       creator: z.string().optional().describe("Creator"),
       owner: z.string().optional().describe("Owner"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getTestPlansCount', params);
+    handler: async (client, params) => {
+      return client.get("/test_plans/count", params);
     },
   },
 ];

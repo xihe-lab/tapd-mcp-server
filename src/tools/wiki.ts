@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
-import { TapdClient } from '../tapd-client.js';
 
 export const wikiTools: ToolDef[] = [
   {
@@ -19,8 +18,8 @@ export const wikiTools: ToolDef[] = [
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getWikis', params);
+    handler: async (client, params) => {
+      return client.get("/tapd_wikis", params);
     },
   },
   {
@@ -35,12 +34,12 @@ export const wikiTools: ToolDef[] = [
       note: z.string().optional().describe("Note/remark"),
       parent_wiki_id: z.string().optional().describe("Parent wiki ID for nested pages"),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const creator = params.creator ?? process.env.TAPD_NICK_NAME;
       if (!creator) {
         throw new Error("creator is required. Set TAPD_NICK_NAME environment variable or provide creator parameter.");
       }
-      return client.callSdk('addWiki', {
+      return client.post("/tapd_wikis", {
         ...params,
         creator,
       });
@@ -59,12 +58,12 @@ export const wikiTools: ToolDef[] = [
       note: z.string().optional().describe("Note/remark"),
       parent_wiki_id: z.string().optional().describe("Parent wiki ID for nested pages"),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const modifier = params.modifier ?? process.env.TAPD_NICK_NAME;
       if (!modifier) {
         throw new Error("modifier is required. Set TAPD_NICK_NAME environment variable or provide modifier parameter.");
       }
-      return client.callSdk('updateWiki', {
+      return client.post("/tapd_wikis", {
         ...params,
         modifier,
       });
@@ -82,8 +81,8 @@ export const wikiTools: ToolDef[] = [
       status: z.string().optional().describe("Status of the wiki page"),
       category_id: z.string().optional().describe("Category ID"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getWikisCount', params);
+    handler: async (client, params) => {
+      return client.get("/tapd_wikis/count", params);
     },
   },
   {

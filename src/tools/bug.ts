@@ -64,8 +64,8 @@ export const bugTools: ToolDef[] = [
       order: z.string().optional().describe('Sort order'),
       fields: z.string().optional().describe('Specify return fields'),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getBugs', params);
+    handler: async (client, params) => {
+      return client.get('/bugs', params);
     },
   },
   {
@@ -117,14 +117,14 @@ export const bugTools: ToolDef[] = [
       estimate: z.number().optional().describe('Estimated resolve time'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
         current_owner: params.current_owner ?? nickName,
         reporter: params.reporter ?? nickName,
       };
-      return client.callSdk('addBug', finalParams);
+      return client.post('/bugs', finalParams);
     },
   },
   {
@@ -177,8 +177,8 @@ export const bugTools: ToolDef[] = [
       estimate: z.number().optional().describe('Estimated resolve time'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('updateBug', params);
+    handler: async (client, params) => {
+      return client.post('/bugs', params);
     },
   },
   {
@@ -238,8 +238,8 @@ export const bugTools: ToolDef[] = [
       estimate: z.number().optional().describe('Estimated resolve time'),
       custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getBugsCount', params);
+    handler: async (client, params) => {
+      return client.get('/bugs/count', params);
     },
   },
 ];

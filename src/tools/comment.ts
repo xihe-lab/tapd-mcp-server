@@ -15,20 +15,8 @@ export const commentTools: ToolDef[] = [
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getComments', params);
-    },
-  },
-  {
-    name: "tapd_get_comment_count",
-    description: "Get the count of comments",
-    inputSchema: z.object({
-      workspace_id: z.number().describe("Project ID (required)"),
-      entry_type: z.string().optional().describe("Entity type: story, bug, or task"),
-      entry_id: z.string().optional().describe("Entity ID to count comments for"),
-    }),
-    handler: async (client: TapdClient, params) => {
-      return client.callSdk('getCommentsCount', params);
+    handler: async (client, params) => {
+      return client.get("/comments", params);
     },
   },
   {
@@ -45,12 +33,12 @@ export const commentTools: ToolDef[] = [
       root_id: z.string().optional().describe("Root comment ID for replies"),
       reply_id: z.string().optional().describe("Comment ID being replied to"),
     }),
-    handler: async (client: TapdClient, params) => {
+    handler: async (client, params) => {
       const finalParams = {
         ...params,
         author: params.author ?? TapdClient.getNickName(),
       };
-      return client.callSdk('addComment', finalParams);
+      return client.post("/comments", finalParams);
     },
   },
 ];
