@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-27
+
+### Added
+
+- `tapd_get_workflow_step_map` - 获取需求类别工作流节点信息 (新增 API 端点)
+
+### Fixed
+
+基于官方 TAPD API 文档，修正了以下 API 端点定义：
+
+- **Workflow API**:
+  - `tapd_get_workflow_status_map`: 添加必填参数 `system` (取值 'bug' 或 'story')
+  - `tapd_get_workflow_status_map`: 参数 `workitem_type_id` 改为可选 (获取需求状态时必传)
+- **Wiki API**:
+  - `tapd_get_wiki_followers_count`: 端点路径修正 `/tapd_wikis/followers_count` → `/tapd_wikis_followers/count`
+- **User API**:
+  - `tapd_get_personal_setting`: 端点路径修正 `/users/personal_setting` → `/users/get_personal_setting`
+  - `tapd_get_personal_setting`: 添加必填参数 `nick` (用户唯一标识)
+  - `tapd_get_roles`: 端点路径修正 `/users/roles` → `/roles`
+- **Workspace API**:
+  - `tapd_get_workspace_users`: 端点路径修正 `/workspaces/get_workspace_users` → `/users`
+  - `tapd_get_workspace_users`: 添加可选参数 `fields` (需要查的字段值)
+- **Settings API**:
+  - `tapd_get_modules`: 端点路径修正 `/settings/modules` → `/modules`
+  - `tapd_get_modules`: 补充完整参数定义 (id, name, description, owner, created, limit, page, order, fields)
+  - `tapd_get_versions`: 端点路径修正 `/settings/versions` → `/versions`
+  - `tapd_get_versions`: 补充完整参数定义 (id, owner, creator, name, created, status, limit, page, fields)
+  - `tapd_get_features`: 端点路径修正 `/settings/features` → `/features`
+  - `tapd_get_features`: 补充完整参数定义 (id, name, description, owner, created, limit, page, order, fields)
+
+### Documentation
+
+- 同步更新 Postman Collection (Basic Auth 和 Bearer Token 版本)
+- 同步更新 TAPD Wiki 文档 (ID: 1139814312001000025)
+
+## [1.1.1] - 2026-04-24
+
+### Fixed
+
+- **Wiki API endpoint**: Changed GET Wiki endpoint from `/wikis` to `/tapd_wikis` to match TAPD API documentation and be consistent with POST endpoint
+
 ## [1.1.0] - 2026-04-23
 
 ### Added

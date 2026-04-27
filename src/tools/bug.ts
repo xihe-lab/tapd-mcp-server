@@ -58,6 +58,7 @@ export const bugTools: ToolDef[] = [
       testtype: z.string().optional().describe('Test type'),
       size: z.string().optional().describe('Size'),
       estimate: z.number().optional().describe('Estimated resolve time'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
       limit: z.number().optional().describe('Return count, default 30, max 200'),
       page: z.number().optional().describe('Page number, default 1'),
       order: z.string().optional().describe('Sort order'),
@@ -114,6 +115,7 @@ export const bugTools: ToolDef[] = [
       testtype: z.string().optional().describe('Test type'),
       size: z.string().optional().describe('Size'),
       estimate: z.number().optional().describe('Estimated resolve time'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       const nickName = TapdClient.getNickName();
@@ -173,6 +175,7 @@ export const bugTools: ToolDef[] = [
       testtype: z.string().optional().describe('Test type'),
       size: z.string().optional().describe('Size'),
       estimate: z.number().optional().describe('Estimated resolve time'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.post('/bugs', params);
@@ -233,6 +236,7 @@ export const bugTools: ToolDef[] = [
       testtype: z.string().optional().describe('Test type'),
       size: z.string().optional().describe('Size'),
       estimate: z.number().optional().describe('Estimated resolve time'),
+      custom_field_one: z.string().optional().describe('Custom field 1 (supports 1-200)'),
     }),
     handler: async (client, params) => {
       return client.get('/bugs/count', params);
