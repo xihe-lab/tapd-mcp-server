@@ -141,7 +141,7 @@ export const wikiTools: ToolDef[] = [
       user: z.string().optional().describe("User name"),
     }),
     handler: async (client, params) => {
-      return client.get("/tapd_wikis/followers_count", params);
+      return client.get("/tapd_wikis_followers/count", params);
     },
   },
   {
