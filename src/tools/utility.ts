@@ -8,6 +8,7 @@ const shortToLongIdSchema = z.object({
   is_cloud: z.boolean().optional().default(true).describe('是否云环境（默认 true）'),
 });
 
+// eslint-disable-next-line @typescript-eslint/require-await
 const shortToLongIdHandler = async (_client: TapdClient, params: z.infer<typeof shortToLongIdSchema>) => {
   const result = TapdClient.toLongId(params.short_id, params.workspace_id, params.is_cloud);
   return {
@@ -41,7 +42,7 @@ async function runWithConcurrency<T>(
         const p = executing[i];
         const settled = await Promise.race([p, Promise.resolve('pending')]);
         if (settled !== 'pending') {
-          executing.splice(i, 1);
+          void executing.splice(i, 1);
         }
       }
     }
@@ -83,19 +84,19 @@ export const utilityTools: ToolDef[] = [
     name: 'tapd_batch_fetch_stories',
     description: '批量并发获取多个需求详情。支持短 ID 自动转换，默认并发数为 3。',
     inputSchema: batchFetchStoriesSchema,
-    handler: async (client: TapdClient, params) => {
+    handler: async (client: TapdClient, params: z.infer<typeof batchFetchStoriesSchema>) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
       if (!workspaceId) {
         throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
       }
 
       const maxConcurrency = params.max_workers ?? 3;
-      const tasks = params.ids.map((id: string) => () => {
+      const tasks = params.ids.map(id => () => {
         const longId = TapdClient.toLongId(id, workspaceId);
         return client.get('/stories', {
           workspace_id: workspaceId,
           id: longId,
-          fields: params.fields,
+          ...(params.fields ? { fields: params.fields } : {}),
         });
       });
 
@@ -106,19 +107,19 @@ export const utilityTools: ToolDef[] = [
     name: 'tapd_batch_fetch_bugs',
     description: '批量并发获取多个缺陷详情。支持短 ID 自动转换，默认并发数为 3。',
     inputSchema: batchFetchBugsSchema,
-    handler: async (client: TapdClient, params) => {
+    handler: async (client: TapdClient, params: z.infer<typeof batchFetchBugsSchema>) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
       if (!workspaceId) {
         throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
       }
 
       const maxConcurrency = params.max_workers ?? 3;
-      const tasks = params.ids.map((id: string) => () => {
+      const tasks = params.ids.map(id => () => {
         const longId = TapdClient.toLongId(id, workspaceId);
         return client.get('/bugs', {
           workspace_id: workspaceId,
           id: longId,
-          fields: params.fields,
+          ...(params.fields ? { fields: params.fields } : {}),
         });
       });
 
@@ -129,19 +130,19 @@ export const utilityTools: ToolDef[] = [
     name: 'tapd_batch_fetch_tasks',
     description: '批量并发获取多个任务详情。支持短 ID 自动转换，默认并发数为 3。',
     inputSchema: batchFetchTasksSchema,
-    handler: async (client: TapdClient, params) => {
+    handler: async (client: TapdClient, params: z.infer<typeof batchFetchTasksSchema>) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
       if (!workspaceId) {
         throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
       }
 
       const maxConcurrency = params.max_workers ?? 3;
-      const tasks = params.ids.map((id: string) => () => {
+      const tasks = params.ids.map(id => () => {
         const longId = TapdClient.toLongId(id, workspaceId);
         return client.get('/tasks', {
           workspace_id: workspaceId,
           id: longId,
-          fields: params.fields,
+          ...(params.fields ? { fields: params.fields } : {}),
         });
       });
 

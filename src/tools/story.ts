@@ -113,8 +113,8 @@ export const storyTools: ToolDef[] = [
           '/workitem_types',
           { workspace_id: workspaceId }
         );
-        const types = (response as any)?.data ?? [];
-        const storyType = types.find((item: any) =>
+        const types = response ?? [];
+        const storyType = types.find(item =>
           item.WorkitemType?.english_name === 'STORY'
         );
         if (storyType) {

@@ -114,7 +114,7 @@ export class TapdClient {
    * @param workspaceId - Workspace ID for constructing long ID
    * @param isCloud - Whether it's cloud environment (default: true)
    */
-  static toLongId(id: string | number, workspaceId: string | number, isCloud: boolean = true): string {
+  static toLongId(id: string | number, workspaceId: string | number, isCloud = true): string {
     const idStr = String(id).trim();
     const workspaceIdStr = String(workspaceId);
 

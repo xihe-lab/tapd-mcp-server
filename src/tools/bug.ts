@@ -604,7 +604,7 @@ export const bugTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       ids: z.string().describe('缺陷ID列表，逗号分隔 (必填)'),
     }),
-    handler: async (client, params) => {
+    handler: async (client: TapdClient, params: { workspace_id?: number; ids: string }) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
       if (!workspaceId) {
         throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
