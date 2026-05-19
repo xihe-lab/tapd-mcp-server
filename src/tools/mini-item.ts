@@ -7,7 +7,7 @@ export const miniItemTools: ToolDef[] = [
     name: 'tapd_mini_get_items',
     description: 'Get mini workspace items (轻协作工作项)',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Item ID, supports multiple IDs'),
       name: z.string().optional().describe('Item title, supports fuzzy matching'),
       priority: z.string().optional().describe('Priority, supports enum query'),
@@ -32,14 +32,18 @@ export const miniItemTools: ToolDef[] = [
       fields: z.string().optional().describe('Comma-separated list of fields to return'),
     }),
     handler: async (client, params) => {
-      return client.get('/mini_items', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/mini_items', { ...params, workspace_id: workspaceId });
     },
   },
   {
     name: 'tapd_mini_create_item',
     description: 'Create a new item in mini workspace',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().describe('Item title (required)'),
       priority: z.string().optional().describe('Priority'),
       owner: z.string().optional().describe('Owner'),
@@ -53,9 +57,14 @@ export const miniItemTools: ToolDef[] = [
       label: z.string().optional().describe('Labels, separated by |'),
     }),
     handler: async (client, params) => {
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
+        workspace_id: workspaceId,
         creator: params.creator ?? nickName,
       };
       return client.post('/mini_items', finalParams);
@@ -65,7 +74,7 @@ export const miniItemTools: ToolDef[] = [
     name: 'tapd_mini_update_item',
     description: 'Update an existing item in mini workspace',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().describe('Item ID (required)'),
       name: z.string().optional().describe('Item title'),
       priority: z.string().optional().describe('Priority'),
@@ -81,14 +90,18 @@ export const miniItemTools: ToolDef[] = [
       progress_manual: z.number().optional().describe('Progress'),
     }),
     handler: async (client, params) => {
-      return client.post('/mini_items/update', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.post('/mini_items/update', { ...params, workspace_id: workspaceId });
     },
   },
   {
     name: 'tapd_mini_get_item_count',
     description: 'Get the count of mini workspace items',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Item ID, supports multiple IDs'),
       name: z.string().optional().describe('Item title, supports fuzzy matching'),
       priority: z.string().optional().describe('Priority, supports enum query'),
@@ -105,28 +118,36 @@ export const miniItemTools: ToolDef[] = [
       category_id: z.string().optional().describe('Category ID, supports enum query'),
     }),
     handler: async (client, params) => {
-      return client.get('/mini_items/count', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/mini_items/count', { ...params, workspace_id: workspaceId });
     },
   },
   {
     name: 'tapd_mini_get_categories',
     description: 'Get mini workspace item categories',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Category ID'),
       name: z.string().optional().describe('Category name'),
       limit: z.number().optional().describe('Return count, default 30, max 200'),
       page: z.number().optional().describe('Page number, default 1'),
     }),
     handler: async (client, params) => {
-      return client.get('/mini_item_categories', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/mini_item_categories', { ...params, workspace_id: workspaceId });
     },
   },
   {
     name: 'tapd_mini_get_changes',
     description: 'Get mini workspace item changes/history',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Change ID'),
       item_id: z.string().optional().describe('Item ID'),
       created: z.string().optional().describe('Creation time, supports time query'),
@@ -136,7 +157,11 @@ export const miniItemTools: ToolDef[] = [
       fields: z.string().optional().describe('Comma-separated list of fields to return'),
     }),
     handler: async (client, params) => {
-      return client.get('/mini_item_changes', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/mini_item_changes', { ...params, workspace_id: workspaceId });
     },
   },
 ];

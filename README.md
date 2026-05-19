@@ -33,13 +33,15 @@ TAPD 是腾讯敏捷研发管理平台，覆盖需求、计划、研发、测试
 
 #### 方式一：一键安装命令
 
-注意替换 `your_access_token`、`your_workspace_id` 和 `your_nick_name`：
+注意替换以下参数（必填项标记为 **必填**，其余可选）。`-s user` 为用户级配置（所有项目生效），改为 `-s project` 则仅当前项目生效：
 
 ```bash
 claude mcp add -s user tapd \
-  --env TAPD_ACCESS_TOKEN=your_access_token \
-  --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \
-  --env TAPD_NICK_NAME=your_nick_name \
+  --env TAPD_ACCESS_TOKEN=your_access_token \                        # 必填：个人访问令牌
+  --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \                # 必填：默认项目 ID
+  --env TAPD_NICK_NAME=your_nick_name \                              # 推荐：用户昵称，用于 owner/creator 默认值
+  --env TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID=your_task_type_id \       # 可选：默认 TASK 类型 ID，可通过 tapd_get_workitem_types 查询
+  --env TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID=your_story_type_id \     # 可选：默认 STORY 类型 ID
   -- npx -y "@xihe-lab/tapd-mcp-server"
 ```
 
@@ -66,7 +68,9 @@ claude mcp remove tapd
         "TAPD_API_PASSWORD": "",
         "TAPD_API_BASE_URL": "https://api.tapd.cn",
         "TAPD_DEFAULT_WORKSPACE_ID": "",
-        "TAPD_NICK_NAME": ""
+        "TAPD_NICK_NAME": "",
+        "TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID": "",
+        "TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID": ""
       }
     }
   }
@@ -101,6 +105,8 @@ claude mcp remove tapd
 | `TAPD_API_BASE_URL` | 否 | API 基础地址，默认 `https://api.tapd.cn` |
 | `TAPD_DEFAULT_WORKSPACE_ID` | 否 | 默认项目 ID，省去每次传 workspace_id |
 | `TAPD_NICK_NAME` | 否 | 用户昵称，作为 owner/creator 等参数的默认值 |
+| `TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID` | 否 | 默认 STORY 工作项类型 ID |
+| `TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID` | 否 | 默认 TASK 工作项类型 ID |
 
 注意：`TAPD_API_USER`/`TAPD_API_PASSWORD`（API 账号密码）与 `TAPD_ACCESS_TOKEN`（个人访问令牌）为两种调用方式，选一种即可。
 
@@ -109,7 +115,7 @@ claude mcp remove tapd
 | 模块 | 可用操作 | 示例 |
 |------|----------|------|
 | 项目 | 查询项目信息、项目列表、成员列表 | "查看我参与的项目" |
-| 需求 | 查询 / 创建 / 更新需求，统计数量 | "创建需求：用户登录功能" |
+| 需求 | 查询 / 创建 / 更新需求，统计数量；创建需求时可指定 TASK 类型 ID 创建任务 | "创建需求：用户登录功能"、"创建任务并关联到父需求" |
 | 缺陷 | 查询 / 创建 / 更新缺陷，统计数量 | "查看我的未解决 Bug" |
 | 任务 | 查询 / 创建 / 更新任务，统计数量 | "把任务标记为已完成" |
 | 迭代 | 查询 / 创建 / 更新迭代，统计数量 | "当前迭代还有多少未完成" |
@@ -134,6 +140,14 @@ claude mcp remove tapd
 
 在 TAPD 开放平台检查应用权限，确保已勾选所需 API 的访问权限。
 
+### 创建任务时提示权限不足
+
+如果 OAuth Token 没有 `tasks::create` 权限，可以通过 `tapd_create_story` 工具传入 TASK 类型的 `workitem_type_id` 来创建任务（仅需 `stories::create` 权限）：
+
+> 用 tapd_create_story 创建一个任务，workitem_type_id 设为 TASK 类型
+
+可通过 `tapd_get_workitem_types` 查询项目中可用的 TASK 类型 ID。
+
 ### 支持 Basic Auth 吗
 
 支持。设置 `TAPD_API_USER` 和 `TAPD_API_PASSWORD` 即可，与 Access Token 二选一。
@@ -152,6 +166,8 @@ claude mcp add -s user tapd \
   --env TAPD_ACCESS_TOKEN=your_access_token \
   --env TAPD_DEFAULT_WORKSPACE_ID=your_workspace_id \
   --env TAPD_NICK_NAME=your_nick_name \
+  --env TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID=your_task_type_id \
+  --env TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID=your_story_type_id \
   -- npx -y "@xihe-lab/tapd-mcp-server"
 ```
 
@@ -171,10 +187,43 @@ claude mcp add -s user tapd \
 }
 ```
 
-### 查看当前版本
+### npm 全局安装方式
+
+如果通过 npm 全局安装使用：
 
 ```bash
+# 查看当前安装版本
+npm list -g @xihe-lab/tapd-mcp-server
+
+# 更新到最新版本
+npm update -g @xihe-lab/tapd-mcp-server
+
+# 或指定版本安装
+npm install -g @xihe-lab/tapd-mcp-server@1.5.0
+```
+
+更新后需重启 MCP 客户端。
+
+### npx 缓存清理
+
+如果 npx 使用了旧版本缓存，可手动清理后重新运行：
+
+```bash
+# 清理 npx 缓存
+npx clear-npx-cache
+
+# 或手动删除缓存目录
+rm -rf ~/.npm/_npx
+```
+
+### 查看版本信息
+
+```bash
+# 查看最新发布版本
 npm view @xihe-lab/tapd-mcp-server version
+
+# 查看所有已发布版本
+npm view @xihe-lab/tapd-mcp-server versions
 ```
 
 ### 查看更新日志

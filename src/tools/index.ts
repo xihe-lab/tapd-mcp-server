@@ -20,6 +20,12 @@ import { miniCommentTools } from './mini-comment.js';
 import { changeTools } from './changes.js';
 import { customFieldTools } from './custom-fields.js';
 import { relationTools } from './relations.js';
+import { boardTools } from './board.js';
+import { sourceTools } from './source.js';
+import { programTools } from './program.js';
+import { reportTools } from './report.js';
+import { utilityTools } from './utility.js';
+import { imageTools } from './image.js';
 
 export const allTools: ToolDef[] = [
   ...workspaceTools,
@@ -42,4 +48,10 @@ export const allTools: ToolDef[] = [
   ...changeTools,
   ...customFieldTools,
   ...relationTools,
+  ...boardTools,
+  ...sourceTools,
+  ...programTools,
+  ...reportTools,
+  ...utilityTools,
+  ...imageTools,
 ];

@@ -7,7 +7,7 @@ export const miniCommentTools: ToolDef[] = [
     name: 'tapd_mini_get_comments',
     description: 'Get comments from mini workspace',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Comment ID, supports multiple IDs'),
       entry_id: z.string().optional().describe('Item ID the comment belongs to'),
       author: z.string().optional().describe('Comment author'),
@@ -21,14 +21,18 @@ export const miniCommentTools: ToolDef[] = [
       fields: z.string().optional().describe('Comma-separated list of fields to return'),
     }),
     handler: async (client, params) => {
-      return client.get('/comments', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/comments', { ...params, workspace_id: workspaceId });
     },
   },
   {
     name: 'tapd_mini_create_comment',
     description: 'Create a comment in mini workspace',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       entry_id: z.string().describe('Item ID the comment belongs to (required)'),
       description: z.string().describe('Comment content (required, wrap with <p> tags)'),
       author: z.string().optional().describe('Comment author (defaults to TAPD_NICK_NAME env)'),
@@ -36,9 +40,14 @@ export const miniCommentTools: ToolDef[] = [
       reply_id: z.string().optional().describe('Reply comment ID'),
     }),
     handler: async (client, params) => {
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
       const nickName = TapdClient.getNickName();
       const finalParams = {
         ...params,
+        workspace_id: workspaceId,
         author: params.author ?? nickName,
       };
       return client.post('/comments', finalParams);
@@ -48,7 +57,7 @@ export const miniCommentTools: ToolDef[] = [
     name: 'tapd_mini_get_comment_count',
     description: 'Get the count of comments in mini workspace',
     inputSchema: z.object({
-      workspace_id: z.number().describe('Mini workspace ID (required)'),
+      workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('Comment ID, supports multiple IDs'),
       entry_id: z.string().optional().describe('Item ID the comment belongs to'),
       author: z.string().optional().describe('Comment author'),
@@ -56,7 +65,11 @@ export const miniCommentTools: ToolDef[] = [
       modified: z.string().optional().describe('Last modification time, supports time query'),
     }),
     handler: async (client, params) => {
-      return client.get('/comments/count', params);
+      const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
+      if (!workspaceId) {
+        throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
+      }
+      return client.get('/comments/count', { ...params, workspace_id: workspaceId });
     },
   },
 ];
