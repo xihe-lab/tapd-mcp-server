@@ -11,13 +11,17 @@ try {
   await client.start();
   const tools = await client.listTools();
 
-  r.check(`工具总数 210 (基线 ${baseline.length} / 新版 ${tools.length})`, tools.length === 210 && baseline.length === 210);
+  // 2.0.0-rc 口径（1299 后）：基线 210 存量零漂移 + 恰好新增 2 个富文本转换工具
+  const EXPECTED_ADDED = ['tapd_md_to_html', 'tapd_html_to_md'];
+  r.check(`工具总数 212 (基线 ${baseline.length} + 2 新增 / 新版 ${tools.length})`,
+    tools.length === 212 && baseline.length === 210);
 
   const newNames = new Set(tools.map(t => t.name));
   const baseNames = new Set(baseline.map(t => t.name));
   const missing = [...baseNames].filter(n => !newNames.has(n));
   const extra = [...newNames].filter(n => !baseNames.has(n));
-  r.check('工具名集合完全一致 (missing=0, extra=0)', missing.length === 0 && extra.length === 0,
+  r.check(`存量 210 零缺失 + 新增恰好 ${JSON.stringify(EXPECTED_ADDED)}`,
+    missing.length === 0 && JSON.stringify(extra) === JSON.stringify(EXPECTED_ADDED),
     `missing=${JSON.stringify(missing.slice(0, 10))} extra=${JSON.stringify(extra.slice(0, 10))}`);
 
   // inputSchema 深比较：先全量哈希比对，再抽 20 个逐字段输出差异
@@ -43,12 +47,12 @@ try {
   const descDiff = tools.filter(t => byName[t.name] && byName[t.name].description !== t.description).map(t => t.name);
   if (descDiff.length > 0) r.note(`description 有差异的工具 (${descDiff.length}): ${descDiff.slice(0, 10).join(', ')}`);
 
-  // 输出全量哈希供报告引用
+  // 输出全量哈希供报告引用（212 含新增两工具，与 210 基线哈希不同属预期）
   const canonical = JSON.stringify(tools.map(t => ({ name: t.name, inputSchema: stripVolatile(t.inputSchema) })));
   const hash = createHash('sha256').update(canonical).digest('hex');
   const baseCanonical = JSON.stringify(baseline.map(t => ({ name: t.name, inputSchema: stripVolatile(t.inputSchema) })));
   const baseHash = createHash('sha256').update(baseCanonical).digest('hex');
-  r.check(`全量 schema sha256 一致 (新版 ${hash.slice(0, 16)}… = 基线 ${baseHash.slice(0, 16)}…)`, hash === baseHash);
+  r.note(`全量 schema sha256: 新版(212) ${hash.slice(0, 16)}… / 基线(210) ${baseHash.slice(0, 16)}…`);
 } catch (e) {
   r.check('tools/list 深比较执行', false, e.message);
 } finally {
