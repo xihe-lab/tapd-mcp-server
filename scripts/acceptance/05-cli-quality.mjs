@@ -41,10 +41,16 @@ mkdirSync(CONFIG_DIR, { recursive: true });
   const unknownFlag = await td('story', 'list', '--bogus-flag');
   r.check('退出码 2: 未知 flag', unknownFlag.code === 2 && /unknown option/.test(unknownFlag.stderr),
     `退出码 ${unknownFlag.code}, stderr: ${unknownFlag.stderr.slice(0, 100)}`);
-  // INVALID_ARGS（缺陷记录见报告 D1：裸 stack trace + 退出码 1，FSD §5.2 应为退出码 2）
+  // INVALID_ARGS（D1 已修复：FSD §5.2 契约行为 = 退出码 2 + error: INVALID_ARGS 前缀，无 stack trace）
   const badWs = await td('story', 'list', '--workspace-id', 'abc');
-  r.note(`INVALID_ARGS 实测: 退出码 ${badWs.code}，stderr 含裸 stack trace（flags.js throw），契约偏差见报告缺陷 D1`);
-  r.check('INVALID_ARGS 实际退出码为 1 (记录为契约偏差 D1，非 2)', badWs.code === 1, `实际 ${badWs.code}`);
+  r.note(`INVALID_ARGS 实测: 退出码 ${badWs.code}, stderr: ${badWs.stderr.slice(0, 100)}`);
+  r.check('D1 修复后契约正确: --workspace-id abc 退出码 2 + INVALID_ARGS 前缀 + 无 stack trace',
+    badWs.code === 2 && /error: INVALID_ARGS:/.test(badWs.stderr) && !/at \w+ /.test(badWs.stderr),
+    `退出码 ${badWs.code}, stderr: ${badWs.stderr.slice(0, 120)}`);
+  const badTimeout = await td('story', 'list', '--timeout', 'xyz', '--workspace-id', '1');
+  r.check('D1 修复后契约正确: --timeout xyz 退出码 2 + INVALID_ARGS 前缀',
+    badTimeout.code === 2 && /error: INVALID_ARGS:/.test(badTimeout.stderr),
+    `退出码 ${badTimeout.code}, stderr: ${badTimeout.stderr.slice(0, 120)}`);
 }
 
 // ---- 3. --read-only 拦截写命令（含 --no-read-only 反向）----

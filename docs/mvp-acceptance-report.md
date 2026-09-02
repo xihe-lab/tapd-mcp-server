@@ -43,7 +43,7 @@
 
 **5. CLI 质量门**：
 - `td --help` / `td story --help` / `td story list --help` 三级全部正常。
-- 退出码矩阵：0（config show、advisor）、1（AUTH_MISSING、READ_ONLY_BLOCKED）、2（未知命令、未知 flag）全部符合 §5.2。INVALID_ARGS 例外见缺陷 D1。
+- 退出码矩阵：0（config show、advisor）、1（AUTH_MISSING、READ_ONLY_BLOCKED）、2（未知命令、未知 flag、INVALID_ARGS）全部符合 §5.2（INVALID_ARGS 初测偏差见缺陷 D1，已修复并复验）。
 - `--read-only` 拦截 `story create` / `story update`，错误码与文案正确。
 - 管道纯净：AUTH_MISSING 下 `td story list --output json` stdout 0 字节，`| jq` 无 stderr 污染。
 - export-schema：anthropic 格式全量 210 条，与基线 missing/extra/schemaMismatch=0。
@@ -68,12 +68,12 @@
 
 ## 四、缺陷清单
 
-### D1 CLI 全局 flag 类型校验裸抛 stack trace，退出码 1（契约偏差，建议发布前修）
+### D1 CLI 全局 flag 类型校验裸抛 stack trace，退出码 1（契约偏差）——✅ 已修复（2e67528）
 
 - **现象**：`td story list --workspace-id abc` → Node 原生 stack trace（`flags.js:12 throw new Error`），退出码 1。
 - **契约**：FSD §5.2 INVALID_ARGS 属参数/用法错误应退出码 **2**；§5.3 错误应走 `error: INVALID_ARGS: --workspace-id must be a number, got "abc"` 格式（stderr）。
-- **根因**：`packages/cli/src/flags.ts:12`（parseWorkspaceId）与 `flags.ts:17`（parseTimeout）在 commander option coercer 中抛裸 `Error`，顶层 `handleError` 对非 CliError 重新 throw。同文件 `parseOutputMode` 已是正确写法（CliError('INVALID_ARGS', ...)）。
-- **建议修法**：两处 coercer 改抛 `CliError('INVALID_ARGS', ...)`，CliError.exitCode 已正确映射 USAGE(2)。
+- **根因**：`packages/cli/src/flags.ts`（parseWorkspaceId / parseTimeout）在 commander option coercer 中抛裸 `Error`，顶层 `handleError` 对非 CliError 重新 throw。同文件 `parseOutputMode` 已是正确写法（CliError('INVALID_ARGS', ...)）。
+- **修复**：两处 coercer 改抛 `CliError('INVALID_ARGS', ...)`（提交 2e67528）。验收脚本 05 断言已更新为契约行为并复验：`--workspace-id abc` 与 `--timeout xyz` 均退出码 2 + `error: INVALID_ARGS:` 前缀 + 无 stack trace，run-all 9/9 通过。
 - **级别**：中低（不影响核心功能，属退出码/诊断输出契约偏差）。
 
 ### D2 `--output` 对 `td config show` 无效（观察项）
