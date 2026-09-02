@@ -1,0 +1,54 @@
+{
+  "name": "@xihe-lab/tapd-mcp-server",
+  "version": "1.4.2",
+  "description": "MCP server for TAPD project management API, enabling AI assistants to manage stories, bugs, tasks, iterations and more via natural language",
+  "type": "module",
+  "main": "dist/bin/tapd-mcp-server.js",
+  "bin": {
+    "tapd-mcp-server": "./dist/bin/tapd-mcp-server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/bin/tapd-mcp-server.js",
+    "dev": "tsx src/bin/tapd-mcp-server.ts",
+    "test": "tsx src/integration-test.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "tapd",
+    "project-management",
+    "ai-tools",
+    "claude",
+    "cursor"
+  ],
+  "author": "xihe-lab",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xihe-lab/tapd-mcp-server.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/xihe-lab/tapd-mcp-server/issues"
+  },
+  "homepage": "https://github.com/xihe-lab/tapd-mcp-server#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@xihe-lab/tapd-core": "workspace:*",
+    "zod": "^3.24.1"
+  }
+}

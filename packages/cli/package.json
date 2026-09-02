@@ -1,0 +1,40 @@
+{
+  "name": "@xihe-lab/tapd-cli",
+  "version": "1.0.0",
+  "description": "TAPD command line (tapd/td) sharing the same kernel as tapd-mcp-server",
+  "type": "module",
+  "bin": {
+    "tapd": "./dist/bin/tapd.js",
+    "td": "./dist/bin/tapd.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "tapd",
+    "cli"
+  ],
+  "author": "xihe-lab",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xihe-lab/tapd-mcp-server.git",
+    "directory": "packages/cli"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@xihe-lab/tapd-core": "workspace:*"
+  }
+}
