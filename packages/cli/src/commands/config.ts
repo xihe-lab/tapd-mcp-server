@@ -1,7 +1,10 @@
+import { writeFileSync } from 'node:fs';
 import type { Command } from 'commander';
 import {
+  allTools,
   CONFIG_KEYS,
   configPath,
+  exportSchemas,
   loadConfig,
   maskSecret,
   parseConfigSet,
@@ -9,9 +12,9 @@ import {
   saveConfig,
   type ConfigSource,
   type ResolvedConfig,
+  type SchemaExportFormat,
 } from '@xihe-lab/tapd-core';
 import { CliError } from '../errors.js';
-import { stub } from './stub.js';
 
 const SECRET_KEYS: ReadonlySet<string> = new Set(['access_token', 'api_password']);
 
@@ -60,5 +63,23 @@ export function registerConfigCommand(program: Command): void {
     process.stdout.write(`saved ${Object.keys(patch).length} key(s) to ${configPath()}\n`);
   });
 
-  config.command('export-schema').description('导出工具 schema（anthropic / openai 格式）').action(stub('td config export-schema', '1285'));
+  config.command('export-schema')
+    .description('导出工具 schema（anthropic / openai 格式）')
+    .option('--format <format>', '导出格式：anthropic | openai', 'anthropic')
+    .option('--resource <resource>', '按资源过滤（如 story）')
+    .option('--out <file>', '写入文件而非 stdout')
+    .action((options: { format: string; resource?: string; out?: string }) => {
+      if (options.format !== 'anthropic' && options.format !== 'openai') {
+        throw new CliError('INVALID_ARGS', `format: invalid_enum_value（预期 anthropic | openai，收到 ${options.format}）`);
+      }
+      const format: SchemaExportFormat = options.format;
+      const exported = exportSchemas(allTools, format, { resource: options.resource }) as unknown[];
+      const json = JSON.stringify(exported, null, 2);
+      if (options.out) {
+        writeFileSync(options.out, json + '\n');
+        process.stdout.write(`exported ${exported.length} tools to ${options.out}\n`);
+      } else {
+        process.stdout.write(json + '\n');
+      }
+    });
 }
