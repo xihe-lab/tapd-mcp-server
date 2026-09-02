@@ -35,6 +35,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@xihe-lab/tapd-core": "workspace:*"
+    "@xihe-lab/tapd-core": "workspace:*",
+    "commander": "^13.1.0",
+    "zod": "^3.25.76"
   }
 }
