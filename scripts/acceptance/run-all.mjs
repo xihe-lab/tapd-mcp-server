@@ -11,6 +11,13 @@ const scripts = [
   '07-unit-tests.mjs',
   '08-package-size.mjs',
   '09-extensibility.mjs',
+  // 第二层（需真凭证 + 网络，会创建 zzz-delete-me- 测试数据）
+  '10-dual-entry-data.mjs',
+  '11-oauth-write.mjs',
+  '12-sdk-fetch.mjs',
+  '13-old-mcp-data.mjs',
+  '14-credential-masking.mjs',
+  '15-performance.mjs',
 ];
 
 const dir = fileURLToPath(new URL('.', import.meta.url));
