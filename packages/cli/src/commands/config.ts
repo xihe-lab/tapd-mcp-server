@@ -39,6 +39,7 @@ function renderConfig(resolved: ResolvedConfig): string {
     lines.push(`${key}: ${renderValue(record[key])} (${sourceTag(resolved.sources[key])})`);
   }
   lines.push(`use_sdk (effective): ${resolved.useSdk}`);
+  lines.push(`use_richtext_auto (effective): ${resolved.useRichtextAuto}`);
   lines.push(`timeout (effective): ${resolved.timeoutMs}ms`);
   return lines.join('\n');
 }

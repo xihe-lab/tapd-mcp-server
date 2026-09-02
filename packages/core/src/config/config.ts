@@ -16,6 +16,7 @@ export interface TapdConfig {
   timeout?: number;
   read_only?: boolean;
   use_sdk?: boolean;
+  use_richtext_auto?: boolean;
   default_story_workitem_type_id?: string;
   default_task_workitem_type_id?: string;
 }
@@ -31,6 +32,7 @@ export const CONFIG_KEYS = [
   'timeout',
   'read_only',
   'use_sdk',
+  'use_richtext_auto',
   'default_story_workitem_type_id',
   'default_task_workitem_type_id',
 ] as const;
@@ -51,6 +53,7 @@ export interface ConfigFlags {
 export interface ResolvedConfig extends TapdConfig {
   readOnly: boolean;
   useSdk: boolean;
+  useRichtextAuto: boolean;
   timeoutMs: number;
   sources: Partial<Record<ConfigKey | 'read_only' | 'timeout', ConfigSource>>;
 }
@@ -114,6 +117,7 @@ export function applyConfigToEnv(config: TapdConfig): void {
   if (config.api_user !== undefined) setIfUnset('TAPD_API_USER', config.api_user);
   if (config.api_password !== undefined) setIfUnset('TAPD_API_PASSWORD', config.api_password);
   if (config.use_sdk === false) setIfUnset('TAPD_SDK_DISABLED', '1');
+  if (config.use_richtext_auto === false) setIfUnset('TAPD_RICHTEXT_AUTO', '0');
 }
 
 function resolveField<T>(
@@ -208,6 +212,10 @@ export function resolveConfig(flags: ConfigFlags = {}, config: TapdConfig = {}):
     ? false
     : envRaw('TAPD_SDK_DISABLED') !== '1';
 
+  const useRichtextAuto = config.use_richtext_auto === false
+    ? false
+    : envRaw('TAPD_RICHTEXT_AUTO') !== '0';
+
   return {
     workspace_id,
     auth_mode,
@@ -218,11 +226,13 @@ export function resolveConfig(flags: ConfigFlags = {}, config: TapdConfig = {}):
     default_output,
     read_only,
     use_sdk: config.use_sdk,
+    use_richtext_auto: config.use_richtext_auto,
     timeout: timeoutMs / 1000,
     default_story_workitem_type_id,
     default_task_workitem_type_id,
     readOnly: read_only,
     useSdk,
+    useRichtextAuto,
     timeoutMs,
     sources,
   };
@@ -235,7 +245,7 @@ export function maskSecret(value: string | undefined): string {
 }
 
 const NUMBER_KEYS: ReadonlySet<string> = new Set(['workspace_id', 'timeout']);
-const BOOL_KEYS: ReadonlySet<string> = new Set(['read_only', 'use_sdk']);
+const BOOL_KEYS: ReadonlySet<string> = new Set(['read_only', 'use_sdk', 'use_richtext_auto']);
 
 export function parseConfigSet(items: string[]): Partial<TapdConfig> {
   const out: Partial<TapdConfig> = {};

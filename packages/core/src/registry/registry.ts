@@ -4,6 +4,7 @@ import type { TapdClient } from '../tapd-client.js';
 import { resolveWrite } from './write-policy.js';
 import { deriveCommand } from './derive-command.js';
 import { MANUAL_CLI_META, EXPLICIT_WRITE } from './cli-meta.js';
+import { transformWriteArgs, transformReadData } from './richtext.js';
 
 export type Entry = 'cli' | 'mcp';
 
@@ -163,11 +164,11 @@ export class ToolRegistry {
 
     try {
       const data = await withTimeout(
-        tool.handler(client, parsed.data),
+        tool.handler(client, transformWriteArgs(name, parsed.data)),
         ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       );
       finish(true);
-      return { ok: true, data: data as T };
+      return { ok: true, data: transformReadData(data) as T };
     } catch (error) {
       if (error instanceof TimeoutSignal) {
         finish(false, 'TIMEOUT');

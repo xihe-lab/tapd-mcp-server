@@ -7,6 +7,7 @@
     "lint": "eslint packages/",
     "test": "pnpm -r test",
     "type-check": "pnpm -r type-check",
+    "generate:richtext": "tsx scripts/generate-richtext-manifests.ts",
     "validate:sdk-routes": "node scripts/validate-sdk-routes.mjs"
   },
   "engines": {
