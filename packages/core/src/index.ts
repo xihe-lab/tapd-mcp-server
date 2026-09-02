@@ -13,3 +13,20 @@ export {
 export { resolveWrite } from './registry/write-policy.js';
 export { deriveCommand, type DerivedCommandParts } from './registry/derive-command.js';
 export { MANUAL_CLI_META, EXPLICIT_WRITE } from './registry/cli-meta.js';
+export {
+  CONFIG_KEYS,
+  applyConfigToEnv,
+  configPath,
+  loadConfig,
+  maskSecret,
+  parseConfigSet,
+  resolveConfig,
+  saveConfig,
+  type AuthMode,
+  type ConfigFlags,
+  type ConfigKey,
+  type ConfigSource,
+  type OutputFormat,
+  type ResolvedConfig,
+  type TapdConfig,
+} from './config/config.js';

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "tsx src/registry/registry.test.ts",
+    "test": "tsx src/registry/registry.test.ts && tsx src/config/config.test.ts",
     "debug:commands": "tsx src/registry/debug-commands.ts"
   },
   "keywords": [
