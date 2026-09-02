@@ -36,6 +36,7 @@ export function addGlobalOptions(cmd: Command): void {
     .option('--api-key <token>', 'TAPD API Token（Access Token，覆盖环境变量）')
     .option('--auth <mode>', '认证方式 token | basic')
     .option('--read-only', '只读模式，拦截所有写命令')
+    .option('--no-read-only', '显式关闭只读模式（优先于配置文件）')
     .option('--output <fmt>', '输出格式 text | table | json（缺省自动：管道 json，终端 table/text）')
     .option('--timeout <seconds>', '单命令超时秒数', parseTimeout)
     .option('--no-color', '关闭彩色输出')

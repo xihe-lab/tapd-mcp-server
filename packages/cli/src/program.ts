@@ -3,8 +3,10 @@ import { Command } from 'commander';
 import {
   type DerivedCommand,
   type ExecContext,
+  type TapdConfig,
   type ToolDef,
   type ToolRegistry,
+  resolveConfig,
 } from '@xihe-lab/tapd-core';
 import { addGlobalOptions, bindSchemaFlags, makeClientFactory, parseOutputMode, toArgs } from './flags.js';
 import { format } from './output/formatter.js';
@@ -24,7 +26,7 @@ const RESOURCE_ALIASES: Record<string, string> = {
   wiki: 'w',
 };
 
-export function buildProgram(registry: ToolRegistry): Command {
+export function buildProgram(registry: ToolRegistry, config: TapdConfig = {}): Command {
   const program: Command = new Command();
   program
     .name('td')
@@ -56,7 +58,7 @@ export function buildProgram(registry: ToolRegistry): Command {
     }
     addGlobalOptions(sub);
     bindSchemaFlags(sub, tool, tool.cli);
-    sub.action((...argv: unknown[]) => runCommand(registry, cmd, tool, argv, program));
+    sub.action((...argv: unknown[]) => runCommand(registry, cmd, tool, argv, program, config));
   }
 
   registerConfigCommand(program);
@@ -71,6 +73,7 @@ async function runCommand(
   tool: ToolDef,
   argv: unknown[],
   program: Command,
+  config: TapdConfig,
 ): Promise<void> {
   const command = argv[argv.length - 1] as Command;
   const positional = argv.slice(0, -1);
@@ -79,16 +82,18 @@ async function runCommand(
   const outputMode = parseOutputMode(globals.output);
 
   const args = toArgs(tool, tool.cli, command.opts(), positional, globals);
+  const resolved = resolveConfig(globals, config);
   const ctx: ExecContext = {
     entry: 'cli',
-    readOnly: Boolean(globals.readOnly),
-    timeoutMs: globals.timeout as number | undefined,
+    readOnly: resolved.readOnly,
+    timeoutMs: resolved.timeoutMs,
   };
   const result = await registry.exec(cmd.tool, args, ctx, makeClientFactory(globals));
   if (!result.ok) throw new CliError(result.error!.code, result.error!.message);
   const output = format(result, cmd, {
     output: outputMode,
     isTTY: Boolean(process.stdout.isTTY),
+    configuredFormat: resolved.default_output && resolved.default_output !== 'auto' ? resolved.default_output : undefined,
     verbose: Boolean(globals.verbose),
     meta: tool.cli,
   });

@@ -1,5 +1,5 @@
 import { CommanderError } from 'commander';
-import { allTools, ToolRegistry } from '@xihe-lab/tapd-core';
+import { allTools, ToolRegistry, applyConfigToEnv, loadConfig, type TapdConfig } from '@xihe-lab/tapd-core';
 import { buildProgram } from './program.js';
 import { CliError } from './errors.js';
 import { EXIT } from './exit-codes.js';
@@ -12,7 +12,9 @@ export async function main(argv: string[] = process.argv): Promise<void> {
   const start = process.hrtime.bigint();
   const registry = new ToolRegistry();
   registry.register(allTools);
-  const program = buildProgram(registry);
+  const config: TapdConfig = loadConfig();
+  applyConfigToEnv(config);
+  const program = buildProgram(registry, config);
   if (process.env.TAPD_CLI_TIMING === '1') {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
     process.stderr.write(`[timing] command tree ready: ${ms.toFixed(1)}ms (${registry.list().length} tools)\n`);
