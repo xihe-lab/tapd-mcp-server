@@ -9,6 +9,7 @@ export interface ToolDef<TInputSchema extends z.ZodTypeAny = z.ZodTypeAny> {
   description: string;
   inputSchema: TInputSchema;
   handler: (client: TapdClient, params: z.infer<TInputSchema>) => Promise<unknown>;
+  write?: boolean;
 }
 
 /**

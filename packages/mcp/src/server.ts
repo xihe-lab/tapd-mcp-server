@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { ToolDef } from '@xihe-lab/tapd-core';
-import { TapdClient } from '@xihe-lab/tapd-core';
+import { ToolRegistry, TapdClient } from '@xihe-lab/tapd-core';
 
 let client: TapdClient | null = null;
 
@@ -20,7 +20,10 @@ export function createServer(): McpServer {
 }
 
 export function registerTools(server: McpServer, tools: ToolDef[]): void {
-  for (const tool of tools) {
+  const registry = new ToolRegistry();
+  registry.register(tools);
+
+  for (const tool of registry.list()) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const schema = (tool.inputSchema as any).shape ?? tool.inputSchema;
     server.tool(
@@ -28,29 +31,26 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
       tool.description,
       schema,
       async (args: unknown) => {
-        try {
-          const tapdClient = getTapdClient();
-          const result = await tool.handler(tapdClient, args);
+        const result = await registry.exec(tool.name, args, { entry: 'mcp' }, getTapdClient);
+        if (result.ok) {
           return {
             content: [
               {
                 type: 'text' as const,
-                text: JSON.stringify(result, null, 2),
+                text: JSON.stringify(result.data, null, 2),
               },
             ],
-          };
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify({ error: errorMessage }, null, 2),
-              },
-            ],
-            isError: true,
           };
         }
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ error: result.error?.message }, null, 2),
+            },
+          ],
+          isError: true,
+        };
       }
     );
   }
