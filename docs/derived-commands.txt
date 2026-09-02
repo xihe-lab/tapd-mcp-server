@@ -1,4 +1,4 @@
-total: 210 tools, write: 66, read: 144
+total: 212 tools, write: 66, read: 146
 
 TOOL                                          COMMAND                                        WRITE  HIDDEN
 tapd_get_workspace_info                       td workspace info                                     
@@ -206,6 +206,8 @@ tapd_program_relate_workspace                 td program relate-workspace
 tapd_program_bind_entities                    td program bind-entities                              
 tapd_get_workspace_reports                    td workspace reports                                  
 tapd_get_life_times                           td life times                                         
+tapd_md_to_html                               td md to-html                                         
+tapd_html_to_md                               td md to-md                                           
 tapd_short_to_long_id                         td id to-long                                         
 tapd_batch_fetch_stories                      td story batch-fetch                                  
 tapd_batch_fetch_bugs                         td bug batch-fetch                                    

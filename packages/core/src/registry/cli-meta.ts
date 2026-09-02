@@ -94,6 +94,8 @@ export const MANUAL_CLI_META: Record<string, CliMeta> = {
   tapd_short_to_long_id: { resource: 'id', action: 'to-long' },
   tapd_get_current_user: { resource: 'auth', action: 'whoami' },
   tapd_get_image_url: { resource: 'image', action: 'get-url' },
+  tapd_md_to_html: { resource: 'md', action: 'to-html' },
+  tapd_html_to_md: { resource: 'md', action: 'to-md' },
   tapd_create_comment: { resource: 'story', action: 'comment', defaults: { entry_type: 'story' } },
   tapd_get_comments: { resource: 'comment', action: 'list' },
   tapd_update_comment: { resource: 'comment', action: 'update', positional: 'id' },

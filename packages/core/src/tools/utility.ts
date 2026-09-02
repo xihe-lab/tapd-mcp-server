@@ -1,6 +1,32 @@
 import { z } from 'zod';
+import MarkdownIt from 'markdown-it';
+import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+
+const markdownIt = new MarkdownIt({ html: false, breaks: true });
+
+const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+turndown.use(gfm);
+
+const mdToHtmlSchema = z.object({
+  content: z.string().describe('Markdown 内容'),
+});
+
+const htmlToMdSchema = z.object({
+  html: z.string().describe('TAPD 富文本 HTML（description/comment 等）'),
+});
+
+// eslint-disable-next-line @typescript-eslint/require-await
+const mdToHtmlHandler = async (_client: TapdClient, params: z.infer<typeof mdToHtmlSchema>) => {
+  return { html: markdownIt.render(params.content) };
+};
+
+// eslint-disable-next-line @typescript-eslint/require-await
+const htmlToMdHandler = async (_client: TapdClient, params: z.infer<typeof htmlToMdSchema>) => {
+  return { markdown: turndown.turndown(params.html) };
+};
 
 const shortToLongIdSchema = z.object({
   short_id: z.string().describe('短 ID（纯数字，≤9 位）'),
@@ -74,6 +100,18 @@ const batchFetchTasksSchema = z.object({
 });
 
 export const utilityTools: ToolDef[] = [
+  {
+    name: 'tapd_md_to_html',
+    description: '将 Markdown 转为 TAPD 富文本 HTML（description/comment 字段专用），模型产 md 省 token，先转再传。',
+    inputSchema: mdToHtmlSchema,
+    handler: mdToHtmlHandler,
+  },
+  {
+    name: 'tapd_html_to_md',
+    description: '将 TAPD 富文本 HTML 转为 Markdown（读取 description/comment 后消费专用），HTML 转 md 省 input token。',
+    inputSchema: htmlToMdSchema,
+    handler: htmlToMdHandler,
+  },
   {
     name: 'tapd_short_to_long_id',
     description: '将短 ID 转换为长 ID。规则：纯数字且 ≤9 位视为短 ID，云环境前缀 "11"，补零到 9 位拼接 workspace_id。',
