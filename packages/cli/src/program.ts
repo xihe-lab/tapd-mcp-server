@@ -63,7 +63,7 @@ export function buildProgram(registry: ToolRegistry, config: TapdConfig = {}): C
 
   registerConfigCommand(program);
   registerAuthCommand(ensureResource);
-  registerAdvisorCommand(program);
+  registerAdvisorCommand(program, registry);
   return program;
 }
 
