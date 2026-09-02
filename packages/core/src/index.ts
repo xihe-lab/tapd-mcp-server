@@ -30,3 +30,4 @@ export {
   type ResolvedConfig,
   type TapdConfig,
 } from './config/config.js';
+export { exportSchemas, type ToolSchema, type SchemaExportFormat, type SchemaFilter } from './schema/export.js';
