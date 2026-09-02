@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { Command } from 'commander';
 import { TapdClient, type CliMeta, type ToolDef } from '@xihe-lab/tapd-core';
+import type { OutputMode } from './output/formatter.js';
+import { CliError } from './errors.js';
 
 const GLOBAL_KEYS = new Set([
   'workspaceId', 'apiKey', 'auth', 'readOnly', 'output', 'timeout', 'color', 'verbose',
@@ -21,13 +23,20 @@ function parseTimeout(value: string): number {
   return Math.round(seconds * 1000);
 }
 
+export function parseOutputMode(value: unknown): OutputMode | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'text' || value === 'table' || value === 'json') return value;
+  const got = typeof value === 'string' ? value : JSON.stringify(value);
+  throw new CliError('INVALID_ARGS', `--output must be one of text | table | json, got "${got}"`);
+}
+
 export function addGlobalOptions(cmd: Command): void {
   cmd
     .option('--workspace-id <id>', '默认项目 ID（优先级高于环境变量）', parseWorkspaceId)
     .option('--api-key <token>', 'TAPD API Token（Access Token，覆盖环境变量）')
     .option('--auth <mode>', '认证方式 token | basic')
     .option('--read-only', '只读模式，拦截所有写命令')
-    .option('--output <fmt>', '输出格式 text | table | json（当前版本仅支持 json）')
+    .option('--output <fmt>', '输出格式 text | table | json（缺省自动：管道 json，终端 table/text）')
     .option('--timeout <seconds>', '单命令超时秒数', parseTimeout)
     .option('--no-color', '关闭彩色输出')
     .option('-v, --verbose', '打印请求/响应日志（凭证脱敏）');

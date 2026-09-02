@@ -6,7 +6,8 @@ import {
   type ToolDef,
   type ToolRegistry,
 } from '@xihe-lab/tapd-core';
-import { addGlobalOptions, bindSchemaFlags, makeClientFactory, toArgs } from './flags.js';
+import { addGlobalOptions, bindSchemaFlags, makeClientFactory, parseOutputMode, toArgs } from './flags.js';
+import { format } from './output/formatter.js';
 import { CliError } from './errors.js';
 import { registerConfigCommand } from './commands/config.js';
 import { registerAuthCommand } from './commands/auth.js';
@@ -75,6 +76,7 @@ async function runCommand(
   const positional = argv.slice(0, -1);
   const globals = { ...program.opts(), ...command.opts() };
   if (globals.verbose) process.env.TAPD_LOG_VERBOSE = '1';
+  const outputMode = parseOutputMode(globals.output);
 
   const args = toArgs(tool, tool.cli, command.opts(), positional, globals);
   const ctx: ExecContext = {
@@ -84,5 +86,11 @@ async function runCommand(
   };
   const result = await registry.exec(cmd.tool, args, ctx, makeClientFactory(globals));
   if (!result.ok) throw new CliError(result.error!.code, result.error!.message);
-  process.stdout.write(JSON.stringify(result.data, null, 2) + '\n');
+  const output = format(result, cmd, {
+    output: outputMode,
+    isTTY: Boolean(process.stdout.isTTY),
+    verbose: Boolean(globals.verbose),
+    meta: tool.cli,
+  });
+  process.stdout.write(output + '\n');
 }
