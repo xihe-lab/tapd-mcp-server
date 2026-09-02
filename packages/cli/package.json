@@ -1,11 +1,10 @@
 {
   "name": "@xihe-lab/tapd-cli",
   "version": "1.0.0",
-  "description": "TAPD command line (tapd/td) sharing the same kernel as tapd-mcp-server",
+  "description": "TAPD command line sharing the same kernel as tapd-mcp-server",
   "type": "module",
   "bin": {
-    "tapd": "./dist/bin/tapd.js",
-    "td": "./dist/bin/tapd.js"
+    "tapd": "./dist/bin/tapd.js"
   },
   "scripts": {
     "build": "tsc",

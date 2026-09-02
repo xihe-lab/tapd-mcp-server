@@ -29,7 +29,7 @@ const RESOURCE_ALIASES: Record<string, string> = {
 export function buildProgram(registry: ToolRegistry, config: TapdConfig = {}): Command {
   const program: Command = new Command();
   program
-    .name('td')
+    .name('tapd')
     .version(version)
     .description('TAPD 研发协作命令行（与 tapd-mcp-server 共享内核）')
     .exitOverride();

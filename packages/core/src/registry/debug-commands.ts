@@ -11,7 +11,7 @@ const writeCount = commands.filter(c => c.write).length;
 
 const rows = commands.map(c => ({
   tool: c.tool,
-  command: `td ${c.resource} ${c.action}`,
+  command: `tapd ${c.resource} ${c.action}`,
   write: c.write ? 'Y' : '',
   hidden: c.hidden ? 'Y' : '',
 }));
@@ -43,7 +43,7 @@ const collisions = [...seen.entries()].filter(([, tools]) => tools.length > 1);
 if (collisions.length > 0) {
   lines.push('', 'COLLISIONS (same command, multiple tools):');
   for (const [key, tools] of collisions) {
-    lines.push(`  td ${key} <- ${tools.join(', ')}`);
+    lines.push(`  tapd ${key} <- ${tools.join(', ')}`);
   }
 }
 
