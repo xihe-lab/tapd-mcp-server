@@ -19,7 +19,7 @@ const configEnv = { ...NO_AUTH_ENV, TAPD_CONFIG_PATH: CONFIG_FILE };
   try {
     await client.start();
     const tools = await client.listTools();
-    r.check('纯 env (config 不存在) tools/list 正常', tools.length === 210, `实际 ${tools.length}`);
+    r.check('纯 env (config 不存在) tools/list 正常', tools.length === 212, `实际 ${tools.length}`);
     const res = await client.callTool('tapd_get_stories', { workspace_id: WORKSPACE_ID });
     const text = res.content?.map(c => c.text).join('') ?? '';
     r.check('纯 env tools/call 错误路径 isError + Authentication required', res.isError === true && /Authentication required/.test(text),

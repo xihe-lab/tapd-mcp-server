@@ -33,20 +33,20 @@ export const echoTools: ToolDef[] = [
   sh('pnpm build');
   r.note('已注入 tapd_echo 并重新 build');
 
-  const td = (...args) => runCmd('node', [CLI_BIN, ...args], { env: NO_AUTH_ENV });
+  const tapd = (...args) => runCmd('node', [CLI_BIN, ...args], { env: NO_AUTH_ENV });
 
-  const help = await td('--help');
-  r.check('CLI 命令树自动出现 td echo（零接线）', /(^|\n)\s*echo(\||\s|$)/.test(help.stdout), help.stdout.split('\n').filter(l => /echo/.test(l)).join(' ; ').slice(0, 120));
+  const help = await tapd('--help');
+  r.check('CLI 命令树自动出现 tapd echo（零接线）', /(^|\n)\s*echo(\||\s|$)/.test(help.stdout), help.stdout.split('\n').filter(l => /echo/.test(l)).join(' ; ').slice(0, 120));
 
-  const echoHelp = await td('echo', 'run', '--help');
-  r.check('td echo run --help 可用且含 --message', echoHelp.code === 0 && /--message/.test(echoHelp.stdout), `exit=${echoHelp.code} ${echoHelp.stdout.slice(0, 150)}${echoHelp.stderr.slice(0, 100)}`);
+  const echoHelp = await tapd('echo', 'run', '--help');
+  r.check('tapd echo run --help 可用且含 --message', echoHelp.code === 0 && /--message/.test(echoHelp.stdout), `exit=${echoHelp.code} ${echoHelp.stdout.slice(0, 150)}${echoHelp.stderr.slice(0, 100)}`);
 
-  const schema = await td('config', 'export-schema', '--format', 'anthropic');
+  const schema = await tapd('config', 'export-schema', '--format', 'anthropic');
   let echoInSchema = false;
   try { echoInSchema = JSON.parse(schema.stdout).some(t => t.name === 'tapd_echo'); } catch { /* noop */ }
   r.check('export-schema 自动含 tapd_echo', echoInSchema);
 
-  const adv = await td('advisor', 'echo 消息回显');
+  const adv = await tapd('advisor', 'echo 消息回显');
   r.check('advisor 索引自动召回 echo 命令 (echo run / tapd_echo)', /echo run|tapd_echo/.test(adv.stdout), adv.stdout.slice(0, 150));
 
   const mcp = new McpClient({ env: NO_AUTH_ENV });

@@ -8,17 +8,17 @@ const token = JSON.parse(readFileSync(`${homedir()}/.tapd/config.json`, 'utf8'))
 const tail4 = String(token).slice(-4);
 const cfgEnv = { TAPD_CONFIG_PATH: `${homedir()}/.tapd/config.json` };
 
-// 1) td config show 不含明文 token，且以掩码形式呈现尾4位
+// 1) tapd config show 不含明文 token，且以掩码形式呈现尾4位
 const show = await runCmd('node', [CLI_BIN, 'config', 'show'], { env: cfgEnv });
 const showOut = show.stdout + show.stderr;
-r.check('td config show 不含明文 token', show.code === 0 && !showOut.includes(token), `exit=${show.code}`);
+r.check('tapd config show 不含明文 token', show.code === 0 && !showOut.includes(token), `exit=${show.code}`);
 const masked = showOut.includes(`***${tail4}`) || showOut.includes(`****${tail4}`) || /\*{2,}/.test(showOut);
-r.check(`td config show 掩码呈现 (含 *** 且尾4位 ${tail4} 可辨)`, masked, showOut.split('\n').find(l => /token/i.test(l))?.slice(0, 80));
+r.check(`tapd config show 掩码呈现 (含 *** 且尾4位 ${tail4} 可辨)`, masked, showOut.split('\n').find(l => /token/i.test(l))?.slice(0, 80));
 
 // 2) verbose 模式请求日志不泄 token（真实 API 调用）
 const v = await runCmd('node', [CLI_BIN, 'story', 'list', '--workspace-id', String(WORKSPACE_ID), '--limit', '1', '-v', '--output', 'json'], { env: cfgEnv });
 const vAll = v.stdout + v.stderr;
-r.check('td story list -v 全输出不含明文 token', v.code === 0 && !vAll.includes(token), `exit=${v.code} 输出 ${vAll.length}B`);
+r.check('tapd story list -v 全输出不含明文 token', v.code === 0 && !vAll.includes(token), `exit=${v.code} 输出 ${vAll.length}B`);
 
 // 3) config.json 权限 600
 const mode = (statSync(`${homedir()}/.tapd/config.json`).mode & 0o777).toString(8);
@@ -38,7 +38,7 @@ r.check('~/.tapd/config.json 权限 600', mode === '600', `实际 ${mode}`);
   `], { env: {} });
   let info = null;
   try { info = JSON.parse(probe.stdout.trim().split('\n').pop()); } catch { /* noop */ }
-  r.check('MCP tools/list 无 config/token/credential 类工具 (凭证不暴露为工具)', info && info.total === 210 && info.suspicious.length === 0,
+  r.check('MCP tools/list 无 config/token/credential 类工具 (凭证不暴露为工具)', info && info.total === 212 && info.suspicious.length === 0,
     JSON.stringify(info ?? probe.stderr.slice(0, 120)));
 }
 const s = r.summary();

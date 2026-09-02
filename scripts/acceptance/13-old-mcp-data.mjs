@@ -4,12 +4,13 @@ import { McpClient, Reporter, OLD_MCP_BIN, runCmd, WORKSPACE_ID } from './helper
 import { CLI_BIN } from './helpers.mjs';
 
 // 5.4 MCP 数据级回归：v1.4.2 实构建 vs 新版同参对照（读 5 资源 + story 写交叉读回）
+// 新版关 TAPD_RICHTEXT_AUTO：1308 读侧默认归一 md，本场景验证的是数据通路一致性，关开关后与老版口径对齐
 const r = new Reporter('13-old-mcp-data');
 const token = JSON.parse(readFileSync(`${homedir()}/.tapd/config.json`, 'utf8')).access_token;
 const AUTH_ENV = { TAPD_ACCESS_TOKEN: token, TAPD_DEFAULT_WORKSPACE_ID: String(WORKSPACE_ID) };
 
 const oldMcp = new McpClient({ env: AUTH_ENV, bin: OLD_MCP_BIN });
-const newMcp = new McpClient({ env: AUTH_ENV });
+const newMcp = new McpClient({ env: { ...AUTH_ENV, TAPD_RICHTEXT_AUTO: '0' } });
 
 async function callText(mcp, name, args) {
   const res = await mcp.callTool(name, args);

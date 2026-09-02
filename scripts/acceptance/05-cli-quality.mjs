@@ -2,52 +2,52 @@ import { mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { Reporter, CLI_BIN, NO_AUTH_ENV, runCmd, WORKSPACE_ID } from './helpers.mjs';
 
 const r = new Reporter('05-cli-quality');
-const td = (...args) => runCmd('node', [CLI_BIN, ...args], { env: NO_AUTH_ENV });
+const tapd = (...args) => runCmd('node', [CLI_BIN, ...args], { env: NO_AUTH_ENV });
 const CONFIG_DIR = '/tmp/claude/acceptance-config';
 mkdirSync(CONFIG_DIR, { recursive: true });
 
 // ---- 1. 三级 --help ----
 {
-  const l1 = await td('--help');
-  const l2 = await td('story', '--help');
-  const l3 = await td('story', 'list', '--help');
-  r.check('td --help (一级) 退出码 0 且列出 Commands', l1.code === 0 && /Commands:/.test(l1.stdout));
-  r.check('td story --help (二级) 退出码 0 且列出 list/create/update', l2.code === 0 && /list/.test(l2.stdout) && /create/.test(l2.stdout) && /update/.test(l2.stdout));
-  r.check('td story list --help (三级) 退出码 0 且含 --workspace-id', l3.code === 0 && /--workspace-id/.test(l3.stdout));
+  const l1 = await tapd('--help');
+  const l2 = await tapd('story', '--help');
+  const l3 = await tapd('story', 'list', '--help');
+  r.check('tapd --help (一级) 退出码 0 且列出 Commands', l1.code === 0 && /Commands:/.test(l1.stdout));
+  r.check('tapd story --help (二级) 退出码 0 且列出 list/create/update', l2.code === 0 && /list/.test(l2.stdout) && /create/.test(l2.stdout) && /update/.test(l2.stdout));
+  r.check('tapd story list --help (三级) 退出码 0 且含 --workspace-id', l3.code === 0 && /--workspace-id/.test(l3.stdout));
 }
 
 // ---- 2. 退出码矩阵 ----
 // 0: 本地命令
 {
-  const show = await td('config', 'show');
-  r.check('退出码 0: td config show（本地命令）', show.code === 0, `实际 ${show.code}`);
-  const adv = await td('advisor', '切状态');
-  r.check('退出码 0: td advisor 切状态（本地索引）', adv.code === 0, `实际 ${adv.code}`);
+  const show = await tapd('config', 'show');
+  r.check('退出码 0: tapd config show（本地命令）', show.code === 0, `实际 ${show.code}`);
+  const adv = await tapd('advisor', '切状态');
+  r.check('退出码 0: tapd advisor 切状态（本地索引）', adv.code === 0, `实际 ${adv.code}`);
 }
 // 1: 业务/运行错误
 {
-  const auth = await td('story', 'list', '--workspace-id', String(WORKSPACE_ID));
+  const auth = await tapd('story', 'list', '--workspace-id', String(WORKSPACE_ID));
   r.check('退出码 1: AUTH_MISSING (story list 无凭证)', auth.code === 1 && /error: AUTH_MISSING: Authentication required/.test(auth.stderr),
     `退出码 ${auth.code}, stderr: ${auth.stderr.slice(0, 120)}`);
-  const ro = await td('--read-only', 'story', 'update', '999999999', '--name', 'probe');
+  const ro = await tapd('--read-only', 'story', 'update', '999999999', '--name', 'probe');
   r.check('退出码 1: READ_ONLY_BLOCKED (--read-only story update)', ro.code === 1 && /error: READ_ONLY_BLOCKED: Tool tapd_update_story/.test(ro.stderr),
     `退出码 ${ro.code}, stderr: ${ro.stderr.slice(0, 120)}`);
 }
 // 2: 参数/用法错误
 {
-  const unknownCmd = await td('bogus-cmd');
+  const unknownCmd = await tapd('bogus-cmd');
   r.check('退出码 2: 未知命令', unknownCmd.code === 2 && /unknown command/.test(unknownCmd.stderr),
     `退出码 ${unknownCmd.code}, stderr: ${unknownCmd.stderr.slice(0, 100)}`);
-  const unknownFlag = await td('story', 'list', '--bogus-flag');
+  const unknownFlag = await tapd('story', 'list', '--bogus-flag');
   r.check('退出码 2: 未知 flag', unknownFlag.code === 2 && /unknown option/.test(unknownFlag.stderr),
     `退出码 ${unknownFlag.code}, stderr: ${unknownFlag.stderr.slice(0, 100)}`);
   // INVALID_ARGS（D1 已修复：FSD §5.2 契约行为 = 退出码 2 + error: INVALID_ARGS 前缀，无 stack trace）
-  const badWs = await td('story', 'list', '--workspace-id', 'abc');
+  const badWs = await tapd('story', 'list', '--workspace-id', 'abc');
   r.note(`INVALID_ARGS 实测: 退出码 ${badWs.code}, stderr: ${badWs.stderr.slice(0, 100)}`);
   r.check('D1 修复后契约正确: --workspace-id abc 退出码 2 + INVALID_ARGS 前缀 + 无 stack trace',
     badWs.code === 2 && /error: INVALID_ARGS:/.test(badWs.stderr) && !/at \w+ /.test(badWs.stderr),
     `退出码 ${badWs.code}, stderr: ${badWs.stderr.slice(0, 120)}`);
-  const badTimeout = await td('story', 'list', '--timeout', 'xyz', '--workspace-id', '1');
+  const badTimeout = await tapd('story', 'list', '--timeout', 'xyz', '--workspace-id', '1');
   r.check('D1 修复后契约正确: --timeout xyz 退出码 2 + INVALID_ARGS 前缀',
     badTimeout.code === 2 && /error: INVALID_ARGS:/.test(badTimeout.stderr),
     `退出码 ${badTimeout.code}, stderr: ${badTimeout.stderr.slice(0, 120)}`);
@@ -55,27 +55,27 @@ mkdirSync(CONFIG_DIR, { recursive: true });
 
 // ---- 3. --read-only 拦截写命令（含 --no-read-only 反向）----
 {
-  const ro = await td('--read-only', 'story', 'create', '--name', 'probe', '--workspace-id', String(WORKSPACE_ID));
+  const ro = await tapd('--read-only', 'story', 'create', '--name', 'probe', '--workspace-id', String(WORKSPACE_ID));
   r.check('--read-only 拦截 story create', ro.code === 1 && /READ_ONLY_BLOCKED: Tool tapd_create_story/.test(ro.stderr), ro.stderr.slice(0, 120));
 }
 
 // ---- 4. --output 三格式 + 管道纯净 ----
 {
-  const jsonOut = await td('story', 'list', '--workspace-id', String(WORKSPACE_ID), '--output', 'json');
+  const jsonOut = await tapd('story', 'list', '--workspace-id', String(WORKSPACE_ID), '--output', 'json');
   r.check('AUTH_MISSING 下 --output json stdout 为空（管道纯净）', jsonOut.stdout.trim() === '' && jsonOut.code === 1,
     `stdout 字节 ${jsonOut.stdout.length}`);
   const piped = await runCmd('sh', ['-c', `node ${CLI_BIN} story list --workspace-id ${WORKSPACE_ID} 2>/dev/null | jq empty; echo "JQ_EXIT=$?"`], { env: NO_AUTH_ENV });
-  r.check('td story list | jq 无 stderr 污染 (stdout 仅数据或为空)', /JQ_EXIT=0/.test(piped.stdout), piped.stdout.slice(0, 100));
+  r.check('tapd story list | jq 无 stderr 污染 (stdout 仅数据或为空)', /JQ_EXIT=0/.test(piped.stdout), piped.stdout.slice(0, 100));
 
-  const schemaJson = await td('config', 'export-schema', '--format', 'openai');
+  const schemaJson = await tapd('config', 'export-schema', '--format', 'openai');
   let openaiOk = false;
   try {
     const parsed = JSON.parse(schemaJson.stdout);
-    openaiOk = Array.isArray(parsed) && parsed.length === 210 && parsed[0].function?.name?.startsWith('tapd_');
+    openaiOk = Array.isArray(parsed) && parsed.length === 212 && parsed[0].function?.name?.startsWith('tapd_');
   } catch { /* noop */ }
-  r.check('--output/export json 格式可被 jq/JSON 解析 (openai 210 条)', openaiOk);
+  r.check('--output/export json 格式可被 jq/JSON 解析 (openai 212 条)', openaiOk);
 
-  const advJson = await td('advisor', '切状态', '--json');
+  const advJson = await tapd('advisor', '切状态', '--json');
   let advOk = false;
   try {
     const parsed = JSON.parse(advJson.stdout);
@@ -93,11 +93,12 @@ mkdirSync(CONFIG_DIR, { recursive: true });
     const env = { ...process.env, TAPD_CONFIG_PATH: '/nonexistent/tapd-config-acceptance.json', TAPD_ACCESS_TOKEN: '', TAPD_API_USER: '', TAPD_API_PASSWORD: '' };
     const out = spawnSync('node', ['${CLI_BIN}', 'config', 'export-schema', '--format', 'anthropic'], { env, encoding: 'utf8' });
     const exported = JSON.parse(out.stdout);
+    // 2.0.0-rc 口径（1299 后）：基线 210 存量零漂移 + 恰好新增 2 个富文本转换工具
     const baseline = JSON.parse(readFileSync('${'/tmp/claude/baseline-tools.json'}', 'utf8')).tools;
     const expNames = new Set(exported.map(t => t.name));
     const baseNames = new Set(baseline.map(t => t.name));
     const missing = [...baseNames].filter(n => !expNames.has(n));
-    const extra = [...expNames].filter(n => !baseNames.has(n));
+    const extra = [...expNames].filter(n => !baseNames.has(n)).sort();
     let schemaMismatch = 0;
     const norm = (s) => JSON.stringify(sortKeys(s));
     function sortKeys(v) {
@@ -110,18 +111,20 @@ mkdirSync(CONFIG_DIR, { recursive: true });
       const b = baseByName[t.name];
       if (b && norm(t.input_schema) !== norm(b)) schemaMismatch++;
     }
-    console.log(JSON.stringify({ count: exported.length, missing: missing.length, extra: extra.length, schemaMismatch }));
+    console.log(JSON.stringify({ count: exported.length, missing: missing.length, extra, schemaMismatch }));
   `]);
   let eq = null;
   try { eq = JSON.parse(res.stdout.trim().split('\n').pop()); } catch { /* noop */ }
-  r.check('export-schema anthropic 全量 210 且 missing/extra/schemaMismatch=0',
-    eq && eq.count === 210 && eq.missing === 0 && eq.extra === 0 && eq.schemaMismatch === 0,
+  r.check('export-schema anthropic: 全量 212，存量 210 零缺失零漂移 + 恰好 2 新增',
+    eq && eq.count === 212 && eq.missing === 0
+    && JSON.stringify(eq.extra) === JSON.stringify(['tapd_html_to_md', 'tapd_md_to_html'])
+    && eq.schemaMismatch === 0,
     JSON.stringify(eq ?? res.stderr.slice(0, 150)));
 }
 
 // ---- 6. advisor 召回 ----
 {
-  const adv = await td('advisor', '切状态');
+  const adv = await tapd('advisor', '切状态');
   const top3 = adv.stdout.split('\n').filter(l => /^\S/.test(l) && !l.startsWith('-')).slice(1, 4).join(' | ');
   const hitTop3 = /story update|workflow status-map/.test(top3);
   r.check('advisor 「切状态」 top3 命中 (story update / workflow status-map)', hitTop3, `top3: ${top3.slice(0, 150)}`);
@@ -129,11 +132,11 @@ mkdirSync(CONFIG_DIR, { recursive: true });
 
 // ---- 7. 冷启动 < 500ms × 3 ----
 {
-  for (const [label, args] of [['td --help', ['--help']], ['td story list --help', ['story', 'list', '--help']]]) {
+  for (const [label, args] of [['tapd --help', ['--help']], ['tapd story list --help', ['story', 'list', '--help']]]) {
     const times = [];
     for (let i = 0; i < 3; i++) {
       const t0 = performance.now();
-      await td(...args);
+      await tapd(...args);
       times.push(performance.now() - t0);
     }
     const max = Math.max(...times);

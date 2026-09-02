@@ -18,7 +18,7 @@ copyFileSync(`${homedir()}/.tapd/config.json`, TMP_CONFIG);
 const cfgEnv = { TAPD_CONFIG_PATH: TMP_CONFIG };
 
 const setRo = await runCmd('node', [CLI_BIN, 'config', 'set', 'read_only=false'], { env: cfgEnv });
-r.check('td config set read_only=false 退出码 0', setRo.code === 0, setRo.stderr.slice(0, 120));
+r.check('tapd config set read_only=false 退出码 0', setRo.code === 0, setRo.stderr.slice(0, 120));
 const after = JSON.parse(readFileSync(TMP_CONFIG, 'utf8'));
 r.check('config 副本 read_only=false 且 access_token 保留', after.read_only === false && Boolean(after.access_token));
 
