@@ -5,34 +5,47 @@
  * - Basic Auth: using api_user + api_password
  * - OAuth/Bearer Token: using access_token
  *
- * Uses custom HTTP client for all API calls.
+ * Routes requests through @opentapd/tapd-node-sdk when the method+path is
+ * listed in SDK_ROUTES, otherwise falls back to the custom fetch client.
+ * - GET SDK failures fall back to fetch (read-only, idempotent)
+ * - POST SDK failures throw directly (never fallback, avoid duplicate writes)
+ * - Set TAPD_SDK_DISABLED=1 to bypass the SDK entirely (rollback switch)
  */
+import TapdSdk from '@opentapd/tapd-node-sdk';
+import { SDK_ROUTES } from './sdk-routes.js';
+
 export class TapdClient {
   private authHeader: string;
   private baseUrl: string;
   private authType: 'basic' | 'oauth';
   private apiUser?: string;
   private apiPassword?: string;
+  private accessToken?: string;
+  private sdk?: TapdSdk;
+  private readonly sdkEnabled = process.env.TAPD_SDK_DISABLED !== '1';
+  private readonly verbose = process.env.TAPD_LOG_VERBOSE === '1';
 
   private constructor(
     authHeader: string,
     baseUrl?: string,
     authType?: 'basic' | 'oauth',
     apiUser?: string,
-    apiPassword?: string
+    apiPassword?: string,
+    accessToken?: string
   ) {
     this.authHeader = authHeader;
     this.baseUrl = baseUrl ?? process.env.TAPD_API_BASE_URL ?? 'https://api.tapd.cn';
     this.authType = authType ?? 'basic';
     this.apiUser = apiUser;
     this.apiPassword = apiPassword;
+    this.accessToken = accessToken;
   }
 
   /**
    * Create client from OAuth access token
    */
   static fromAccessToken(accessToken: string, baseUrl?: string): TapdClient {
-    return new TapdClient(`Bearer ${accessToken}`, baseUrl, 'oauth');
+    return new TapdClient(`Bearer ${accessToken}`, baseUrl, 'oauth', undefined, undefined, accessToken);
   }
 
   /**
@@ -136,6 +149,75 @@ export class TapdClient {
  * - Max 3 retries with exponential backoff (1s, 2s, 4s)
  * - POST requests do NOT retry (avoid duplicate creation)
  */
+  /**
+   * Encode request params shared by the fetch path and the SDK path.
+   * - undefined values are dropped
+   * - POST restores literal "\n" to real newlines (unchanged v1 behavior)
+   */
+  private static encodeParams(
+    method: 'GET' | 'POST',
+    params?: Record<string, string | number | boolean | undefined>
+  ): URLSearchParams {
+    const restoreNewline = method === 'POST';
+    return new URLSearchParams(
+      Object.entries(params ?? {})
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]): [string, string] => [
+          key,
+          restoreNewline ? String(value).replace(/\\n/g, '\n') : String(value),
+        ])
+    );
+  }
+
+  private unwrap<T>(response: unknown): T {
+    const result = response as TapdResponse<T>;
+    if (result.status !== 1) {
+      throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
+    }
+    return result.data;
+  }
+
+  /**
+   * Lazily create the SDK instance matching the current auth mode.
+   * - oauth: reuses the existing access token (no authenticate() round-trip)
+   * - basic: SDK builds the Basic header from client/secret
+   */
+  private getSdk(): TapdSdk {
+    this.sdk ??= this.authType === 'oauth'
+      ? new TapdSdk({ accessToken: this.accessToken, address: this.baseUrl })
+      : new TapdSdk({ client: this.apiUser!, secret: this.apiPassword!, address: this.baseUrl });
+    return this.sdk;
+  }
+
+  /**
+   * Route a request through the SDK when the method+path is mapped,
+   * otherwise (and on read-only SDK failure) through the fetch client.
+   */
+  private async route<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    params?: Record<string, string | number | boolean | undefined>
+  ): Promise<T> {
+    const sdkMethod = this.sdkEnabled ? SDK_ROUTES[`${method} ${path}`] : undefined;
+    if (sdkMethod) {
+      try {
+        const encoded = TapdClient.encodeParams(method, params);
+        const sdk = this.getSdk() as unknown as Record<string, (p: unknown) => Promise<unknown>>;
+        const response = await sdk[sdkMethod](encoded);
+        return this.unwrap<T>(response);
+      } catch (error) {
+        if (method === 'POST') {
+          throw error;
+        }
+        if (this.verbose) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`[tapd-client] SDK ${sdkMethod} failed for ${method} ${path}, falling back to fetch: ${message}`);
+        }
+      }
+    }
+    return this.request<T>(method, path, params);
+  }
+
   async request<T>(
     method: 'GET' | 'POST',
     path: string,
@@ -148,19 +230,15 @@ export class TapdClient {
     };
 
     let body: string | undefined;
+    const encoded = TapdClient.encodeParams(method, params);
 
-    if (method === 'GET' && params) {
-      const filteredParams = Object.entries(params).filter(([, value]) => value !== undefined);
-      for (const [key, value] of filteredParams) {
-        url.searchParams.append(key, String(value));
+    if (method === 'GET') {
+      for (const [key, value] of encoded) {
+        url.searchParams.append(key, value);
       }
-    } else if (method === 'POST' && params) {
+    } else {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      body = new URLSearchParams(
-        Object.entries(params)
-          .filter(([, value]) => value !== undefined)
-          .map(([key, value]) => [key, String(value).replace(/\\n/g, '\n')])
-      ).toString();
+      body = encoded.toString();
     }
 
     // Retry configuration
@@ -198,13 +276,7 @@ export class TapdClient {
           throw new Error(`TAPD API returned non-JSON response: ${text.slice(0, 100)}`);
         }
 
-        const result = await response.json() as TapdResponse<T>;
-
-        if (result.status !== 1) {
-          throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
-        }
-
-        return result.data;
+        return this.unwrap<T>(await response.json());
       } catch (error) {
         // For non-retryable errors or final attempt, throw immediately
         if (!shouldRetry || attempt >= maxRetries) {
@@ -226,14 +298,14 @@ export class TapdClient {
    * GET request to TAPD API
    */
   async get<T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> {
-    return this.request<T>('GET', path, params);
+    return this.route<T>('GET', path, params);
   }
 
   /**
    * POST request to TAPD API
    */
   async post<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>('POST', path, params);
+    return this.route<T>('POST', path, params);
   }
 }
 
