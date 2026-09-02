@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r build && pnpm validate:sdk-routes",
     "lint": "eslint packages/",
     "test": "pnpm -r test",
-    "type-check": "pnpm -r type-check"
+    "type-check": "pnpm -r type-check",
+    "validate:sdk-routes": "node scripts/validate-sdk-routes.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
