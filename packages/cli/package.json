@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "tsx src/output/formatter.test.ts"
+    "test": "tsx src/output/formatter.test.ts && tsx src/flags.test.ts"
   },
   "keywords": [
     "tapd",

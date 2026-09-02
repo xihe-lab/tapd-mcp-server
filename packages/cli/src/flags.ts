@@ -88,7 +88,8 @@ export function bindSchemaFlags(sub: Command, tool: ToolDef, meta?: CliMeta): vo
     const inner = unwrap(field);
     const desc = describe(field);
     if (inner instanceof z.ZodBoolean) {
-      sub.option(`${flag} / --no-${kebab(key)}`, desc, undefined);
+      sub.option(flag, desc);
+      sub.option(`--no-${kebab(key)}`, desc);
     } else if (inner instanceof z.ZodArray) {
       sub.option(`${flag} <items...>`, desc);
     } else {
