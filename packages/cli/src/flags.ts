@@ -13,13 +13,13 @@ const camelToSnake = (key: string): string => key.replace(/[A-Z]/g, c => `_${c.t
 
 function parseWorkspaceId(value: string): number {
   const id = parseInt(value, 10);
-  if (Number.isNaN(id)) throw new Error(`--workspace-id must be a number, got "${value}"`);
+  if (Number.isNaN(id)) throw new CliError('INVALID_ARGS', `--workspace-id must be a number, got "${value}"`);
   return id;
 }
 
 function parseTimeout(value: string): number {
   const seconds = parseFloat(value);
-  if (Number.isNaN(seconds) || seconds < 0) throw new Error(`--timeout must be a non-negative number of seconds, got "${value}"`);
+  if (Number.isNaN(seconds) || seconds < 0) throw new CliError('INVALID_ARGS', `--timeout must be a non-negative number of seconds, got "${value}"`);
   return Math.round(seconds * 1000);
 }
 
