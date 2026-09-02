@@ -18,6 +18,7 @@ const scripts = [
   '13-old-mcp-data.mjs',
   '14-credential-masking.mjs',
   '15-performance.mjs',
+  '16-richtext-auto.mjs',
 ];
 
 const dir = fileURLToPath(new URL('.', import.meta.url));
