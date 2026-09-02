@@ -7,7 +7,7 @@
  * - Task 213: batch fetch functionality
  */
 
-import { TapdClient } from './tapd-client.js';
+import { TapdClient } from '@xihe-lab/tapd-core';
 
 async function runTests() {
   console.log('Starting integration tests...\n');
