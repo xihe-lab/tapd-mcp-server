@@ -5,6 +5,7 @@ import type { TapdClient } from '../tapd-client.js';
 import type { AuditEvent, CliErrorCode } from './registry.js';
 import { ToolRegistry } from './registry.js';
 import { resolveWrite } from './write-policy.js';
+import { deriveCommand } from './derive-command.js';
 
 function makeTool(overrides: Partial<ToolDef> & { name: string }): ToolDef {
   return {
@@ -36,6 +37,8 @@ const checks: [string, () => Promise<void> | void][] = [
     const commands = registry.commands();
     assert.equal(commands.length, 2);
     const storyList = commands.find(c => c.tool === 'tapd_get_stories')!;
+    assert.equal(storyList.resource, 'story');
+    assert.equal(storyList.action, 'list');
     assert.equal(storyList.write, false);
     const bugCreate = commands.find(c => c.tool === 'tapd_create_bugs')!;
     assert.equal(bugCreate.write, true);
@@ -210,6 +213,25 @@ const checks: [string, () => Promise<void> | void][] = [
     }
   }],
 
+  ['write-policy: change_workitem_type explicit write after registry merge', () => {
+    const registry = new ToolRegistry();
+    registry.register([makeTool({ name: 'tapd_change_workitem_type' })]);
+    const tool = registry.get('tapd_change_workitem_type')!;
+    assert.equal(resolveWrite(tool), true);
+    assert.equal(tool.cli?.action, 'set-type');
+  }],
+
+  ['derive-command: FSD 4.1.2 examples', () => {
+    assert.deepEqual(deriveCommand('tapd_get_stories'), { resource: 'story', action: 'list' });
+    assert.deepEqual(deriveCommand('tapd_get_story_count'), { resource: 'story', action: 'count' });
+    assert.deepEqual(deriveCommand('tapd_create_story'), { resource: 'story', action: 'create' });
+    assert.deepEqual(deriveCommand('tapd_update_story'), { resource: 'story', action: 'update' });
+    assert.deepEqual(deriveCommand('tapd_get_story_changes'), { resource: 'story', action: 'changes' });
+    assert.deepEqual(deriveCommand('tapd_get_workflow_status_map'), { resource: 'workflow', action: 'status-map' });
+    assert.deepEqual(deriveCommand('tapd_get_test_plans'), { resource: 'test-plan', action: 'list' });
+    assert.deepEqual(deriveCommand('tapd_mini_get_items'), { resource: 'mini-item', action: 'list' });
+    assert.deepEqual(deriveCommand('tapd_batch_update_stories'), { resource: 'story', action: 'batch-update' });
+  }],
 ];
 
 let failed = 0;

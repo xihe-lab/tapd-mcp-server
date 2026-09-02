@@ -2,6 +2,8 @@ import type { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import type { TapdClient } from '../tapd-client.js';
 import { resolveWrite } from './write-policy.js';
+import { deriveCommand } from './derive-command.js';
+import { MANUAL_CLI_META, EXPLICIT_WRITE } from './cli-meta.js';
 
 export type Entry = 'cli' | 'mcp';
 
@@ -83,7 +85,11 @@ export class ToolRegistry {
       if (this.tools.has(tool.name)) {
         throw new Error(`Duplicate tool name: ${tool.name}`);
       }
-      this.tools.set(tool.name, tool);
+      const declared = MANUAL_CLI_META[tool.name];
+      const merged: ToolDef = declared
+        ? { ...tool, cli: declared, ...(EXPLICIT_WRITE.has(tool.name) ? { write: true } : {}) }
+        : tool;
+      this.tools.set(tool.name, merged);
     }
   }
 
@@ -97,13 +103,13 @@ export class ToolRegistry {
 
   commands(): DerivedCommand[] {
     return this.list().map(tool => {
-      const parts = tool.name.replace(/^tapd_/, '').split('_');
+      const derived = tool.cli ?? deriveCommand(tool.name);
       return {
         tool: tool.name,
-        resource: parts.slice(1).join('-') || parts[0],
-        action: parts[0],
+        resource: derived.resource,
+        action: derived.action,
         write: resolveWrite(tool),
-        hidden: false,
+        hidden: tool.cli?.hidden ?? false,
       };
     });
   }

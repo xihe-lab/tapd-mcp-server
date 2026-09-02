@@ -1,0 +1,213 @@
+total: 210 tools, write: 66, read: 144
+
+TOOL                                          COMMAND                                        WRITE  HIDDEN
+tapd_get_workspace_info                       td workspace info                                     
+tapd_get_projects                             td project list                                       
+tapd_get_user_projects                        td user-project list                                  
+tapd_get_workspace_users                      td workspace users                                    
+tapd_get_workspace_custom_fields              td workspace custom-fields                            
+tapd_get_sub_workspaces                       td sub-workspace list                                 
+tapd_get_workspace_documents                  td workspace documents                                
+tapd_get_workspace_calendar                   td workspace calendar                                 
+tapd_get_third_projects                       td third-project list                                 
+tapd_get_iterations                           td iteration list                                     
+tapd_create_iteration                         td iteration create                            Y      
+tapd_update_iteration                         td iteration update                            Y      
+tapd_get_iteration_count                      td iteration count                                    
+tapd_get_iteration_changes                    td iteration changes                                  
+tapd_lock_iteration                           td iteration lock                              Y      
+tapd_unlock_iteration                         td iteration unlock                            Y      
+tapd_get_personal_setting                     td personal setting                                   
+tapd_get_roles                                td role list                                          
+tapd_get_third_user_mapping                   td third user-mapping                                 
+tapd_get_current_user                         td auth whoami                                        
+tapd_get_stories                              td story list                                         
+tapd_create_story                             td story create                                Y      
+tapd_update_story                             td story update                                Y      
+tapd_get_story_count                          td story count                                        
+tapd_copy_story                               td story copy                                  Y      
+tapd_batch_update_stories                     td story batch-update                          Y      
+tapd_get_story_categories                     td story-category list                                
+tapd_get_story_categories_count               td story-category count                               
+tapd_add_story_category                       td story-category create                       Y      
+tapd_update_story_category                    td story-category update                       Y      
+tapd_get_workitem_types                       td workitem-type list                                 
+tapd_change_workitem_type                     td story set-type                              Y      
+tapd_get_story_fields_info                    td story fields-info                                  
+tapd_get_story_fields_lable                   td story fields-lable                                 
+tapd_get_story_template_list                  td story template-list                                
+tapd_get_default_story_template               td story default-template                             
+tapd_get_story_related_bugs                   td story related-bugs                                 
+tapd_create_story_bug                         td story-bug-relation create                   Y      
+tapd_remove_story_bug_relations               td story-bug-relation delete                   Y      
+tapd_get_story_tcase                          td story-tcase-relation list                          
+tapd_create_story_tcase                       td story-tcase-relation create                 Y      
+tapd_get_time_relative_stories                td story-relation list                                
+tapd_save_time_relations                      td story-relation save                         Y      
+tapd_delete_time_relations                    td story-relation delete                       Y      
+tapd_get_removed_stories                      td story list-removed                                 
+tapd_update_story_parent                      td story set-parent                            Y      
+tapd_get_stories_by_view_conf_id              td story list-by-view                                 
+tapd_get_story_steps                          td story steps                                        
+tapd_get_bugs                                 td bug list                                           
+tapd_create_bug                               td bug create                                  Y      
+tapd_update_bug                               td bug update                                  Y      
+tapd_get_bug_count                            td bug count                                          
+tapd_get_bug_changes                          td bug changes                                        
+tapd_get_bug_changes_count                    td bug changes-count                                  
+tapd_get_bug_custom_fields_settings           td bug custom-fields-settings                         
+tapd_get_bug_fields_info                      td bug fields-info                                    
+tapd_get_bug_fields_lable                     td bug fields-lable                                   
+tapd_get_bug_template_list                    td bug template-list                                  
+tapd_get_default_bug_template                 td bug default-template                               
+tapd_batch_update_bugs                        td bug batch-update                            Y      
+tapd_copy_bug                                 td bug copy                                    Y      
+tapd_get_link_bugs                            td bug list-links                                     
+tapd_link_bugs                                td bug link                                    Y      
+tapd_delete_link_bugs                         td bug delete-link                             Y      
+tapd_get_related_stories                      td bug related-stories                                
+tapd_get_bugs_by_view_conf_id                 td bug list-by-view                                   
+tapd_get_removed_bugs                         td bug list-removed                                   
+tapd_bug_ids_to_query_token                   td bug ids-to-query-token                             
+tapd_get_tasks                                td task list                                          
+tapd_create_task                              td task create                                 Y      
+tapd_update_task                              td task update                                 Y      
+tapd_get_task_count                           td task count                                         
+tapd_batch_update_tasks                       td task batch-update                           Y      
+tapd_get_removed_tasks                        td task list-removed                                  
+tapd_get_tasks_by_view_conf_id                td task list-by-view                                  
+tapd_get_comments                             td comment list                                       
+tapd_create_comment                           td story comment                               Y      
+tapd_get_comments_count                       td comment count                                      
+tapd_update_comment                           td comment update                              Y      
+tapd_get_timesheets                           td timesheet list                                     
+tapd_create_timesheet                         td timesheet create                            Y      
+tapd_get_timesheet_count                      td timesheet count                                    
+tapd_update_timesheet                         td timesheet update                            Y      
+tapd_delete_timesheets                        td timesheet delete                            Y      
+tapd_get_workflows                            td workflow list                                      
+tapd_get_workflow_status_map                  td workflow status-map                                
+tapd_get_workflow_step_map                    td workflow step-map                                  
+tapd_get_workflow_all_transitions             td workflow all-transitions                           
+tapd_get_workflow_last_steps                  td workflow last-steps                                
+tapd_get_workflow_all_last_steps              td workflow all-last-steps                            
+tapd_get_workflow_first_step                  td workflow first-step                                
+tapd_get_modules                              td module list                                        
+tapd_add_module                               td module create                               Y      
+tapd_update_module                            td module update                               Y      
+tapd_get_modules_count                        td module count                                       
+tapd_get_versions                             td version list                                       
+tapd_add_version                              td version create                              Y      
+tapd_update_version                           td version update                              Y      
+tapd_get_versions_count                       td version count                                      
+tapd_get_features                             td feature list                                       
+tapd_add_feature                              td feature create                              Y      
+tapd_update_feature                           td feature update                              Y      
+tapd_get_features_count                       td feature count                                      
+tapd_get_baselines                            td baseline list                                      
+tapd_add_baseline                             td baseline create                             Y      
+tapd_update_baseline                          td baseline update                             Y      
+tapd_get_baselines_count                      td baseline count                                     
+tapd_add_custom_field_config                  td custom-field-config create                  Y      
+tapd_update_bug_select_field_options          td bug update-select-field-options             Y      
+tapd_update_story_select_field_options        td story update-select-field-options           Y      
+tapd_update_cascade_field_options             td custom-field-config update-cascade-options  Y      
+tapd_get_workspace_setting                    td workspace setting                                  
+tapd_create_test_case                         td test create-case                            Y      
+tapd_get_test_cases                           td test cases                                         
+tapd_get_test_cases_count                     td test cases-count                                   
+tapd_update_test_case                         td test update-case                            Y      
+tapd_get_tcase_categories                     td tcase-category list                                
+tapd_get_tcase_categories_count               td tcase categories-count                             
+tapd_add_tcase_category                       td tcase create-category                       Y      
+tapd_get_tcase_custom_fields_settings         td tcase custom-fields-settings                       
+tapd_get_tcase_fields_info                    td tcase fields-info                                  
+tapd_get_story_by_tcase_id                    td story by-tcase-id                                  
+tapd_assign_tcase_instance                    td tcase assign-instance                       Y      
+tapd_execute_tcase_instance                   td test execute-instance                       Y      
+tapd_get_tcase_result                         td tcase result                                       
+tapd_remove_tcase_instance                    td tcase delete-instance                       Y      
+tapd_delete_tcase_story_relation              td tcase delete-story-relation                 Y      
+tapd_get_test_plans                           td test-plan list                                     
+tapd_create_test_plan                         td test create-plan                            Y      
+tapd_update_test_plan                         td test update-plan                            Y      
+tapd_get_test_plan_count                      td test plan-count                                    
+tapd_get_test_plan_details                    td test plan-details                                  
+tapd_get_test_plan_progress                   td test plan-progress                                 
+tapd_get_test_plan_fields_info                td test plan-fields-info                              
+tapd_get_test_plan_tcases                     td test plan-tcases                                   
+tapd_get_test_plan_relative_stories           td test-plan-relative-story list                      
+tapd_get_test_plan_bugs                       td test-plan-bug list                                 
+tapd_create_story_relation                    td story create-relation                       Y      
+tapd_delete_story_relation                    td story delete-relation                       Y      
+tapd_create_tcase_relation                    td tcase create-relation                       Y      
+tapd_get_wikis                                td wiki list                                          
+tapd_create_wiki                              td wiki create                                 Y      
+tapd_update_wiki                              td wiki update                                 Y      
+tapd_get_wiki_count                           td wiki count                                         
+tapd_get_wiki_attachments_count               td wiki attachments-count                             
+tapd_get_wiki_drawios                         td wiki drawios                                       
+tapd_get_wiki_entity_permissions              td wiki entity-permissions                            
+tapd_get_wiki_followers                       td wiki followers                                     
+tapd_get_wiki_followers_count                 td wiki followers-count                               
+tapd_get_wiki_tags                            td wiki tags                                          
+tapd_get_wiki_tags_count                      td wiki tags-count                                    
+tapd_get_releases                             td release list                                       
+tapd_create_release                           td release create                              Y      
+tapd_update_release                           td release update                              Y      
+tapd_get_release_count                        td release count                                      
+tapd_get_launch_accessories                   td launch accessories                                 
+tapd_add_launch_accessories                   td launch create-accessories                   Y      
+tapd_add_launch_form                          td launch create-form                          Y      
+tapd_get_launch_forms_activity_logs           td launch forms-activity-logs                         
+tapd_get_launch_forms_count                   td launch forms-count                                 
+tapd_get_launch_forms_custom_fields_settings  td launch forms-custom-fields-settings                
+tapd_get_launch_forms_templates               td launch forms-templates                             
+tapd_get_attachments                          td attachment list                                    
+tapd_get_attachment                           td attachment get                                     
+tapd_get_attachment_download_url              td attachment download-url                            
+tapd_mini_get_attachments                     td mini-attachment list                               
+tapd_mini_get_attachment_download_url         td mini-attachment download-url                       
+tapd_mini_get_items                           td mini-item list                                     
+tapd_mini_create_item                         td mini-item create                                   
+tapd_mini_update_item                         td mini-item update                                   
+tapd_mini_get_item_count                      td mini-item count                                    
+tapd_mini_get_categories                      td mini-category list                                 
+tapd_mini_get_changes                         td mini-changes list                                  
+tapd_mini_get_workspace_info                  td mini-workspace info                                
+tapd_mini_get_workspace_users                 td mini-workspace users                               
+tapd_mini_get_user_projects                   td mini-user-project list                             
+tapd_mini_get_comments                        td mini-comment list                                  
+tapd_mini_create_comment                      td mini-comment create                                
+tapd_mini_get_comment_count                   td mini-comment count                                 
+tapd_get_story_changes                        td story changes                                      
+tapd_get_story_changes_count                  td story changes-count                                
+tapd_get_task_changes                         td task changes                                       
+tapd_get_task_changes_count                   td task changes-count                                 
+tapd_get_story_custom_fields                  td story custom-fields                                
+tapd_get_bug_custom_fields                    td bug custom-fields                                  
+tapd_get_task_custom_fields                   td task custom-fields                                 
+tapd_get_test_case_custom_fields              td test case-custom-fields                            
+tapd_get_iteration_custom_fields              td iteration custom-fields                            
+tapd_get_task_fields_info                     td task fields-info                                   
+tapd_get_test_case_fields_info                td test case-fields-info                              
+tapd_get_link_stories                         td link-story list                                    
+tapd_get_related_bugs                         td related-bug list                                   
+tapd_add_story_link_relation                  td story create-link-relation                  Y      
+tapd_remove_story_link_relation               td story delete-link-relation                  Y      
+tapd_add_board_card                           td board create-card                           Y      
+tapd_get_board_cards                          td board-card list                                    
+tapd_update_board_card                        td board update-card                           Y      
+tapd_get_board_columns                        td board columns                                      
+tapd_add_code_commit_infos                    td code create-commit-infos                    Y      
+tapd_get_code_commit_infos                    td code commit-infos                                  
+tapd_get_commit_objects                       td commit objects                                     
+tapd_program_relate_workspace                 td program relate-workspace                           
+tapd_program_bind_entities                    td program bind-entities                              
+tapd_get_workspace_reports                    td workspace reports                                  
+tapd_get_life_times                           td life times                                         
+tapd_short_to_long_id                         td id to-long                                         
+tapd_batch_fetch_stories                      td story batch-fetch                                  
+tapd_batch_fetch_bugs                         td bug batch-fetch                                    
+tapd_batch_fetch_tasks                        td task batch-fetch                                   
+tapd_get_image_url                            td image get-url                                      
