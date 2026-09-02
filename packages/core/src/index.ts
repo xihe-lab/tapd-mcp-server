@@ -11,6 +11,12 @@ export {
   type DerivedCommand,
 } from './registry/registry.js';
 export { resolveWrite } from './registry/write-policy.js';
+export {
+  buildAdvisorIndex,
+  recommend,
+  type AdvisorEntry,
+  type AdvisorHit,
+} from './advisor/index.js';
 export { deriveCommand, type DerivedCommandParts } from './registry/derive-command.js';
 export { MANUAL_CLI_META, EXPLICIT_WRITE } from './registry/cli-meta.js';
 export {
