@@ -35,7 +35,7 @@ export const settingsTools: ToolDef[] = [
       name: z.string().describe("模块名称 (必填)"),
       description: z.string().optional().describe("模块描述"),
       owner: z.string().optional().describe("模块负责人"),
-      parent_id: z.number().optional().describe("父模块ID（用于创建子模块）"),
+      parent_id: z.string().optional().describe("父模块ID（用于创建子模块）；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -54,7 +54,7 @@ export const settingsTools: ToolDef[] = [
       name: z.string().optional().describe("模块名称"),
       description: z.string().optional().describe("模块描述"),
       owner: z.string().optional().describe("模块负责人"),
-      parent_id: z.number().optional().describe("父模块ID"),
+      parent_id: z.string().optional().describe("父模块ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -194,7 +194,7 @@ export const settingsTools: ToolDef[] = [
       name: z.string().describe("特性名称 (必填)"),
       description: z.string().optional().describe("特性描述"),
       owner: z.string().optional().describe("特性负责人"),
-      parent_id: z.number().optional().describe("父特性ID"),
+      parent_id: z.string().optional().describe("父特性ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -213,7 +213,7 @@ export const settingsTools: ToolDef[] = [
       name: z.string().optional().describe("特性名称"),
       description: z.string().optional().describe("特性描述"),
       owner: z.string().optional().describe("特性负责人"),
-      parent_id: z.number().optional().describe("父特性ID"),
+      parent_id: z.string().optional().describe("父特性ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

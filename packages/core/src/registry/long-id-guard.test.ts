@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import type { TapdClient } from '../tapd-client.js';
+import { workflowTools } from '../tools/workflow.js';
 import type { AuditEvent, CliErrorCode } from './registry.js';
 import { ToolRegistry } from './registry.js';
 
@@ -188,6 +189,75 @@ const checks: [string, () => Promise<void> | void][] = [
     assert.equal(shape.id.constructor.name, 'ZodOptional');
     const inner = (shape.id as z.ZodOptional<z.ZodTypeAny>)._def.innerType;
     assert.equal(inner.constructor.name, 'ZodEffects');
+  }],
+
+  ['real workflow status_map: unsafe number workitem_type_id rejected with INVALID_ARGS', async () => {
+    const registry = new ToolRegistry();
+    registry.register(workflowTools);
+    const result = await registry.exec(
+      'tapd_get_workflow_status_map',
+      { workspace_id: 39814312, system: 'story', workitem_type_id: Number('1139814312001001410') },
+      { entry: 'mcp' },
+      fakeFactory,
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'INVALID_ARGS');
+    assert.match(result.error?.message ?? '', /workitem_type_id/);
+    assert.match(result.error?.message ?? '', /超出 JS 安全整数范围/);
+    assert.match(result.error?.message ?? '', /字符串（带引号）重传/);
+  }],
+
+  ['real workflow status_map: string workitem_type_id reaches handler as string', async () => {
+    const registry = new ToolRegistry();
+    let receivedPath = '';
+    let receivedParams: Record<string, unknown> = {};
+    const stub = {
+      get: (path: string, params: Record<string, unknown>) => {
+        receivedPath = path;
+        receivedParams = params;
+        return Promise.resolve({ data: [] });
+      },
+    };
+    registry.register(workflowTools);
+    const result = await registry.exec(
+      'tapd_get_workflow_status_map',
+      { workspace_id: 39814312, system: 'story', workitem_type_id: '1139814312001001410' },
+      { entry: 'mcp' },
+      () => stub as unknown as TapdClient,
+    );
+    assert.equal(result.ok, true);
+    assert.equal(receivedPath, '/workflows/status_map');
+    assert.equal(receivedParams.workitem_type_id, '1139814312001001410');
+  }],
+
+  ['real workflow step_map: unsafe number rejected, safe number rescued to string', async () => {
+    const registry = new ToolRegistry();
+    let receivedParams: Record<string, unknown> = {};
+    const stub = {
+      get: (_path: string, params: Record<string, unknown>) => {
+        receivedParams = params;
+        return Promise.resolve({ data: [] });
+      },
+    };
+    registry.register(workflowTools);
+    const rejected = await registry.exec(
+      'tapd_get_workflow_step_map',
+      { workspace_id: 39814312, system: 'story', workitem_type_id: Number('12345678901234567890') },
+      { entry: 'mcp' },
+      fakeFactory,
+    );
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.error?.code, 'INVALID_ARGS');
+    assert.match(rejected.error?.message ?? '', /超出 JS 安全整数范围/);
+
+    const rescued = await registry.exec(
+      'tapd_get_workflow_step_map',
+      { workspace_id: 39814312, system: 'story', workitem_type_id: 12345678901 },
+      { entry: 'mcp' },
+      () => stub as unknown as TapdClient,
+    );
+    assert.equal(rescued.ok, true);
+    assert.equal(receivedParams.workitem_type_id, '12345678901');
   }],
 ];
 
