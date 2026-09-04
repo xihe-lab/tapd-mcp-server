@@ -80,8 +80,62 @@ export class TapdClient {
   }
 
   /**
-   * Make HTTP request to TAPD API
+   * Get default workspace ID from environment variable TAPD_DEFAULT_WORKSPACE_ID
    */
+  static getDefaultWorkspaceId(): number | undefined {
+    const id = process.env.TAPD_DEFAULT_WORKSPACE_ID;
+    return id ? parseInt(id, 10) : undefined;
+  }
+
+  /**
+   * Get default STORY workitem type ID from environment variable
+   */
+  static getDefaultStoryWorkitemTypeId(): string | undefined {
+    return process.env.TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID;
+  }
+
+  /**
+   * Get default TASK workitem type ID from environment variable
+   */
+  static getDefaultTaskWorkitemTypeId(): string | undefined {
+    return process.env.TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID;
+  }
+
+  /**
+   * Convert short ID to long ID
+   *
+   * Rules:
+   * - Pure numeric ID with ≤9 digits is treated as short ID
+   * - For cloud environment (is_cloud=true), prefix is '11'
+   * - Pad short ID to 9 digits and concatenate with workspace_id
+   * - Non-short IDs are returned unchanged
+   *
+   * @param id - Story/bug/task ID (short or long format)
+   * @param workspaceId - Workspace ID for constructing long ID
+   * @param isCloud - Whether it's cloud environment (default: true)
+   */
+  static toLongId(id: string | number, workspaceId: string | number, isCloud = true): string {
+    const idStr = String(id).trim();
+    const workspaceIdStr = String(workspaceId);
+
+    // Check if it's a pure numeric short ID (≤9 digits)
+    if (/^\d+$/.test(idStr) && idStr.length <= 9) {
+      const prefix = isCloud ? '11' : '10';
+      const paddedId = idStr.padStart(9, '0');
+      return `${prefix}${workspaceIdStr}${paddedId}`;
+    }
+
+    return idStr;
+  }
+
+  /**
+ * Make HTTP request to TAPD API with retry support
+ *
+ * Retry policy:
+ * - Retry on 429/500/502/503 status codes
+ * - Max 3 retries with exponential backoff (1s, 2s, 4s)
+ * - POST requests do NOT retry (avoid duplicate creation)
+ */
   async request<T>(
     method: 'GET' | 'POST',
     path: string,
@@ -109,30 +163,63 @@ export class TapdClient {
       ).toString();
     }
 
-    const response = await fetch(url.toString(), {
-      method,
-      headers,
-      body,
-    });
+    // Retry configuration
+    const maxRetries = 3;
+    const retryableStatusCodes = [429, 500, 502, 503];
+    const shouldRetry = method === 'GET'; // Only retry GET requests
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`TAPD API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(url.toString(), {
+          method,
+          headers,
+          body,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const error = new Error(`TAPD API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
+
+          // Check if we should retry
+          if (shouldRetry && retryableStatusCodes.includes(response.status) && attempt < maxRetries) {
+            lastError = error;
+            const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          throw error;
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          const text = await response.text();
+          throw new Error(`TAPD API returned non-JSON response: ${text.slice(0, 100)}`);
+        }
+
+        const result = await response.json() as TapdResponse<T>;
+
+        if (result.status !== 1) {
+          throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
+        }
+
+        return result.data;
+      } catch (error) {
+        // For non-retryable errors or final attempt, throw immediately
+        if (!shouldRetry || attempt >= maxRetries) {
+          throw error;
+        }
+
+        // For network errors, retry
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const delayMs = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
 
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      const text = await response.text();
-      throw new Error(`TAPD API returned non-JSON response: ${text.slice(0, 100)}`);
-    }
-
-    const result = await response.json() as TapdResponse<T>;
-
-    if (result.status !== 1) {
-      throw new Error(`TAPD API error: ${result.info ?? 'Unknown error'}`);
-    }
-
-    return result.data;
+    // All retries exhausted
+    throw lastError ?? new Error('Request failed after all retries');
   }
 
   /**
