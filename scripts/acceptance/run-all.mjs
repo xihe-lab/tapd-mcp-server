@@ -19,6 +19,14 @@ const scripts = [
   '14-credential-masking.mjs',
   '15-performance.mjs',
   '16-richtext-auto.mjs',
+  // rc 全面测试新增（17-22、24 可执行；23 为 .md 手工清单不入数组——评审修订 6）
+  '17-npm-artifact.mjs',
+  '18-read-full-sweep.mjs',
+  '19-write-full-sweep.mjs',
+  '20-richtext-matrix.mjs',
+  '21-longid-bounds.mjs',
+  '22-env-matrix.mjs',
+  '24-stability-perf.mjs',
 ];
 
 const dir = fileURLToPath(new URL('.', import.meta.url));
@@ -28,7 +36,7 @@ const results = [];
 for (const script of only) {
   console.log(`\n========== ${script} ==========`);
   const started = Date.now();
-  const res = spawnSync('node', [dir + script], { cwd: dir, stdio: 'inherit', timeout: 300_000 });
+  const res = spawnSync('node', [dir + script], { cwd: dir, stdio: 'inherit', timeout: 900_000 });
   results.push({ script, code: res.status ?? -1, ms: Date.now() - started });
 }
 

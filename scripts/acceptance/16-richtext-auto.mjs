@@ -1,11 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { fileURLToPath } from 'node:url';
-import { McpClient, Reporter, WORKSPACE_ID } from './helpers.mjs';
-
-// 仓库根按脚本自身位置推导：本脚本随仓库走，worktree / 主仓均可直接跑
-const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const CLI_BIN = `${REPO_ROOT}/packages/cli/dist/bin/tapd.js`;
+import { McpClient, Reporter, WORKSPACE_ID, CLI_BIN } from './helpers.mjs';
 
 // 凭证纪律：token 仅在进程内从 config.json 读出注入子进程 env，不打印明文
 function readToken() {
@@ -52,8 +46,7 @@ function unwrap(data) {
   return node;
 }
 
-const MCP_BIN = `${REPO_ROOT}/packages/mcp/dist/bin/tapd-mcp-server.js`;
-const mcp = new McpClient({ env: AUTH_ENV, bin: MCP_BIN });
+const mcp = new McpClient({ env: AUTH_ENV });
 
 try {
   await mcp.start();

@@ -1,6 +1,6 @@
 import { writeFileSync, appendFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { Reporter, REPO, NO_AUTH_ENV, runCmd, CLI_BIN, McpClient } from './helpers.mjs';
+import { Reporter, REPO, NO_AUTH_ENV, runCmd, SOURCE_CLI_BIN, SOURCE_MCP_BIN, McpClient } from './helpers.mjs';
 
 const r = new Reporter('09-extensibility');
 const ECHO_TOOL = `${REPO}/packages/core/src/tools/zz-acceptance-echo.ts`;
@@ -33,7 +33,8 @@ export const echoTools: ToolDef[] = [
   sh('pnpm build');
   r.note('已注入 tapd_echo 并重新 build');
 
-  const tapd = (...args) => runCmd('node', [CLI_BIN, ...args], { env: NO_AUTH_ENV });
+  // 可扩展性验证对象是源码注入机制，钉死源码 bin 不受 TAPD_TEST_BIN 开关影响（评审修订 7）
+  const tapd = (...args) => runCmd('node', [SOURCE_CLI_BIN, ...args], { env: NO_AUTH_ENV });
 
   const help = await tapd('--help');
   r.check('CLI 命令树自动出现 tapd echo（零接线）', /(^|\n)\s*echo(\||\s|$)/.test(help.stdout), help.stdout.split('\n').filter(l => /echo/.test(l)).join(' ; ').slice(0, 120));
@@ -49,7 +50,7 @@ export const echoTools: ToolDef[] = [
   const adv = await tapd('advisor', 'echo 消息回显');
   r.check('advisor 索引自动召回 echo 命令 (echo run / tapd_echo)', /echo run|tapd_echo/.test(adv.stdout), adv.stdout.slice(0, 150));
 
-  const mcp = new McpClient({ env: NO_AUTH_ENV });
+  const mcp = new McpClient({ env: NO_AUTH_ENV, bin: SOURCE_MCP_BIN });
   try {
     await mcp.start();
     const tools = await mcp.listTools();

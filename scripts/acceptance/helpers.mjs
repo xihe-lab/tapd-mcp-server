@@ -1,13 +1,51 @@
 import { spawn } from 'node:child_process';
+import { appendFileSync, copyFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 export const REPO = fileURLToPath(new URL('../..', import.meta.url));
-export const MCP_BIN = `${REPO}/packages/mcp/dist/bin/tapd-mcp-server.js`;
+
+// 被测对象切换（评审修订 7，单一 env）：TAPD_TEST_BIN=产物 bin 目录（含 tapd / tapd-mcp-server，如 npm 全局 bin 目录）；不设为源码 dist
+const TEST_BIN_DIR = process.env.TAPD_TEST_BIN;
+export const SOURCE_MCP_BIN = `${REPO}/packages/mcp/dist/bin/tapd-mcp-server.js`;
+export const SOURCE_CLI_BIN = `${REPO}/packages/cli/dist/bin/tapd.js`;
+export const MCP_BIN = TEST_BIN_DIR ? `${TEST_BIN_DIR}/tapd-mcp-server` : SOURCE_MCP_BIN;
+export const CLI_BIN = TEST_BIN_DIR ? `${TEST_BIN_DIR}/tapd` : SOURCE_CLI_BIN;
 export const OLD_MCP_BIN = '/tmp/claude/tapd-v142/dist/index.js';
-export const CLI_BIN = `${REPO}/packages/cli/dist/bin/tapd.js`;
 export const BASELINE_143 = '/tmp/claude/baseline-tools-143.json';
 export const WORKSPACE_ID = 39814312;
+
+export const ZZZ_PREFIX = 'zzz-delete-me-';
+export const ORPHAN_LEDGER = '/tmp/claude/tapd-rc-orphan-ledger.jsonl';
+
+// C2：真实 ~/.tapd/config.json 只读；需要写 config 的用例一律对副本操作
+export function ensureConfigCopy() {
+  mkdirSync('/tmp/claude', { recursive: true });
+  const dest = '/tmp/claude/tapd-rc-config-copy.json';
+  copyFileSync(`${homedir()}/.tapd/config.json`, dest);
+  return dest;
+}
+
+// 凭证纪律：token 仅进程内读出注入子进程 env，不打印明文
+export function readRealToken() {
+  const config = JSON.parse(readFileSync(`${homedir()}/.tapd/config.json`, 'utf8'));
+  if (!config.access_token) throw new Error('~/.tapd/config.json 无 access_token');
+  return config.access_token;
+}
+
+// 修订 5 孤儿登记：已创建实体 ID 实时登记，无论其所属工具后续成败；清理清单唯一底稿
+export function registerOrphan(kind, id, name, extra = {}) {
+  mkdirSync('/tmp/claude', { recursive: true });
+  appendFileSync(ORPHAN_LEDGER, JSON.stringify({ ts: new Date().toISOString(), kind, id: String(id), name: String(name ?? ''), ...extra }) + '\n');
+}
+
+// C3 前缀防御：任何 ID 型入参对应的实体名必须带 zzz-delete-me- 前缀，否则中止
+export function expectZzz(name, context) {
+  if (!String(name ?? '').startsWith(ZZZ_PREFIX)) {
+    throw new Error(`[C3 前缀防御中止] ${context}: "${name}" 缺 ${ZZZ_PREFIX} 前缀`);
+  }
+}
 
 export const NO_CONFIG_ENV = {
   TAPD_CONFIG_PATH: '/nonexistent/tapd-config-acceptance.json',
@@ -45,17 +83,26 @@ export function runCmd(cmd, args, { env = {}, cwd = REPO, timeoutMs = 30_000, in
 }
 
 export class McpClient {
-  constructor({ env = {}, bin = MCP_BIN } = {}) {
+  // cmd 提供时以 spawn(cmd, cmdArgs) 启动（npx 等场景），否则 spawn(nodeBin, [bin])
+  constructor({ env = {}, bin = MCP_BIN, nodeBin = 'node', cmd, cmdArgs = [] } = {}) {
     this.env = env;
     this.bin = bin;
+    this.nodeBin = nodeBin;
+    this.cmd = cmd;
+    this.cmdArgs = cmdArgs;
     this.nextId = 1;
   }
 
   async start() {
-    this.proc = spawn('node', [this.bin], {
-      env: { ...process.env, ...this.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    this.proc = this.cmd
+      ? spawn(this.cmd, this.cmdArgs, {
+          env: { ...process.env, ...this.env },
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
+      : spawn(this.nodeBin, [this.bin], {
+          env: { ...process.env, ...this.env },
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
     this.buf = Buffer.alloc(0);
     this.pending = new Map();
     this.stderrTail = '';
