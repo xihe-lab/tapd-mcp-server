@@ -11,14 +11,14 @@ const proc = spawn(cmd, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
 const send = (msg) => proc.stdin.write(JSON.stringify(msg) + '\n');
 
 const responses = new Map();
-let buffer = '';
+let buffer = Buffer.alloc(0);
 
 proc.stdout.on('data', (chunk) => {
-  buffer += chunk.toString();
+  buffer = Buffer.concat([buffer, chunk]);
   let idx;
-  while ((idx = buffer.indexOf('\n')) !== -1) {
-    const line = buffer.slice(0, idx).trim();
-    buffer = buffer.slice(idx + 1);
+  while ((idx = buffer.indexOf(0x0A)) !== -1) {
+    const line = buffer.subarray(0, idx).toString('utf8').trim();
+    buffer = buffer.subarray(idx + 1);
     if (!line) continue;
     try {
       const msg = JSON.parse(line);

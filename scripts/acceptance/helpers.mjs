@@ -27,17 +27,17 @@ export function runCmd(cmd, args, { env = {}, cwd = REPO, timeoutMs = 30_000, in
       env: { ...process.env, ...env },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    let stdout = '';
-    let stderr = '';
+    let stdout = Buffer.alloc(0);
+    let stderr = Buffer.alloc(0);
     const timer = setTimeout(() => {
       proc.kill('SIGKILL');
-      resolve({ code: -1, stdout, stderr, timedOut: true });
+      resolve({ code: -1, stdout: stdout.toString(), stderr: stderr.toString(), timedOut: true });
     }, timeoutMs);
-    proc.stdout.on('data', d => { stdout += d; });
-    proc.stderr.on('data', d => { stderr += d; });
+    proc.stdout.on('data', d => { stdout = Buffer.concat([stdout, d]); });
+    proc.stderr.on('data', d => { stderr = Buffer.concat([stderr, d]); });
     proc.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code: code ?? -1, stdout, stderr, timedOut: false });
+      resolve({ code: code ?? -1, stdout: stdout.toString(), stderr: stderr.toString(), timedOut: false });
     });
     if (input !== undefined) proc.stdin.write(input);
     proc.stdin.end();
@@ -56,7 +56,7 @@ export class McpClient {
       env: { ...process.env, ...this.env },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-    this.buf = '';
+    this.buf = Buffer.alloc(0);
     this.pending = new Map();
     this.stderrTail = '';
     this.proc.stdout.on('data', d => this.#onData(d));
@@ -71,11 +71,11 @@ export class McpClient {
   }
 
   #onData(chunk) {
-    this.buf += chunk;
+    this.buf = Buffer.concat([this.buf, chunk]);
     let idx;
-    while ((idx = this.buf.indexOf('\n')) >= 0) {
-      const line = this.buf.slice(0, idx);
-      this.buf = this.buf.slice(idx + 1);
+    while ((idx = this.buf.indexOf(0x0A)) >= 0) {
+      const line = this.buf.subarray(0, idx).toString('utf8');
+      this.buf = this.buf.subarray(idx + 1);
       if (!line.trim()) continue;
       let msg;
       try { msg = JSON.parse(line); } catch { continue; }

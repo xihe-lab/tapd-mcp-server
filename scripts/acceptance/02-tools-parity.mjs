@@ -24,8 +24,33 @@ try {
     missing.length === 0 && JSON.stringify(extra) === JSON.stringify(EXPECTED_ADDED),
     `missing=${JSON.stringify(missing.slice(0, 10))} extra=${JSON.stringify(extra.slice(0, 10))}`);
 
-  // inputSchema 深比较：先全量哈希比对，再抽 20 个逐字段输出差异
+  // inputSchema 深比较：先全量哈希比对，再抽 20 个逐字段输出差异。
+  // 1410 补充修复豁免：19 位长 ID 语义字段 z.number() -> z.string()（26 处、20 个工具，
+  // 见 EXPECTED_DRIFT）。workspace_id/company_id 短 ID 不在豁免范围，其余漂移即失败。
+  const EXPECTED_DRIFT = new Set([
+    'tapd_get_workflow_status_map',
+    'tapd_get_workflow_step_map',
+    'tapd_add_board_card',
+    'tapd_get_board_cards',
+    'tapd_update_board_card',
+    'tapd_get_board_columns',
+    'tapd_program_relate_workspace',
+    'tapd_program_bind_entities',
+    'tapd_get_workspace_reports',
+    'tapd_get_story_categories',
+    'tapd_get_story_categories_count',
+    'tapd_add_story_category',
+    'tapd_update_story_category',
+    'tapd_get_tcase_categories',
+    'tapd_get_tcase_categories_count',
+    'tapd_add_tcase_category',
+    'tapd_add_module',
+    'tapd_update_module',
+    'tapd_add_feature',
+    'tapd_update_feature',
+  ]);
   const diffTools = [];
+  const unexpectedDiff = [];
   const diffDetails = [];
   for (const t of tools) {
     const b = byName[t.name];
@@ -34,14 +59,16 @@ try {
     const bStr = JSON.stringify(stripVolatile(b.inputSchema));
     if (aStr !== bStr) {
       diffTools.push(t.name);
+      if (!EXPECTED_DRIFT.has(t.name)) unexpectedDiff.push(t.name);
       if (diffDetails.length < 20) {
         const paths = findDiffPaths(b.inputSchema, t.inputSchema);
         diffDetails.push(`${t.name}: ${paths.join('; ')}`);
       }
     }
   }
-  r.check('全量 210 个 inputSchema 深比较零漂移', diffTools.length === 0,
-    `漂移 ${diffTools.length} 个: ${diffDetails.slice(0, 5).join(' | ')}`);
+  r.note(`预期漂移（1410 长 ID 修复白名单 ${EXPECTED_DRIFT.size} 工具）命中 ${diffTools.length} 个: ${diffTools.slice(0, 25).join(', ')}`);
+  r.check(`全量 210 个 inputSchema 深比较零意外漂移（豁免 ${EXPECTED_DRIFT.size} 个预期修复）`, unexpectedDiff.length === 0,
+    `意外漂移 ${unexpectedDiff.length} 个: ${unexpectedDiff.slice(0, 5).join(' | ')}`);
 
   // description 顺带比对（FSD 未强制，但漂移值得记录）
   const descDiff = tools.filter(t => byName[t.name] && byName[t.name].description !== t.description).map(t => t.name);
