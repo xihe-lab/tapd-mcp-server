@@ -123,7 +123,7 @@ export const testTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('分类ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("分类名称，支持模糊匹配"),
-      parent_id: z.number().optional().describe("父分类ID"),
+      parent_id: z.string().optional().describe("父分类ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
       created: z.string().optional().describe("创建时间"),
       modified: z.string().optional().describe("修改时间"),
       limit: z.number().optional().describe("返回数量"),
@@ -146,7 +146,7 @@ export const testTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().optional().describe('分类ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("分类名称"),
-      parent_id: z.number().optional().describe("父分类ID"),
+      parent_id: z.string().optional().describe("父分类ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -162,7 +162,7 @@ export const testTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().describe("分类名称 (必填)"),
-      parent_id: z.number().optional().describe("父分类ID（用于创建子分类）"),
+      parent_id: z.string().optional().describe("父分类ID（用于创建子分类）；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

@@ -27,7 +27,7 @@ export const workflowTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       system: z.string().describe("系统名，取 'bug' 或 'story' (必填)"),
-      workitem_type_id: z.number().optional().describe("需求类别ID，获取需求状态时必传"),
+      workitem_type_id: z.string().optional().describe("需求类别ID，获取需求状态时必传；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
     handler: async (client, params) => {
@@ -44,7 +44,7 @@ export const workflowTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       system: z.string().describe("系统名，当前仅支持 'story' (必填)"),
-      workitem_type_id: z.number().describe("需求类别ID (必填)"),
+      workitem_type_id: z.string().describe("需求类别ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     }),
     handler: async (client, params) => {

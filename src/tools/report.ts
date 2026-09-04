@@ -7,7 +7,7 @@ export const reportTools: ToolDef[] = [
     description: "获取项目报告列表",
     inputSchema: z.object({
       workspace_id: z.number().describe("项目ID (必填)"),
-      id: z.number().optional().describe("报表ID"),
+      id: z.string().optional().describe("报表ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度"),
       name: z.string().optional().describe("报表名称，支持模糊匹配"),
       type: z.string().optional().describe("报表类型"),
       creator: z.string().optional().describe("创建人"),
