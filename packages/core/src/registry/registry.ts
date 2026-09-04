@@ -5,6 +5,7 @@ import { resolveWrite } from './write-policy.js';
 import { deriveCommand } from './derive-command.js';
 import { MANUAL_CLI_META, EXPLICIT_WRITE } from './cli-meta.js';
 import { transformWriteArgs, transformReadData } from './richtext.js';
+import { guardLongIdSchema } from './long-id-guard.js';
 
 export type Entry = 'cli' | 'mcp';
 
@@ -87,9 +88,10 @@ export class ToolRegistry {
         throw new Error(`Duplicate tool name: ${tool.name}`);
       }
       const declared = MANUAL_CLI_META[tool.name];
+      const guarded = guardLongIdSchema(tool.inputSchema);
       const merged: ToolDef = declared
-        ? { ...tool, cli: declared, ...(EXPLICIT_WRITE.has(tool.name) ? { write: true } : {}) }
-        : tool;
+        ? { ...tool, inputSchema: guarded, cli: declared, ...(EXPLICIT_WRITE.has(tool.name) ? { write: true } : {}) }
+        : { ...tool, inputSchema: guarded };
       this.tools.set(tool.name, merged);
     }
   }
@@ -141,7 +143,15 @@ export class ToolRegistry {
       return { ok: false, error: { code: 'TOOL_NOT_FOUND', message: `Tool not found: ${name}` } };
     }
 
-    const parsed = tool.inputSchema.safeParse(args ?? {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: z.SafeParseReturnType<any, any>;
+    try {
+      parsed = tool.inputSchema.safeParse(args ?? {});
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      finish(false, 'INVALID_ARGS');
+      return { ok: false, error: { code: 'INVALID_ARGS', message } };
+    }
     if (!parsed.success) {
       finish(false, 'INVALID_ARGS');
       return { ok: false, error: { code: 'INVALID_ARGS', message: formatInvalidArgs(parsed.error) } };
