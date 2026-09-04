@@ -1,6 +1,6 @@
 {
   "name": "@xihe-lab/tapd-core",
-  "version": "1.0.0",
+  "version": "2.0.0-rc.1",
   "description": "Shared kernel for TAPD tools: tool definitions, TapdClient and registry, shared by CLI and MCP entries",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-"test": "tsx src/registry/long-id-guard.test.ts && tsx src/registry/registry.test.ts && tsx src/config/config.test.ts && tsx src/schema/export.test.ts && tsx src/advisor/advisor.test.ts && tsx src/tools/md-to-html.test.ts && tsx src/registry/richtext.test.ts",
+    "test": "tsx src/registry/long-id-guard.test.ts && tsx src/registry/registry.test.ts && tsx src/config/config.test.ts && tsx src/schema/export.test.ts && tsx src/advisor/advisor.test.ts && tsx src/tools/md-to-html.test.ts && tsx src/registry/richtext.test.ts",
     "debug:commands": "tsx src/registry/debug-commands.ts"
   },
   "keywords": [

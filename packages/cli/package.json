@@ -1,6 +1,6 @@
 {
   "name": "@xihe-lab/tapd-cli",
-  "version": "1.0.0",
+  "version": "2.0.0-rc.1",
   "description": "TAPD command line sharing the same kernel as tapd-mcp-server",
   "type": "module",
   "bin": {
