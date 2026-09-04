@@ -8,7 +8,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get wiki pages from TAPD",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Wiki ID, supports multiple IDs"),
+      id: z.string().optional().describe('Wiki ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Wiki page name, supports fuzzy matching"),
       creator: z.string().optional().describe("Creator name"),
       modifier: z.string().optional().describe("Last modifier name"),
@@ -17,7 +17,7 @@ export const wikiTools: ToolDef[] = [
       created: z.string().optional().describe("Creation time, supports time query"),
       modified: z.string().optional().describe("Last modified time, supports time query"),
       status: z.string().optional().describe("Status of the wiki page"),
-      category_id: z.string().optional().describe("Category ID"),
+      category_id: z.string().optional().describe('Category ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
@@ -41,7 +41,7 @@ export const wikiTools: ToolDef[] = [
       description: z.string().optional().describe("Rich text content"),
       markdown_description: z.string().optional().describe("Markdown content"),
       note: z.string().optional().describe("Note/remark"),
-      parent_wiki_id: z.string().optional().describe("Parent wiki ID for nested pages"),
+      parent_wiki_id: z.string().optional().describe('Parent wiki ID for nested pages；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -64,13 +64,13 @@ export const wikiTools: ToolDef[] = [
     description: "Update an existing wiki page in TAPD",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("Wiki ID (required)"),
+      id: z.string().describe('Wiki ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Wiki page title"),
       modifier: z.string().optional().describe("Modifier name (defaults to TAPD_NICK_NAME env)"),
       description: z.string().optional().describe("Rich text content"),
       markdown_description: z.string().optional().describe("Markdown content"),
       note: z.string().optional().describe("Note/remark"),
-      parent_wiki_id: z.string().optional().describe("Parent wiki ID for nested pages"),
+      parent_wiki_id: z.string().optional().describe('Parent wiki ID for nested pages；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -93,7 +93,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get the count of wiki pages matching filters",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Wiki ID, supports multiple IDs"),
+      id: z.string().optional().describe('Wiki ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Wiki page name, supports fuzzy matching"),
       creator: z.string().optional().describe("Creator name"),
       modifier: z.string().optional().describe("Last modifier name"),
@@ -102,7 +102,7 @@ export const wikiTools: ToolDef[] = [
       created: z.string().optional().describe("Creation time, supports time query"),
       modified: z.string().optional().describe("Last modified time, supports time query"),
       status: z.string().optional().describe("Status of the wiki page"),
-      category_id: z.string().optional().describe("Category ID"),
+      category_id: z.string().optional().describe('Category ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -117,7 +117,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get the count of wiki attachments",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      wiki_id: z.string().optional().describe("Wiki ID"),
+      wiki_id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -132,7 +132,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get DrawIO data from wiki pages",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Wiki ID"),
+      id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -147,7 +147,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get entity permissions of wiki pages",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Wiki ID"),
+      id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -162,7 +162,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get followers of wiki pages",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      wiki_id: z.string().optional().describe("Wiki ID"),
+      wiki_id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       user: z.string().optional().describe("User name"),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
@@ -180,7 +180,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get the count of wiki followers",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      wiki_id: z.string().optional().describe("Wiki ID"),
+      wiki_id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       user: z.string().optional().describe("User name"),
     }),
     handler: async (client, params) => {
@@ -196,7 +196,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get tags of wiki pages",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      wiki_id: z.string().optional().describe("Wiki ID"),
+      wiki_id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Tag name"),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
@@ -214,7 +214,7 @@ export const wikiTools: ToolDef[] = [
     description: "Get the count of wiki tags",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      wiki_id: z.string().optional().describe("Wiki ID"),
+      wiki_id: z.string().optional().describe('Wiki ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Tag name"),
     }),
     handler: async (client, params) => {

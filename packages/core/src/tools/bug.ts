@@ -8,7 +8,7 @@ export const bugTools: ToolDef[] = [
     description: 'Query TAPD bugs with filters',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('Supports multiple IDs'),
+      id: z.string().optional().describe('Supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().optional().describe('Bug title, supports fuzzy matching'),
       priority: z.string().optional().describe('Priority, recommend using priority_label'),
       priority_label: z.string().optional().describe('Priority (recommended)'),
@@ -16,7 +16,7 @@ export const bugTools: ToolDef[] = [
       status: z.string().optional().describe('Status, supports enum query'),
       v_status: z.string().optional().describe('Status (Chinese)'),
       label: z.string().optional().describe('Label, supports enum query'),
-      iteration_id: z.string().optional().describe('Iteration ID, supports enum query'),
+      iteration_id: z.string().optional().describe('Iteration ID, supports enum query；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       module: z.string().optional().describe('Module, supports enum query'),
       current_owner: z.string().optional().describe('Current owner, supports fuzzy matching'),
       reporter: z.string().optional().describe('Reporter, supports multiple users query'),
@@ -34,7 +34,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.string().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       version_report: z.string().optional().describe('Found version, enum query'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -89,10 +89,10 @@ export const bugTools: ToolDef[] = [
       current_owner: z.string().optional().describe('Current owner (defaults to TAPD_NICK_NAME env)'),
       description: z.string().optional().describe('Detailed description'),
       module: z.string().optional().describe('Module'),
-      iteration_id: z.string().optional().describe('Iteration ID'),
+      iteration_id: z.string().optional().describe('Iteration ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       label: z.string().optional().describe('Label, multiple values separated by |'),
       effort: z.number().optional().describe('Estimated effort'),
-      template_id: z.string().optional().describe('Template ID'),
+      template_id: z.string().optional().describe('Template ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       cc: z.string().optional().describe('CC person'),
       te: z.string().optional().describe('Tester'),
       de: z.string().optional().describe('Developer'),
@@ -105,7 +105,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.string().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       version_report: z.string().optional().describe('Found version'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -149,7 +149,7 @@ export const bugTools: ToolDef[] = [
     name: 'tapd_update_bug',
     description: 'Update an existing bug in TAPD',
     inputSchema: z.object({
-      id: z.string().describe('Bug ID (required)'),
+      id: z.string().describe('Bug ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       title: z.string().optional().describe('Bug title'),
       priority: z.string().optional().describe('Priority'),
@@ -159,7 +159,7 @@ export const bugTools: ToolDef[] = [
       current_owner: z.string().optional().describe('Current owner'),
       description: z.string().optional().describe('Detailed description'),
       module: z.string().optional().describe('Module'),
-      iteration_id: z.string().optional().describe('Iteration ID'),
+      iteration_id: z.string().optional().describe('Iteration ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       label: z.string().optional().describe('Label, multiple values separated by |'),
       effort: z.number().optional().describe('Estimated effort'),
       cc: z.string().optional().describe('CC person'),
@@ -170,7 +170,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.string().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       version_report: z.string().optional().describe('Found version'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -213,7 +213,7 @@ export const bugTools: ToolDef[] = [
     description: 'Get the count of bugs matching filters',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('Supports multiple IDs'),
+      id: z.string().optional().describe('Supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().optional().describe('Bug title, supports fuzzy matching'),
       priority: z.string().optional().describe('Priority, recommend using priority_label'),
       priority_label: z.string().optional().describe('Priority (recommended)'),
@@ -221,7 +221,7 @@ export const bugTools: ToolDef[] = [
       status: z.string().optional().describe('Status, supports enum query'),
       v_status: z.string().optional().describe('Status (Chinese)'),
       label: z.string().optional().describe('Label, supports enum query'),
-      iteration_id: z.string().optional().describe('Iteration ID, supports enum query'),
+      iteration_id: z.string().optional().describe('Iteration ID, supports enum query；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       module: z.string().optional().describe('Module, supports enum query'),
       current_owner: z.string().optional().describe('Current owner, supports fuzzy matching'),
       reporter: z.string().optional().describe('Reporter, supports multiple users query'),
@@ -239,7 +239,7 @@ export const bugTools: ToolDef[] = [
       begin: z.string().optional().describe('Estimated start date, Format: YYYY-MM-DD'),
       due: z.string().optional().describe('Estimated end date, Format: YYYY-MM-DD'),
       deadline: z.string().optional().describe('Resolve deadline, Format: YYYY-MM-DD'),
-      release_id: z.string().optional().describe('Release plan'),
+      release_id: z.string().optional().describe('Release plan；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       version_report: z.string().optional().describe('Found version, enum query'),
       version_test: z.string().optional().describe('Verify version'),
       version_fix: z.string().optional().describe('Fix version'),
@@ -284,8 +284,8 @@ export const bugTools: ToolDef[] = [
     description: '获取缺陷变更历史',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('变更记录ID，支持多ID查询'),
-      bug_id: z.string().optional().describe('缺陷ID'),
+      id: z.string().optional().describe('变更记录ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      bug_id: z.string().optional().describe('缺陷ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       field: z.string().optional().describe('变更字段'),
       value_before: z.string().optional().describe('变更前值'),
       value_after: z.string().optional().describe('变更后值'),
@@ -314,7 +314,7 @@ export const bugTools: ToolDef[] = [
     description: '获取缺陷变更次数',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      bug_id: z.string().optional().describe('缺陷ID'),
+      bug_id: z.string().optional().describe('缺陷ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       field: z.string().optional().describe('变更字段'),
       user: z.string().optional().describe('变更人'),
       created: z.string().optional().describe('创建时间'),
@@ -443,10 +443,10 @@ export const bugTools: ToolDef[] = [
     description: '复制缺陷',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe('要复制的缺陷ID (必填)'),
+      id: z.string().describe('要复制的缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().optional().describe('新缺陷标题（默认为原标题）'),
       current_owner: z.string().optional().describe('处理人'),
-      iteration_id: z.string().optional().describe('迭代ID'),
+      iteration_id: z.string().optional().describe('迭代ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       copy_attachments: z.number().optional().describe('是否复制附件，值=1复制'),
       copy_comments: z.number().optional().describe('是否复制评论，值=1复制'),
     }),
@@ -469,7 +469,7 @@ export const bugTools: ToolDef[] = [
     description: '获取缺陷关联关系',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      bug_id: z.string().describe('缺陷ID (必填)'),
+      bug_id: z.string().describe('缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -489,8 +489,8 @@ export const bugTools: ToolDef[] = [
     description: '关联缺陷',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      bug_id: z.string().describe('主缺陷ID (必填)'),
-      link_bug_id: z.string().describe('关联缺陷ID (必填)'),
+      bug_id: z.string().describe('主缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      link_bug_id: z.string().describe('关联缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       link_type: z.string().optional().describe('关联类型（前置/后置等）'),
     }),
     handler: async (client, params) => {
@@ -512,8 +512,8 @@ export const bugTools: ToolDef[] = [
     description: '取消关联缺陷',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      bug_id: z.string().describe('主缺陷ID (必填)'),
-      link_bug_id: z.string().describe('要取消关联的缺陷ID (必填)'),
+      bug_id: z.string().describe('主缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      link_bug_id: z.string().describe('要取消关联的缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -534,7 +534,7 @@ export const bugTools: ToolDef[] = [
     description: '获取缺陷关联需求',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      bug_id: z.string().describe('缺陷ID (必填)'),
+      bug_id: z.string().describe('缺陷ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -555,7 +555,7 @@ export const bugTools: ToolDef[] = [
     description: '获取视图缺陷列表',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      view_conf_id: z.string().describe('视图配置ID (必填)'),
+      view_conf_id: z.string().describe('视图配置ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       limit: z.number().optional().describe('返回数量，默认30，最大200'),
       page: z.number().optional().describe('页码，默认1'),
       fields: z.string().optional().describe('返回字段'),
@@ -573,7 +573,7 @@ export const bugTools: ToolDef[] = [
     description: '获取回收站缺陷',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('缺陷ID'),
+      id: z.string().optional().describe('缺陷ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().optional().describe('标题'),
       current_owner: z.string().optional().describe('处理人'),
       reporter: z.string().optional().describe('创建人'),
@@ -602,7 +602,7 @@ export const bugTools: ToolDef[] = [
     description: '转换缺陷ID为queryToken',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      ids: z.string().describe('缺陷ID列表，逗号分隔 (必填)'),
+      ids: z.string().describe('缺陷ID列表，逗号分隔 (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params: { workspace_id?: number; ids: string }) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

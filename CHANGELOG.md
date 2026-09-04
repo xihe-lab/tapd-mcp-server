@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-09-04
+
+### Fixed
+
+- 修复智能体首次调用时长 ID 传为数值类型导致精度丢失/校验失败的问题：
+  - 全部 260 处长 ID 参数（`id`/`story_id`/`bug_id`/`iteration_id` 等，含 optional 字段）描述追加「必须以字符串（带引号）传递」引导，从源头避免 LLM 按直觉生成 JSON 数值
+  - `server.ts` 注册时统一为字符串型 ID 参数（257 个，覆盖 `z.string().optional()`/`.nullable()` 包裹形态）包装 `z.preprocess` 防御层：安全整数范围内的数值（≤16 位，短 ID 场景）自动转字符串救回；超出安全范围的数值返回明确错误「请以字符串（带引号）重传」
+  - 全量 210 工具 schema 校验：`type:"string"` 输出与 required 语义零变化，`workspace_id` 等数值型短 ID 参数行为不变
+
 ## [1.4.0] - 2026-05-19
 
 ### Added

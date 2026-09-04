@@ -33,7 +33,7 @@ export const boardTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       board_id: z.number().optional().describe("看板ID"),
       column_id: z.number().optional().describe("看板列ID"),
-      id: z.string().optional().describe("工作项ID，支持多ID查询"),
+      id: z.string().optional().describe('工作项ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("工作项标题，支持模糊匹配"),
       owner: z.string().optional().describe("负责人"),
       creator: z.string().optional().describe("创建人"),
@@ -60,7 +60,7 @@ export const boardTools: ToolDef[] = [
     name: "tapd_update_board_card",
     description: "更新看板工作项",
     inputSchema: z.object({
-      id: z.string().describe("工作项ID (必填)"),
+      id: z.string().describe('工作项ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       board_id: z.number().optional().describe("看板ID"),
       column_id: z.number().optional().describe("看板列ID（用于移动卡片）"),

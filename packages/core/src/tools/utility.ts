@@ -29,7 +29,7 @@ const htmlToMdHandler = async (_client: TapdClient, params: z.infer<typeof htmlT
 };
 
 const shortToLongIdSchema = z.object({
-  short_id: z.string().describe('短 ID（纯数字，≤9 位）'),
+  short_id: z.string().describe('短 ID（纯数字，≤9 位）；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
   workspace_id: z.union([z.string(), z.number()]).describe('项目 ID'),
   is_cloud: z.boolean().optional().default(true).describe('是否云环境（默认 true）'),
 });
