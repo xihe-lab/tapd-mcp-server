@@ -93,8 +93,8 @@ mkdirSync(CONFIG_DIR, { recursive: true });
     const env = { ...process.env, TAPD_CONFIG_PATH: '/nonexistent/tapd-config-acceptance.json', TAPD_ACCESS_TOKEN: '', TAPD_API_USER: '', TAPD_API_PASSWORD: '' };
     const out = spawnSync('node', ['${CLI_BIN}', 'config', 'export-schema', '--format', 'anthropic'], { env, encoding: 'utf8' });
     const exported = JSON.parse(out.stdout);
-    // 2.0.0-rc 口径（1299 后）：基线 210 存量零漂移 + 恰好新增 2 个富文本转换工具
-    const baseline = JSON.parse(readFileSync('${'/tmp/claude/baseline-tools.json'}', 'utf8')).tools;
+    // 2.0.0-rc 口径（1410 后）：对 1.4.3 基线（含长 ID describe 引导）210 存量零漂移 + 恰好新增 2 个富文本转换工具
+    const baseline = JSON.parse(readFileSync('${'/tmp/claude/baseline-tools-143.json'}', 'utf8')).tools;
     const expNames = new Set(exported.map(t => t.name));
     const baseNames = new Set(baseline.map(t => t.name));
     const missing = [...baseNames].filter(n => !expNames.has(n));

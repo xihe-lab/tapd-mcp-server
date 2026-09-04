@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { McpClient, Reporter, NO_CONFIG_ENV, BASELINE } from './helpers.mjs';
+import { McpClient, Reporter, NO_CONFIG_ENV, BASELINE_143 } from './helpers.mjs';
 
 const r = new Reporter('02-tools-parity');
-const baseline = JSON.parse(readFileSync(BASELINE, 'utf8')).tools;
+const baseline = JSON.parse(readFileSync(BASELINE_143, 'utf8')).tools;
 const byName = Object.fromEntries(baseline.map(t => [t.name, t]));
 
 const client = new McpClient({ env: NO_CONFIG_ENV });
@@ -11,7 +11,7 @@ try {
   await client.start();
   const tools = await client.listTools();
 
-  // 2.0.0-rc 口径（1299 后）：基线 210 存量零漂移 + 恰好新增 2 个富文本转换工具
+  // 2.0.0-rc 口径（1410 后）：对 1.4.3 基线（含长 ID describe 引导）210 存量零漂移 + 恰好新增 2 个富文本转换工具
   const EXPECTED_ADDED = ['tapd_md_to_html', 'tapd_html_to_md'];
   r.check(`工具总数 212 (基线 ${baseline.length} + 2 新增 / 新版 ${tools.length})`,
     tools.length === 212 && baseline.length === 210);

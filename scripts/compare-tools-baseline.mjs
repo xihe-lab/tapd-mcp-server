@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const curPath = process.argv[2];
-const basePath = process.argv[3] ?? '/tmp/claude/baseline-tools.json';
+const basePath = process.argv[3] ?? '/tmp/claude/baseline-tools-143.json';
 const expectedAdded = JSON.parse(process.argv[4] ?? '[]');
 const cur = JSON.parse(readFileSync(curPath, 'utf8')).tools;
 const base = JSON.parse(readFileSync(basePath, 'utf8')).tools;

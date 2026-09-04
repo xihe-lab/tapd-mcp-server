@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
-export const REPO = '/Users/xuzhao/workspace/xihe-lab/tapd-mcp-server';
+export const REPO = fileURLToPath(new URL('../..', import.meta.url));
 export const MCP_BIN = `${REPO}/packages/mcp/dist/bin/tapd-mcp-server.js`;
 export const OLD_MCP_BIN = '/tmp/claude/tapd-v142/dist/index.js';
 export const CLI_BIN = `${REPO}/packages/cli/dist/bin/tapd.js`;
-export const BASELINE = '/tmp/claude/baseline-tools.json';
+export const BASELINE_143 = '/tmp/claude/baseline-tools-143.json';
 export const WORKSPACE_ID = 39814312;
 
 export const NO_CONFIG_ENV = {

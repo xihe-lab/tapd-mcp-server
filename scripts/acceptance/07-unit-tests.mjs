@@ -7,7 +7,7 @@ r.check('core 测试执行成功 (退出码 0)', core.code === 0, (core.stderr |
 
 const passedLines = (out) => [...`${out}`.matchAll(/(\d+)\/(\d+) (?:checks )?passed/g)].map(m => ({ pass: Number(m[1]), total: Number(m[2]) }));
 
-const coreExpected = [['registry', 16], ['config', 21], ['export', 5], ['advisor', 12]];
+const coreExpected = [['long-id-guard', 8], ['registry', 16], ['config', 21], ['export', 5], ['advisor', 12]];
 const corePassed = passedLines(core.stdout);
 for (const [label, count] of coreExpected) {
   const hit = corePassed.some(p => p.pass === count && p.total === count);
