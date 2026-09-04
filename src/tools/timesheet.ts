@@ -8,9 +8,9 @@ export const timesheetTools: ToolDef[] = [
     description: "Get timesheet records from TAPD",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe("项目ID（可省略，使用默认配置）"),
-      id: z.string().optional().describe("Timesheet ID, supports multiple IDs"),
+      id: z.string().optional().describe('Timesheet ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       entity_type: z.string().optional().describe("Entity type: story, task, or bug"),
-      entity_id: z.string().optional().describe("Entity ID"),
+      entity_id: z.string().optional().describe('Entity ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       timespent: z.string().optional().describe("Hours spent"),
       spentdate: z.string().optional().describe("Spent date, supports time query"),
       modified: z.string().optional().describe("Last modified time, supports time query"),
@@ -41,7 +41,7 @@ export const timesheetTools: ToolDef[] = [
       workspace_id: z.number().optional().describe("项目ID（可省略，使用默认配置）"),
       owner: z.string().optional().describe("Owner (defaults to TAPD_NICK_NAME env)"),
       entity_type: z.string().describe("Type: story, task, or bug"),
-      entity_id: z.string().describe("ID of the story, bug, or task"),
+      entity_id: z.string().describe('ID of the story, bug, or task；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       spentdate: z.string().describe("Date of work (YYYY-MM-DD)"),
       timespent: z.number().describe("Hours spent"),
       memo: z.string().optional().describe("Work description"),
@@ -67,7 +67,7 @@ export const timesheetTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe("项目ID（可省略，使用默认配置）"),
       entity_type: z.string().optional().describe("Entity type: story, task, or bug"),
-      entity_id: z.string().optional().describe("Entity ID"),
+      entity_id: z.string().optional().describe('Entity ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       owner: z.string().optional().describe("Timesheet owner"),
       spentdate: z.string().optional().describe("Spent date, supports time query"),
       created: z.string().optional().describe("Creation time, supports time query"),
@@ -87,7 +87,7 @@ export const timesheetTools: ToolDef[] = [
     description: "更新工时记录",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe("项目ID（可省略，使用默认配置）"),
-      id: z.string().describe("工时记录ID (必填)"),
+      id: z.string().describe('工时记录ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       timespent: z.number().optional().describe("工时"),
       memo: z.string().optional().describe("工作描述"),
       spentdate: z.string().optional().describe("工作日期 YYYY-MM-DD"),
@@ -106,7 +106,7 @@ export const timesheetTools: ToolDef[] = [
     description: "删除工时记录",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe("项目ID（可省略，使用默认配置）"),
-      id: z.string().describe("工时记录ID (必填)"),
+      id: z.string().describe('工时记录ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

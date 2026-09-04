@@ -8,7 +8,7 @@ export const relationTools: ToolDef[] = [
     description: "Get linked stories for a story",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      story_id: z.string().describe("Story ID"),
+      story_id: z.string().describe('Story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -23,7 +23,7 @@ export const relationTools: ToolDef[] = [
     description: "Get related bugs for a story",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      story_id: z.string().describe("Story ID"),
+      story_id: z.string().describe('Story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -38,8 +38,8 @@ export const relationTools: ToolDef[] = [
     description: "Add story link relation",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      source_story_id: z.string().describe("Source story ID"),
-      target_story_id: z.string().describe("Target story ID"),
+      source_story_id: z.string().describe('Source story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      target_story_id: z.string().describe('Target story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       link_type: z.string().optional().describe("Link type"),
     }),
     handler: async (client: TapdClient, params) => {
@@ -55,8 +55,8 @@ export const relationTools: ToolDef[] = [
     description: "Remove story link relation",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      source_story_id: z.string().describe("Source story ID"),
-      target_story_id: z.string().describe("Target story ID"),
+      source_story_id: z.string().describe('Source story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      target_story_id: z.string().describe('Target story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

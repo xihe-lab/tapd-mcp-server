@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 import type { ToolDef } from './types.js';
 import { TapdClient } from './tapd-client.js';
 
@@ -19,10 +20,33 @@ export function createServer(): McpServer {
   return server;
 }
 
+const LONG_ID_PARAM = /^(id|ids)$|^([a-z_]+_ids?)$/;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrapLongIdParams(schema: any): any {
+  const shape = schema instanceof z.ZodObject ? schema.shape : schema;
+  if (typeof shape !== 'object' || shape === null) return schema;
+  const next: Record<string, z.ZodTypeAny> = {};
+  let touched = false;
+  const entries: [string, z.ZodTypeAny][] = Object.entries(shape);
+  for (const [key, field] of entries) {
+    if (LONG_ID_PARAM.test(key) && field instanceof z.ZodString) {
+      touched = true;
+      next[key] = z.preprocess(v => {
+        if (typeof v !== 'number') return v;
+        if (Number.isSafeInteger(v)) return String(v);
+        throw new Error(`参数 ${key} 的值超出 JS 安全整数范围（精度丢失），请以字符串（带引号）重传`);
+      }, field);
+    } else {
+      next[key] = field;
+    }
+  }
+  return touched ? next : shape;
+}
+
 export function registerTools(server: McpServer, tools: ToolDef[]): void {
   for (const tool of tools) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const schema = (tool.inputSchema as any).shape ?? tool.inputSchema;
+    const schema = wrapLongIdParams(tool.inputSchema);
     server.tool(
       tool.name,
       tool.description,
