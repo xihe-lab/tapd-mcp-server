@@ -161,6 +161,12 @@ claude mcp remove tapd
 
 可通过 `tapd_get_workitem_types` 查询项目中可用的 TASK 类型 ID。
 
+### 调用工具报「ID 超出 JS 安全整数范围」或首次调用 ID 校验失败
+
+TAPD 的需求/缺陷/任务等实体长 ID 为 19-20 位数字（如 `1139814312001001378`），超出 JS 安全整数上限（`Number.MAX_SAFE_INTEGER`，16 位），以 JSON 数值形式传递会丢精度导致查询为空。所有长 ID 参数必须以字符串（带引号）传递。
+
+自 v1.4.3 起：所有工具的长 ID 参数描述已包含引导提示；若传入安全整数范围内的数值（≤16 位，如短 ID）会自动转为字符串；超出安全范围的数值会返回明确错误提示，请按提示以字符串重传。
+
 ### 支持 Basic Auth 吗
 
 支持。设置 `TAPD_API_USER` 和 `TAPD_API_PASSWORD` 即可，与 Access Token 二选一。
