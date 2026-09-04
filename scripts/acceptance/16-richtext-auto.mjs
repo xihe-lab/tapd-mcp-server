@@ -1,14 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { McpClient, Reporter, WORKSPACE_ID, CLI_BIN } from './helpers.mjs';
+import { McpClient, Reporter, WORKSPACE_ID, CLI_BIN, readRealToken } from './helpers.mjs';
 
 // 凭证纪律：token 仅在进程内从 config.json 读出注入子进程 env，不打印明文
-function readToken() {
-  const config = JSON.parse(readFileSync(`${homedir()}/.tapd/config.json`, 'utf8'));
-  if (!config.access_token) throw new Error('config.json 无 access_token');
-  return config.access_token;
-}
-
-const TOKEN = readToken();
+const TOKEN = readRealToken();
 const AUTH_ENV = {
   TAPD_ACCESS_TOKEN: TOKEN,
   TAPD_DEFAULT_WORKSPACE_ID: String(WORKSPACE_ID),
