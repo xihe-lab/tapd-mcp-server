@@ -8,7 +8,7 @@ export const customFieldTools: ToolDef[] = [
     description: "Get story custom fields settings",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      workitem_type_id: z.string().optional().describe("Work item type ID"),
+      workitem_type_id: z.string().optional().describe('Work item type ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -23,7 +23,7 @@ export const customFieldTools: ToolDef[] = [
     description: "Get bug custom fields settings",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      workitem_type_id: z.string().optional().describe("Work item type ID"),
+      workitem_type_id: z.string().optional().describe('Work item type ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

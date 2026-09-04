@@ -9,7 +9,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取项目模块列表",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("模块ID，支持多ID查询"),
+      id: z.string().optional().describe('模块ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("模块名称，支持模糊匹配"),
       description: z.string().optional().describe("模块描述"),
       owner: z.string().optional().describe("模块负责人"),
@@ -50,7 +50,7 @@ export const settingsTools: ToolDef[] = [
     description: "更新项目模块",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("模块ID (必填)"),
+      id: z.string().describe('模块ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("模块名称"),
       description: z.string().optional().describe("模块描述"),
       owner: z.string().optional().describe("模块负责人"),
@@ -69,7 +69,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取模块数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("模块ID"),
+      id: z.string().optional().describe('模块ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("模块名称"),
       owner: z.string().optional().describe("模块负责人"),
     }),
@@ -87,7 +87,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取项目版本列表",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("版本ID，支持多ID查询"),
+      id: z.string().optional().describe('版本ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("版本名称，支持模糊匹配"),
       owner: z.string().optional().describe("版本负责人"),
       creator: z.string().optional().describe("创建人"),
@@ -129,7 +129,7 @@ export const settingsTools: ToolDef[] = [
     description: "更新项目版本",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("版本ID (必填)"),
+      id: z.string().describe('版本ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("版本名称"),
       description: z.string().optional().describe("版本描述"),
       owner: z.string().optional().describe("版本负责人"),
@@ -149,7 +149,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取版本数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("版本ID"),
+      id: z.string().optional().describe('版本ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("版本名称"),
       owner: z.string().optional().describe("版本负责人"),
       status: z.number().optional().describe("状态"),
@@ -168,7 +168,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取项目特性列表",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("特性ID，支持多ID查询"),
+      id: z.string().optional().describe('特性ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("特性名称，支持模糊匹配"),
       description: z.string().optional().describe("特性描述"),
       owner: z.string().optional().describe("特性负责人"),
@@ -209,7 +209,7 @@ export const settingsTools: ToolDef[] = [
     description: "更新项目特性",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("特性ID (必填)"),
+      id: z.string().describe('特性ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("特性名称"),
       description: z.string().optional().describe("特性描述"),
       owner: z.string().optional().describe("特性负责人"),
@@ -228,7 +228,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取特性数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("特性ID"),
+      id: z.string().optional().describe('特性ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("特性名称"),
       owner: z.string().optional().describe("特性负责人"),
     }),
@@ -246,7 +246,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取项目基线列表",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("基线ID，支持多ID查询"),
+      id: z.string().optional().describe('基线ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("基线名称，支持模糊匹配"),
       description: z.string().optional().describe("基线描述"),
       baseline_date: z.string().optional().describe("基线日期，支持时间查询"),
@@ -287,7 +287,7 @@ export const settingsTools: ToolDef[] = [
     description: "更新项目基线",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("基线ID (必填)"),
+      id: z.string().describe('基线ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("基线名称"),
       description: z.string().optional().describe("基线描述"),
       baseline_date: z.string().optional().describe("基线日期"),
@@ -305,7 +305,7 @@ export const settingsTools: ToolDef[] = [
     description: "获取基线数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("基线ID"),
+      id: z.string().optional().describe('基线ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("基线名称"),
       baseline_date: z.string().optional().describe("基线日期"),
     }),
@@ -330,7 +330,7 @@ export const settingsTools: ToolDef[] = [
       default_value: z.string().optional().describe("默认值"),
       required: z.number().optional().describe("是否必填：0-否，1-是，默认0"),
       description: z.string().optional().describe("字段描述"),
-      workitem_type_id: z.string().optional().describe("需求类别ID"),
+      workitem_type_id: z.string().optional().describe('需求类别ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -364,7 +364,7 @@ export const settingsTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       custom_field_key: z.string().describe("自定义字段标识 (必填)，如 custom_field_one"),
       options: z.string().describe("新的候选值选项 (必填)，多个以|分隔"),
-      workitem_type_id: z.string().optional().describe("需求类别ID"),
+      workitem_type_id: z.string().optional().describe('需求类别ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       append_mode: z.number().optional().describe("追加模式：0-替换（默认），1-追加"),
     }),
     handler: async (client, params) => {

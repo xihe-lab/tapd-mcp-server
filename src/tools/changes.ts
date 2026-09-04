@@ -8,7 +8,7 @@ export const changeTools: ToolDef[] = [
     description: "Get story change history",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      story_id: z.string().optional().describe("Story ID"),
+      story_id: z.string().optional().describe('Story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
@@ -27,7 +27,7 @@ export const changeTools: ToolDef[] = [
     description: "Get the count of story changes",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      story_id: z.string().optional().describe("Story ID"),
+      story_id: z.string().optional().describe('Story ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -42,7 +42,7 @@ export const changeTools: ToolDef[] = [
     description: "Get task change history",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      task_id: z.string().optional().describe("Task ID"),
+      task_id: z.string().optional().describe('Task ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
@@ -61,7 +61,7 @@ export const changeTools: ToolDef[] = [
     description: "Get the count of task changes",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      task_id: z.string().optional().describe("Task ID"),
+      task_id: z.string().optional().describe('Task ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client: TapdClient, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

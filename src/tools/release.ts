@@ -9,7 +9,7 @@ export const releaseTools: ToolDef[] = [
     description: "Get releases from TAPD",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Release ID, supports multiple IDs"),
+      id: z.string().optional().describe('Release ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("Release name, supports fuzzy matching"),
       status: z.string().optional().describe("Status of the release"),
       owner: z.string().optional().describe("Owner name"),
@@ -64,7 +64,7 @@ export const releaseTools: ToolDef[] = [
     description: "更新发布计划",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("发布计划ID (必填)"),
+      id: z.string().describe('发布计划ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("发布计划名称"),
       description: z.string().optional().describe("详细描述"),
       status: z.string().optional().describe("状态"),
@@ -86,7 +86,7 @@ export const releaseTools: ToolDef[] = [
     description: "获取发布计划数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("发布计划ID"),
+      id: z.string().optional().describe('发布计划ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       name: z.string().optional().describe("发布计划名称"),
       status: z.string().optional().describe("状态"),
       owner: z.string().optional().describe("发布负责人"),
@@ -106,8 +106,8 @@ export const releaseTools: ToolDef[] = [
     description: "获取发布评审依据",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("评审依据ID，支持多ID查询"),
-      launch_id: z.string().optional().describe("发布评审ID"),
+      id: z.string().optional().describe('评审依据ID，支持多ID查询；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      launch_id: z.string().optional().describe('发布评审ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       type: z.string().optional().describe("依据类型"),
       creator: z.string().optional().describe("创建人"),
       created: z.string().optional().describe("创建时间"),
@@ -129,7 +129,7 @@ export const releaseTools: ToolDef[] = [
     description: "创建发布评审依据",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      launch_id: z.string().describe("发布评审ID (必填)"),
+      launch_id: z.string().describe('发布评审ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       type: z.string().describe("依据类型 (必填)"),
       content: z.string().optional().describe("依据内容"),
       creator: z.string().optional().describe("创建人（默认当前用户）"),
@@ -154,9 +154,9 @@ export const releaseTools: ToolDef[] = [
     description: "创建发布评审",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      template_id: z.string().describe("模板ID (必填)"),
+      template_id: z.string().describe('模板ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().describe("发布评审标题 (必填)"),
-      release_id: z.string().optional().describe("发布计划ID"),
+      release_id: z.string().optional().describe('发布计划ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       description: z.string().optional().describe("详细描述"),
       owner: z.string().optional().describe("负责人（默认当前用户）"),
       creator: z.string().optional().describe("创建人（默认当前用户）"),
@@ -182,8 +182,8 @@ export const releaseTools: ToolDef[] = [
     description: "获取发布评审日志",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("日志ID"),
-      launch_id: z.string().optional().describe("发布评审ID"),
+      id: z.string().optional().describe('日志ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      launch_id: z.string().optional().describe('发布评审ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       user: z.string().optional().describe("操作人"),
       action: z.string().optional().describe("操作类型"),
       created: z.string().optional().describe("创建时间"),
@@ -205,7 +205,7 @@ export const releaseTools: ToolDef[] = [
     description: "获取发布评审数量",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("发布评审ID"),
+      id: z.string().optional().describe('发布评审ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       title: z.string().optional().describe("标题"),
       status: z.string().optional().describe("状态"),
       creator: z.string().optional().describe("创建人"),
@@ -238,7 +238,7 @@ export const releaseTools: ToolDef[] = [
     description: "获取发布评审模板",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("模板ID"),
+      id: z.string().optional().describe('模板ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

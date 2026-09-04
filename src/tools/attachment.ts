@@ -9,8 +9,8 @@ export const attachmentTools: ToolDef[] = [
     description: 'Get attachment list from TAPD',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('Attachment ID, supports multiple IDs'),
-      entity_id: z.string().optional().describe('Related entity ID (story/task/bug/wiki ID)'),
+      id: z.string().optional().describe('Attachment ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      entity_id: z.string().optional().describe('Related entity ID (story/task/bug/wiki ID)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       entity_type: z.string().optional().describe('Entity type (story, task, bug, wiki)'),
       filename: z.string().optional().describe('Filename'),
       owner: z.string().optional().describe('Uploader'),
@@ -34,7 +34,7 @@ export const attachmentTools: ToolDef[] = [
     description: 'Get a single attachment from TAPD',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe('Attachment ID (required)'),
+      id: z.string().describe('Attachment ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       fields: z.string().optional().describe('Comma-separated list of fields to return'),
     }),
     handler: async (client, params) => {
@@ -50,7 +50,7 @@ export const attachmentTools: ToolDef[] = [
     description: 'Get download URL for a single attachment (valid for 300s)',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe('Attachment ID (required)'),
+      id: z.string().describe('Attachment ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       filename: z.string().optional().describe('Filename for download'),
     }),
     handler: async (client, params) => {
@@ -67,8 +67,8 @@ export const attachmentTools: ToolDef[] = [
     description: 'Get attachments from mini workspace',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe('Attachment ID'),
-      entry_id: z.string().optional().describe('Item ID'),
+      id: z.string().optional().describe('Attachment ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      entry_id: z.string().optional().describe('Item ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       filename: z.string().optional().describe('Filename'),
       owner: z.string().optional().describe('Uploader'),
       limit: z.number().optional().describe('Return count, default 30, max 200'),
@@ -87,7 +87,7 @@ export const attachmentTools: ToolDef[] = [
     description: 'Get download URL for a single mini workspace attachment (valid for 300s)',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe('Attachment ID (required)'),
+      id: z.string().describe('Attachment ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();

@@ -8,14 +8,14 @@ export const commentTools: ToolDef[] = [
     description: "Get comments from TAPD for stories, bugs, or tasks",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().optional().describe("Comment ID, supports multiple IDs"),
+      id: z.string().optional().describe('Comment ID, supports multiple IDs；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       entry_type: z.string().optional().describe("Entity type: story, bug, or task"),
-      entry_id: z.string().optional().describe("Entity ID to get comments for"),
+      entry_id: z.string().optional().describe('Entity ID to get comments for；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       author: z.string().optional().describe("Comment author"),
       created: z.string().optional().describe("Creation time, supports time query"),
       modified: z.string().optional().describe("Last modified time, supports time query"),
-      reply_id: z.string().optional().describe("Reply comment ID"),
-      root_id: z.string().optional().describe("Root comment ID for replies"),
+      reply_id: z.string().optional().describe('Reply comment ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      root_id: z.string().optional().describe('Root comment ID for replies；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       limit: z.number().optional().describe("Number of results to return, max 200"),
       page: z.number().optional().describe("Page number, default 1"),
       order: z.string().optional().describe("Sort order, e.g., 'created desc'"),
@@ -35,13 +35,13 @@ export const commentTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       entry_type: z.string().describe("Entity type: bug, bug_remark, stories, or tasks"),
-      entry_id: z.string().describe("Entity ID to comment on"),
+      entry_id: z.string().describe('Entity ID to comment on；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       description: z.string().describe("Comment content"),
       author: z.string().optional().describe("Author (defaults to TAPD_NICK_NAME env)"),
       cc: z.string().optional().describe("Copy to users, separated by |"),
       attachments: z.string().optional().describe("Attachment file IDs, separated by |"),
-      root_id: z.string().optional().describe("Root comment ID for replies"),
-      reply_id: z.string().optional().describe("Comment ID being replied to"),
+      root_id: z.string().optional().describe('Root comment ID for replies；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
+      reply_id: z.string().optional().describe('Comment ID being replied to；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
     }),
     handler: async (client, params) => {
       const workspaceId = params.workspace_id ?? TapdClient.getDefaultWorkspaceId();
@@ -62,7 +62,7 @@ export const commentTools: ToolDef[] = [
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       entry_type: z.string().optional().describe("对象类型: story, bug, or task"),
-      entry_id: z.string().optional().describe("对象ID"),
+      entry_id: z.string().optional().describe('对象ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       author: z.string().optional().describe("评论作者"),
       created: z.string().optional().describe("创建时间"),
     }),
@@ -79,7 +79,7 @@ export const commentTools: ToolDef[] = [
     description: "更新评论",
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
-      id: z.string().describe("评论ID (必填)"),
+      id: z.string().describe('评论ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       description: z.string().optional().describe("评论内容"),
       author: z.string().optional().describe("作者"),
     }),
