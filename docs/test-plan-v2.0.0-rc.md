@@ -4,8 +4,8 @@
 - 编写：白泽（AI 智能体）· 2026-09-04
 - 被测版本：npm `@xihe-lab/tapd-mcp-server` / `@xihe-lab/tapd-cli` / `@xihe-lab/tapd-core` **2.0.0-rc.1**（tag rc；latest 保持 1.4.3）
 - 代码基线：`feature/2.0-monorepo` @ `403a40a`（与 rc.1 一致），计划所在分支 `feature/2.0-test-plan`
-- 对照基线：v1.4.3（tools 快照 `/tmp/claude/baseline-tools-143.json`，210 工具；实构建 `/tmp/claude/tapd-v142`）
-- 状态：**计划待用户评审，评审通过后执行**。执行期间只改测试脚本与报告，不改产品代码
+- 对照基线：**schema 基线 v1.4.3**（tools 快照 `/tmp/claude/baseline-tools-143.json`，210 工具）；**性能对照 v1.4.2**（现成实构建 `/tmp/claude/tapd-v142`，git worktree @ tag v1.4.2）。理由：1.4.3 相对 1.4.2 仅 schema 字段类型与长 ID 防御层变更，无性能路径改动，性能对照沿用现成 1.4.2 产物，不重建 1.4.3（评审修订 1）
+- 状态：**评审裁决 2026-09-04：有条件通过（10 项修订已落入本文，U 项裁决见 §6），已进入 P0 执行**。执行期间只改测试脚本与报告，不改产品代码
 
 ---
 
@@ -28,12 +28,12 @@
 |---|------|---------|
 | E1 | 回归全绿 | 既有 16 脚本对 rc 产物 16/16 PASS |
 | E2 | 新增全量用例通过率 | ≥ 99%，且失败项逐条归类为缺陷或豁免（不允许静默跳过） |
-| E3 | 阻塞/严重缺陷 | **零容忍**：阻断安装/启动/握手、数据错写（写 A 读到 B）、凭证泄露、崩溃，任一存在即不发布 |
+| E3 | 阻塞/严重缺陷 | **零容忍**：阻断安装/启动/握手、数据错写（写 A 读到 B）、凭证泄露、崩溃，任一存在即不发布。数据错写修复路径：立即建 TAPD 缺陷（附复现步骤与污染面评估）→ 交用户决策是否需数据修复 → 修复后白泽回归复验，复验通过才解除阻塞 |
 | E4 | 一般缺陷 | 全部修复，或书面豁免（记录现象/影响/理由，用户签字确认）；豁免总数 ≤ 5 |
 | E5 | 轻微缺陷 | 记录入缺陷清单，不阻塞发布，可带入 2.0.x |
-| E6 | 性能不退化 | CLI 冷启动（`tapd --help`）P50 ≤ 300ms 且 Max ≤ 500ms；MCP `tapd_get_stories {limit:3}` 中位 ≤ 1.4.3 对照中位 × 1.5（基线 159ms → 上限 ~239ms；1287 实测 191ms） |
+| E6 | 性能不退化 | CLI 冷启动（`tapd --help`）P50 ≤ 300ms 且 Max ≤ 500ms；MCP `tapd_get_stories {limit:3}` 中位 ≤ 1.4.2 对照中位 × 1.5（基线 159ms → 上限 ~239ms；1287 实测 191ms）。对照用现成 1.4.2 实构建，不重建 1.4.3（仅 schema/防御层变更，性能无差） |
 | E7 | 兼容零漂移 | 存量 210 工具 schema 零意外漂移（1410 长 ID 白名单 20 工具豁免外），双入口与新旧 MCP 数据一致抽查通过 |
-| E8 | 数据面干净 | 测试数据全部 `zzz-delete-me-` 前缀，清理清单交付并经用户确认处置 |
+| E8 | 数据面干净 | 测试数据全部 `zzz-delete-me-` 前缀；清理清单 = 孤儿登记台账（执行期实时登记）与 1287 遗留 36 只合并，每只附 TAPD 网页直达 URL，经用户确认处置；**「测试数据清零」列入 2.0.0 发布 checklist** |
 
 缺陷分级口径：**阻塞**（无法安装/启动/核心流程不可用）> **严重**（功能错误、数据错误、安全问题）> **一般**（非核心功能缺陷、体验问题）> **轻微**（文案、格式、边缘提示）。
 
@@ -43,7 +43,9 @@
 
 ### 2.1 既有 16 脚本（R0，直接复用）
 
-复用方式：scripts/acceptance/helpers.mjs 提供 `runCmd` / `McpClient`（stdio JSON-RPC 客户端）/ `Reporter`，新增脚本直接 import；`run-all.mjs` 追加新脚本编号统一编排。**关键改动一处**：helpers 的 `MCP_BIN`/`CLI_BIN` 当前指向本地 `dist/`，新增 `--artifact` 开关（或 `TAPD_TEST_BIN` 环境变量）切换为 npm 产物安装路径，使全部脚本可在「源码产物」与「npm 产物」两种被测对象下重跑。
+复用方式：scripts/acceptance/helpers.mjs 提供 `runCmd` / `McpClient`（stdio JSON-RPC 客户端）/ `Reporter`，新增脚本直接 import；`run-all.mjs` 追加 17-24 统一编排（单脚本 timeout 300s → **900s**，覆盖 M2/M3 全量长跑；23 号为 .md 文档，**不入 run-all 数组**）。
+
+**被测对象切换（评审修订 7，单一 env）**：helpers 顶部改为 `MCP_BIN / CLI_BIN = process.env.TAPD_TEST_BIN ?? 本地 dist 路径`——设 `TAPD_TEST_BIN` 即对 npm 产物重跑全部脚本，不设即源码产物；16 号脚本 bin 引用改走 helpers 导出；09 号（可扩展性）**显式钉死源码 bin**，不受开关影响（验证的是源码注入机制）。
 
 | 脚本 | 复用方式 | 对 rc 产物执行 |
 |------|---------|---------------|
@@ -77,6 +79,12 @@
 | 23-mcp-real-client.md | M7 | Claude Code 真实客户端验证清单（手工步骤 + 记录表，非可执行脚本） |
 | 24-stability-perf.mjs | M8 | 并发、限流退避、SDK fallback 对照（15 号脚本扩容） |
 
+### 2.3 全局安全规则（评审修订 C2/C3，全部脚本强制）
+
+- **config 副本隔离**：helpers 统一 `TAPD_CONFIG_PATH` 指向 `$TMPDIR` 下 config 副本；所有写 config 的用例（config set、read_only 切换等）只碰副本；真实 `~/.tapd/config.json` **只读注入 env**，全程不被任何脚本改写
+- **前缀防御**：所有 ID 型入参逐一查名断言 `zzz-delete-me-` 前缀，任一不匹配立即中止（覆盖 relation 两端、batch 列表每项、copy 源实体、mini 系列）；查名产生的只读请求计入请求预算
+- **owner 一律当前凭证用户**：任何带 owner/creator/current_owner 入参的写操作固定为当前凭证用户，防误 @ 真实成员
+
 ---
 
 ## 3. 分模块用例设计
@@ -108,14 +116,21 @@
 
 ### 3.3 M3 写全量 66 工具（脚本 19，估 132+ 断言，1.5 天）
 
-- 范围：derived-commands.txt 标 WRITE 的 66 工具，此前 1287 仅覆盖核心五模块（story/bug/task/iteration/wiki），本轮全量
+- 范围：derived-commands.txt 标 WRITE 的 66 工具，此前 1287 仅覆盖核心五模块（story/bug/task/iteration/wiki），本轮全量；特殊类工具按下方黑名单约束执行
 - 每工具模式：
   - create 类：创建 `zzz-delete-me-` 前缀实体 → 读回断言字段落库 → （可选）update 修改 → 读回
   - update 类：复用 M3 内 create 的产物 ID 或前置实体池 → 修改单字段 → 读回断言
   - 关系/批量/特殊类（relation、batch、copy、lock、set-parent、change_workitem_type 等）：逐一定制前置数据与断言（如 batch_update_stories 建 2 只改 2 只）
-  - 不可逆/危险动作约束：lock_iteration 仅对自建 iteration 执行；delete 类仅对自建测试实体执行；**执行前断言目标实体名带 zzz-delete-me- 前缀，否则中止**
-- 凭证与频控：OAuth token（写需 OAuth 权限）；**串行 + 1s 间隔**；429/5xx 退避重试 2 次；预估 66 工具 × (2-3 次 API × ~0.6s + 间隔) ≈ **8-12 分钟**纯执行，单轮总配额 < 400 请求，远低于 TAPD 常规限流；断点续跑：脚本落地已完成工具清单，中断后跳过已完成项
-- 产物：写全量执行后的 zzz-delete-me- 清理清单并入 E8 交付
+- **黑名单单列（评审修订 2/C1）**：
+  - `tapd_update_bug_select_field_options` / `tapd_update_story_select_field_options`：仅对测试期**自建**的自定义字段操作，且强制 `append_mode=1`（只追加候选值，不替换既有配置）
+  - `tapd_program_bind_entities` / `tapd_program_relate_workspace`：项目集级实体绑定，本轮**跳过写操作**，只做只读验证
+  - 不可删除类（baseline / launch_form / release / version / story_category / module / feature / custom_field_config / code_commit_infos）：**每类 ≤ 2 条**，报告标注「不可清理」，名称仍带 zzz-delete-me- 前缀便于人工识别
+  - 不可逆/危险动作约束：lock_iteration 仅对自建 iteration 执行；delete 类仅对自建测试实体执行
+  - owner/creator/current_owner 一律当前凭证用户
+- 前缀防御（评审修订 4/C3 升级）：执行前对**所有 ID 型入参逐一查名**断言 `zzz-delete-me-` 前缀（relation 两端、batch 列表每项、copy 源、mini 系列），任一不匹配立即中止；查名请求计入预算
+- 凭证与频控：OAuth token（写需 OAuth 权限）；**串行 + 1s 间隔**；429/5xx 退避重试 2 次；预估纯执行 **8-15 分钟**，**单轮总请求上限 < 800**（含前缀查名断言）
+- 断点续跑 + **孤儿登记（评审修订 5）**：已创建实体 ID **实时登记**（无论其所属工具最终完成与否），清理清单以登记台账为准；中断后跳过已完成项续跑
+- 产物：孤儿登记台账即清理清单底稿，并入 E8 与 1287 遗留 36 只合并交付
 
 ### 3.4 M4 富文本三层路由（脚本 20，估 ~80 断言，1 天）
 
@@ -147,7 +162,7 @@
 
 ### 3.6 M6 环境矩阵（脚本 22，估 ~72 断言，1 天）
 
-矩阵轴：Node **20/22/24**（nvm 三版本）× 认证（**token 有效** / **basic 过期凭证**）× 输出（**TTY**（`script -q` 模拟）/ **管道**）× 配置（**有 config** / **无 config**（TAPD_CONFIG_PATH 指空）/ **read_only=true**）。
+矩阵轴：Node **20/22/24**（`~/.nvm/versions/node/v20.19.4/bin/node`、`v22.18.0`、`v24.16.0` 绝对路径，本机已确认齐备；评审修订 8）× 认证（**token 有效** / **basic 过期凭证**）× 输出（**TTY**（`script -q` 模拟）/ **管道**）× 配置（**有 config** / **无 config**（TAPD_CONFIG_PATH 指空副本）/ **read_only=true**）。
 
 不做 24 组合全交叉，选 **10 个代表组合**：
 
@@ -164,11 +179,11 @@
 | 9 | 20 | token | 管道 | read_only=true | MCP 不拦截 / CLI 拦截双形态（04 号已有，跨版本复核） |
 | 10 | 24 | token | TTY | 无 config | TTY + 冷启动引导 |
 
-每组合 3 断言：`tools/list` 212 / 1 次读调用成功（或预期错误语义）/ CLI 退出码符合契约。脚本化一键跑完，预估 30-40 分钟。
+每组合 3 断言：`tools/list` 212 / 1 次读调用成功（或预期错误语义）/ CLI 退出码符合契约；TTY 形态断言只验退出码与文案内容，**不锚定 ANSI 转义序列**。脚本化一键跑完，预估 30-40 分钟。
 
 ### 3.7 M7 MCP 真实客户端（文档 23，估 ~14 断言，0.5 天，需用户配合）
 
-- 方式：新建独立目录 `/tmp/claude/mcp-rc-client/.mcp.json` 配 `npx -y @xihe-lab/tapd-mcp-server@rc`，**不动用户日常 .mcp.json**；用户在该目录启动 `claude`（或授权主会话代改并测后恢复）
+- 方式（评审裁决 U4 已定**方案 A**）：独立目录 `/tmp/claude/mcp-rc-client/.mcp.json` 配 `npx -y @xihe-lab/tapd-mcp-server@rc`，**不动用户日常 .mcp.json**；用户在该目录启动 `claude`（.mcp.json 由白泽备好）
 - 验证清单（人工 + 会话内执行）：
   1. `/mcp` 面板连接成功、显示 212 工具
   2. 会话内实际调用 10 个代表工具：读 7（story/bug/task/iteration/wiki list、count、workflow status-map）+ 写 2（story create→zzz 前缀→update）+ 错误 1（非法参数 → isError 人类可读）
@@ -203,13 +218,13 @@
 
 | 阶段 | 内容 | 执行 | 修复 | 工时 |
 |------|------|------|------|------|
-| P0 准备 | 脚本 17-24 编写、helpers artifact 开关、npm 产物安装 | 白泽 | - | 2 天 |
+| P0 准备 | 脚本 17-24 编写、helpers 改造（TAPD_TEST_BIN 开关 + TAPD_CONFIG_PATH 副本隔离 + run-all 900s）、npm 产物安装、**M2 参数模板与真实实体 ID 池构建、M3 特殊类前置数据准备**（测试期自建自定义字段、各模块前置实体；评审修订 9） | 白泽 | - | 2.5 天 |
 | P1 | R0：16 脚本对 rc 产物全绿 | 白泽 | 鲁班（如有） | 0.5 天 |
 | P2 | M1 + M2 + M3 全量 | 白泽 | 鲁班 | 2 天 |
 | P3 | M4 + M5 全量 | 白泽 | 鲁班 | 1.5 天 |
 | P4 | M6 + M7 + M8 | 白泽 + 用户（M7） | 鲁班 | 1.5 天 |
 | P5 | M9 遗留项 + 缺陷清零复核 + 测试报告 | 白泽 / 用户 / 鲁班 | - | 1 天 |
-| **合计** | | | | **~8.5 人日**（AI 执行墙钟预计 3-4 个工作日，含用户确认等待节点） |
+| **合计** | | | | **~9 人日**（AI 执行墙钟预计 3-4 个工作日，含用户确认等待节点） |
 
 角色：**白泽**编写脚本与执行、结果分析与根因定位、缺陷清单维护；**鲁班**缺陷修复（修复后白泽回归复验）；**主会话**编排进度、用户确认节点（计划评审、.mcp.json 授权、豁免签字、发布决策）。
 
@@ -221,7 +236,7 @@
 
 | 风险 | 概率 | 缓解与回退 |
 |------|------|-----------|
-| 写全量误伤真实数据 | 低 | 全部写调用目标强制 `zzz-delete-me-` 前缀断言，缺失即中止；lock/delete 类仅对自建实体；清理清单交付用户处置 |
+| 写全量误伤真实数据 | 低 | ID 型入参逐一查名断言前缀（C3），缺失即中止；lock/delete 类仅对自建实体；已创建实体孤儿登记实时台账，清理清单以台账为准；数据错写按 E3 修复路径处置 |
 | TAPD 频控/限流 | 中 | 串行 + 间隔 + 429 指数退避；M3 断点续跑；单轮总请求 < 800（读+写），远低于常规配额 |
 | npm rc 包自身缺陷阻塞全量 | 低 | 回退用 `pnpm pack` 产物（tgz 本地安装）继续测，缺陷转鲁班，修复发 rc.2 后重跑 R0 |
 | Node 24 兼容问题 | 中 | 矩阵隔离发现，兼容缺陷按 E3/E4 分级；确属 Node 上游问题记录豁免 |
@@ -233,15 +248,15 @@
 
 ## 6. 需用户配合项清单（集中列出）
 
-| # | 事项 | 节点 | 说明 |
+| # | 事项 | 节点 | 最终裁决（2026-09-04 评审） |
 |---|------|------|------|
-| U1 | **本计划评审** | 执行前 | 确认范围/出口标准/排期，特别是 M3 写全量对真实 workspace 的授权 |
+| U1 | 计划评审 | 已完成 | **有条件批准**：限 workspace 39814312，条件 = C1（M3 黑名单）+ C2（config 副本隔离）+ C3（前缀查名断言）+ 孤儿登记，已落入 §2.3/§3.3 |
 | U2 | wiki 43-46 网页渲染确认 | P3 后 | 白泽提供 wiki 清单，用户在 TAPD 网页端目视确认 markdown 渲染 |
-| U3 | Basic Auth 新凭证（可选） | P2 前 | 提供则补 4 个 403 受限 API 复测；不提供则书面豁免 |
-| U4 | MCP 真实客户端配合 | P4 | 方案 A：用户在 `/tmp/claude/mcp-rc-client/` 目录启动 claude（.mcp.json 白泽备好）；方案 B：授权临时改当前会话 .mcp.json、测后恢复 |
-| U5 | zzz-delete-me- 测试数据清理 | P5 | 1287 期遗留 36 只 + 本轮新增，清单交付后用户在 TAPD 网页端清理 |
-| U6 | dependabot 评估结论拍板 | P5 | 鲁班出评估，用户决定合入范围 |
-| U7 | 出口标准豁免清单签字 | 发布前 | E4 豁免逐条确认；2.0.0 发布 go/no-go 决策 |
+| U3 | Basic Auth 新凭证 | 已裁决 | **豁免**：Basic 侧 4 个 403 受限 API 覆盖缺失，记录入测试报告，不补测 |
+| U4 | MCP 真实客户端配合 | P4 | **方案 A**：`/tmp/claude/mcp-rc-client/` 独立目录（.mcp.json 白泽备好），用户在该目录启动 claude |
+| U5 | zzz-delete-me- 测试数据清理 | P5 | 清理清单 = 本轮孤儿登记台账 + 1287 遗留 36 只**合并**，每只附网页直达 URL；「测试数据清零」列入 2.0.0 发布 checklist |
+| U6 | dependabot 评估 | M9 | 仅 **severity≥high 安全补丁**合入 rc 补测，**major 延后 2.0.x**；清单先上 GitHub 核实存在性（本地无 `.github/dependabot.yml`，security updates PR 需网页确认），核实并入 M9 |
+| U7 | 出口标准豁免清单签字 | 发布前 | 留痕规范：**TAPD 1454 评论记录决议** + 测试报告逐条（现象/影响/理由/日期/裁决人）；go/no-go 决策 |
 
 ---
 
@@ -252,7 +267,8 @@
 - 工具清单：`docs/derived-commands.txt`（212 = 146 读 + 66 写，读写标记即 M2/M3 数据源）
 - 富文本清单：`packages/core/src/registry/richtext-manifests.generated.ts`（30 写工具，与工具 schema 同源自动生成）
 - 长 ID 白名单：`scripts/acceptance/02-tools-parity.mjs` EXPECTED_DRIFT（20 工具 / 26 处）
-- 1.4.3 基线：`/tmp/claude/baseline-tools-143.json`（210 工具）；1.4.3 实构建 `/tmp/claude/tapd-v142`
+- schema 基线：`/tmp/claude/baseline-tools-143.json`（1.4.3，210 工具）；性能对照：`/tmp/claude/tapd-v142`（1.4.2 实构建，git worktree @ tag v1.4.2）
+- 孤儿登记台账：M2/M3 执行期实时输出（已创建实体 ID 无论工具成败均登记），清理清单唯一底稿
 - 测试项目：workspace_id 39814312；真实凭证 `~/.tapd/config.json`（权限 600，仅进程内注入）
 
 > 附 AI 注脚（文档载体）：本计划由 AI 智能体「白泽」编写 · 2026-09-04 · 供参考，以实际确认为准
