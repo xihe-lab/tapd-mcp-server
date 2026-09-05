@@ -25,8 +25,10 @@ function npmUsable() {
 }
 
 function authEnv() {
-  // 凭证从真实 config 只读注入 env；写 config 的用例用 TAPD_CONFIG_PATH 副本隔离
-  return { TAPD_DEFAULT_WORKSPACE_ID: String(WORKSPACE_ID) };
+  // FSD 契约（需求 1288）：MCP 路径不读配置文件，凭证仅 env——从真实 config 只读注入
+  // 写 config 的用例用 TAPD_CONFIG_PATH 副本隔离
+  const config = JSON.parse(readFileSync(`${homedir()}/.tapd/config.json`, 'utf8'));
+  return { TAPD_ACCESS_TOKEN: config.access_token, TAPD_DEFAULT_WORKSPACE_ID: String(WORKSPACE_ID) };
 }
 
 if (!npmUsable()) {
