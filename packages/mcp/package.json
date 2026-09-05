@@ -33,7 +33,7 @@
   "bugs": {
     "url": "https://github.com/xihe-lab/tapd-mcp-server/issues"
   },
-  "homepage": "https://github.com/xihe-lab/tapd-mcp-server#readme",
+  "homepage": "https://xihe-lab.com",
   "engines": {
     "node": ">=20.0.0"
   },

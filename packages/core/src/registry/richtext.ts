@@ -1,7 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
-import { SERVER_MD_TOOLS, WRITE_RICHTEXT_FIELDS_BY_TOOL } from './richtext-manifests.generated.js';
+import { DUAL_WRITE_TOOLS, WRITE_RICHTEXT_FIELDS_BY_TOOL } from './richtext-manifests.generated.js';
 
 const markdownIt = new MarkdownIt({ html: false, breaks: true });
 
@@ -21,7 +21,7 @@ export function looksLikeHtml(value: string): boolean {
   return BLOCK_HTML_RE.test(value);
 }
 
-// 写侧三层路由：服务端 md 透传 -> 启发式双模 -> 关闭时全原样
+// 写侧三层路由：wiki 双写 -> 启发式双模 -> 关闭时全原样
 export function transformWriteArgs(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
   if (!isRichtextAutoEnabled()) return args;
   const fields = WRITE_RICHTEXT_FIELDS_BY_TOOL[toolName];
@@ -30,10 +30,10 @@ export function transformWriteArgs(toolName: string, args: Record<string, unknow
   for (const field of fields) {
     const value = out[field];
     if (typeof value !== 'string' || value.trim() === '' || looksLikeHtml(value)) continue;
-    if (SERVER_MD_TOOLS.includes(toolName)) {
+    if (DUAL_WRITE_TOOLS.includes(toolName)) {
       if (field === 'description') {
         if (out.markdown_description === undefined) out.markdown_description = value;
-        delete out.description;
+        out[field] = markdownIt.render(value);
       }
       continue;
     }
@@ -58,6 +58,11 @@ function walk(node: unknown): unknown {
       } else {
         out[key] = walk(value);
       }
+    }
+    // 存量 wiki：description 空、md 原文在 markdown_description，回填保正文闭环
+    const legacyMd = out.markdown_description;
+    if (!out.description && typeof legacyMd === 'string' && legacyMd.trim() !== '') {
+      out.description = legacyMd;
     }
     return out;
   }

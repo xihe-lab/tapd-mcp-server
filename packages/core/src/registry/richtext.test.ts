@@ -4,7 +4,7 @@ import { allTools } from '../tools/index.js';
 import { resolveWrite } from './write-policy.js';
 import { ToolRegistry } from './registry.js';
 import {
-  SERVER_MD_TOOLS,
+  DUAL_WRITE_TOOLS,
   WRITE_RICHTEXT_FIELDS_BY_TOOL,
 } from './richtext-manifests.generated.js';
 import {
@@ -56,13 +56,15 @@ const checks: [string, () => Promise<void> | void][] = [
     assert.equal(args.description, html);
   }],
 
-  ['write: wiki markdown routed to server markdown_description', () => {
+  ['write: wiki dual-write renders html description and keeps md original', () => {
+    const md = '# wiki md\n\n- a\n- b';
     const args = transformWriteArgs('tapd_create_wiki', {
       name: 'w',
-      description: '# wiki md',
+      description: md,
     });
-    assert.equal(args.description, undefined);
-    assert.equal(args.markdown_description, '# wiki md');
+    assert.match(args.description as string, /<h1>wiki md<\/h1>/);
+    assert.match(args.description as string, /<li>a<\/li>/);
+    assert.equal(args.markdown_description, md);
   }],
 
   ['write: wiki html passthrough keeps description', () => {
@@ -79,7 +81,7 @@ const checks: [string, () => Promise<void> | void][] = [
       markdown_description: '# explicit md',
     });
     assert.equal(args.markdown_description, '# explicit md');
-    assert.equal(args.description, undefined);
+    assert.match(args.description as string, /<h1>md from description<\/h1>/);
   }],
 
   ['write: switch off leaves args untouched', () => {
@@ -126,6 +128,28 @@ const checks: [string, () => Promise<void> | void][] = [
     assert.equal(result.nested.description, '');
   }],
 
+  ['read: legacy wiki falls back to markdown_description when description empty', () => {
+    const data = {
+      id: '1',
+      title: 'legacy',
+      description: '',
+      markdown_description: '# 存量 md\n\n**加粗**',
+    };
+    const result = transformReadData(data) as typeof data;
+    assert.equal(result.description, '# 存量 md\n\n**加粗**');
+    assert.equal(result.markdown_description, '# 存量 md\n\n**加粗**');
+  }],
+
+  ['read: fallback skips when description already has content', () => {
+    const html = '<p>已有正文</p>';
+    const data = {
+      description: html,
+      markdown_description: '**存量 md**',
+    };
+    const result = transformReadData(data) as { description: string; markdown_description: string };
+    assert.match(result.description, /已有正文/);
+  }],
+
   ['read: switch off returns raw html', () => {
     const data = { description: '<p>raw</p>' };
     const result = withAutoOff(() => transformReadData(data));
@@ -157,6 +181,58 @@ const checks: [string, () => Promise<void> | void][] = [
     );
     assert.equal(result.ok, true);
     assert.match(captured?.description as string, /<h1>hi<\/h1>/);
+  }],
+
+  ['exec: wiki create two-phase writes html then md original', async () => {
+    delete process.env.TAPD_RICHTEXT_AUTO;
+    const posts: Record<string, unknown>[] = [];
+    const registry = new ToolRegistry();
+    registry.register([allTools.find(t => t.name === 'tapd_create_wiki')!]);
+    const result = await registry.exec(
+      'tapd_create_wiki',
+      { name: 'zzz-delete-me-d8fix', workspace_id: 39814312, creator: 'x', description: '# 标题\n\n**加粗** 文本\n\n- 项' },
+      { entry: 'mcp' },
+      () => ({
+        post: (_path: string, body: Record<string, unknown>) => {
+          posts.push(body);
+          return Promise.resolve({ Wiki: { id: '123' } });
+        },
+      }) as unknown as TapdClient,
+    );
+    assert.equal(result.ok, true);
+    assert.equal(posts.length, 2);
+    assert.match(posts[0].description as string, /<h1>标题<\/h1>/);
+    assert.match(posts[0].description as string, /<strong>加粗<\/strong>/);
+    assert.equal(posts[0].markdown_description, undefined);
+    assert.equal(posts[1].id, '123');
+    assert.match(posts[1].description as string, /<h1>标题<\/h1>/);
+    assert.match(posts[1].markdown_description as string, /\*\*加粗\*\*/);
+  }],
+
+  ['exec: wiki create auto-off sends single raw request', async () => {
+    process.env.TAPD_RICHTEXT_AUTO = '0';
+    try {
+      const posts: Record<string, unknown>[] = [];
+      const registry = new ToolRegistry();
+      registry.register([allTools.find(t => t.name === 'tapd_create_wiki')!]);
+      const result = await registry.exec(
+        'tapd_create_wiki',
+        { name: 'zzz-delete-me-d8fix', workspace_id: 39814312, creator: 'x', description: '# 原样' },
+        { entry: 'cli' },
+        () => ({
+          post: (_path: string, body: Record<string, unknown>) => {
+            posts.push(body);
+            return Promise.resolve({ Wiki: { id: '123' } });
+          },
+        }) as unknown as TapdClient,
+      );
+      assert.equal(result.ok, true);
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].description, '# 原样');
+      assert.equal(posts[0].markdown_description, undefined);
+    } finally {
+      delete process.env.TAPD_RICHTEXT_AUTO;
+    }
   }],
 
   ['exec: read tool returns markdown description', async () => {
@@ -220,7 +296,7 @@ const checks: [string, () => Promise<void> | void][] = [
     }
     assert.deepEqual(WRITE_RICHTEXT_FIELDS_BY_TOOL, scanned);
     assert.equal(Object.keys(scanned).length >= 25, true);
-    for (const name of SERVER_MD_TOOLS) {
+    for (const name of DUAL_WRITE_TOOLS) {
       assert.ok(scanned[name]?.includes('description'), name);
       assert.ok(scanned[name]?.includes('markdown_description'), name);
     }

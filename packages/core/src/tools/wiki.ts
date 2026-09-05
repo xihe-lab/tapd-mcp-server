@@ -52,11 +52,22 @@ export const wikiTools: ToolDef[] = [
       if (!creator) {
         throw new Error("creator is required. Set TAPD_NICK_NAME environment variable or provide creator parameter.");
       }
-      return client.post("/tapd_wikis", {
-        ...params,
-        workspace_id: workspaceId,
-        creator,
-      });
+      const body = { ...params, workspace_id: workspaceId, creator };
+      // TAPD create 同传 description + markdown_description 时丢弃 description（D8 实证），
+      // 拆两段：先建 HTML 正文，再 update 双字段回填（update 双传两字段均持久化）
+      if (body.description && body.markdown_description) {
+        const { markdown_description, ...createBody } = body;
+        const created = await client.post('/tapd_wikis', createBody);
+        const wikiId = (created as { Wiki?: { id?: string } })?.Wiki?.id;
+        if (!wikiId) return created;
+        return client.post('/tapd_wikis', {
+          id: wikiId,
+          workspace_id: workspaceId,
+          description: body.description,
+          markdown_description,
+        });
+      }
+      return client.post("/tapd_wikis", body);
     },
   },
   {
