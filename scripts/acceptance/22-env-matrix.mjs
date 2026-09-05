@@ -40,8 +40,8 @@ function cli(nodeBin, args, env = {}) {
   const res = cli(NODE_DIRS.v20, ['story', 'list', '--workspace-id', String(WORKSPACE_ID), '--limit', '1', '--output', 'json'],
     { TAPD_ACCESS_TOKEN: '' });
   let ok = false;
-  try { ok = res.status === 0 && JSON.parse(res.stdout).list?.length >= 0; } catch { /* json 解析失败 */ }
-  r.check('C1 v20+CLI+config+json: 退出码 0 且 JSON list 结构', ok, (res.stderr ?? '').slice(0, 100));
+  try { const j = JSON.parse(res.stdout); ok = res.status === 0 && Array.isArray(j) && j.length >= 1 && !!j[0].Story?.id; } catch { /* json 解析失败 */ }
+  r.check('C1 v20+CLI+config+json: 空 env token 下 config 读取生效（退出码 0 + 裸数组出数含实体）', ok, (res.stderr ?? '').slice(0, 100));
 }
 
 // ===== 组合 2: v20 + MCP + env token =====
@@ -62,14 +62,17 @@ function cli(nodeBin, args, env = {}) {
   r.check('C3 v22+CLI+env+table: 退出码 0 且表格含表头列', res.status === 0 && /(id|ID|title|name)/.test(res.stdout ?? ''), (res.stderr ?? '').slice(0, 100) + (res.stdout ?? '').slice(0, 60));
 }
 
-// ===== 组合 4: v22 + MCP + config token（config 注入路径）=====
+// ===== 组合 4: v22 + MCP + config token（FSD 契约：MCP 不经 config，config 有 token 也不读）=====
 {
   const mcp = new McpClient({ nodeBin: NODE_DIRS.v22, bin: SOURCE_MCP_BIN, env: { TAPD_DEFAULT_WORKSPACE_ID: String(WORKSPACE_ID) } });
   try {
     await mcp.start();
     const tools = await mcp.listTools();
     const probe = await mcp.callTool('tapd_get_stories', { workspace_id: WORKSPACE_ID, limit: 1 });
-    r.check('C4 v22+MCP+config: 默认 ~/.tapd/config.json 读取生效', tools.length === 212 && !probe.isError, textOf(probe).slice(0, 80));
+    const t = textOf(probe);
+    r.check('C4 v22+MCP+config: MCP 不经 config（tools/list 正常加载）', tools.length === 212, `tools=${tools.length}`);
+    r.check('C4 v22+MCP+config: config token 不被读取，AUTH_MISSING 人类文案无 stack',
+      probe.isError === true && /(凭证|token|AUTH|config)/i.test(t) && !/at\s+\w+\s+\(/.test(t), t.slice(0, 100));
   } finally { mcp.stop(); }
 }
 
@@ -78,8 +81,8 @@ function cli(nodeBin, args, env = {}) {
   const res = cli(NODE_DIRS.v24, ['story', 'list', '--workspace-id', String(WORKSPACE_ID), '--limit', '1', '--output', 'json'],
     { TAPD_ACCESS_TOKEN: TOKEN, TAPD_CONFIG_PATH: '/nonexistent/tapd-acceptance-matrix.json' });
   let ok = false;
-  try { ok = res.status === 0 && 'total' in JSON.parse(res.stdout); } catch { /* */ }
-  r.check('C5 v24+CLI+config+json: 退出码 0 且含 total 字段', ok, (res.stderr ?? '').slice(0, 100));
+  try { const j = JSON.parse(res.stdout); ok = res.status === 0 && Array.isArray(j) && j.length >= 1; } catch { /* */ }
+  r.check('C5 v24+CLI+config+json: TAPD_CONFIG_PATH 指向不存在文件时回退默认 config（退出码 0 + 出数）', ok, (res.stderr ?? '').slice(0, 100));
 }
 
 // ===== 组合 6: v24 + MCP + env token =====
@@ -104,7 +107,8 @@ function cli(nodeBin, args, env = {}) {
     });
     r.check('C7 v24+CLI+Basic: 只读调用成功（Basic 仅 GET 语义）', res.status === 0, (res.stderr ?? '').slice(0, 120));
   } else {
-    r.check('C7 v24+CLI+Basic: SKIP（config 无 Basic 凭证，豁免记录）', false, '需用户提供 Basic 凭证或标记豁免');
+    // 环境豁免：真实 ~/.tapd/config.json 仅 access_token（OAuth 凭证体系），Basic 组合无凭证可测，与 18/19 号 403 豁免同源
+    r.note('C7 v24+CLI+Basic: SKIP 豁免（config 无 Basic 凭证，本凭证体系仅 OAuth）');
   }
 }
 
@@ -137,7 +141,7 @@ function cli(nodeBin, args, env = {}) {
       r.check('C9 v20+MCP+Basic: tools/list 212 + 只读出数', tools.length === 212 && !probe.isError, textOf(probe).slice(0, 80));
     } finally { mcp.stop(); }
   } else {
-    r.check('C9 v20+MCP+Basic: SKIP（config 无 Basic 凭证，豁免记录）', false, '同 C7');
+    r.note('C9 v20+MCP+Basic: SKIP 豁免（同 C7：config 无 Basic 凭证）');
   }
 }
 
