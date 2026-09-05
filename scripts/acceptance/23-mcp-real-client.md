@@ -22,6 +22,9 @@ cat > .mcp.json <<'EOF'
   }
 }
 EOF
+# MCP 路径不读 ~/.tapd/config.json（FSD 契约：MCP 不经 config），
+# 启动前从真实 config 只读导出 token 注入 shell（不落明文）
+export TAPD_ACCESS_TOKEN=$(node -e "console.log(JSON.parse(require('fs').readFileSync(require('os').homedir()+'/.tapd/config.json','utf8')).access_token)")
 cd /tmp/claude/mcp-rc-client && claude
 ```
 

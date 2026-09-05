@@ -14,7 +14,7 @@ const AUTH_ENV = {
 };
 
 // 只读清单来自 derived-commands.txt（WRITE 列空）
-const README = new URL('../docs/derived-commands.txt', import.meta.url);
+const README = new URL('../../docs/derived-commands.txt', import.meta.url);
 const readTools = readFileSync(README, 'utf8').split('\n')
   .filter(l => /^tapd_/.test(l) && !/\sY\s*$/.test(l))
   .map(l => l.trim().split(/\s+/)[0]);
