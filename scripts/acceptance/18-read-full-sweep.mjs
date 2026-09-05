@@ -34,7 +34,12 @@ async function listFirst(tool, args) {
   try {
     const data = JSON.parse(res.content.map(c => c.text).join(''));
     const list = Array.isArray(data) ? data : (data.list ?? data.data ?? (data.Story ? [data.Story] : null));
-    const first = Array.isArray(list) ? list[0] : Object.values(data)[0];
+    let first = Array.isArray(list) ? list[0] : Object.values(data)[0];
+    // TAPD 列表元素带实体名包裹（[{ Wiki: {...} }]），剥一层取实体本体
+    if (first && typeof first === 'object') {
+      const vals = Object.values(first);
+      if (vals.length === 1 && vals[0] && typeof vals[0] === 'object') first = vals[0];
+    }
     return first && typeof first === 'object' ? first : null;
   } catch { return null; }
 }
@@ -93,7 +98,7 @@ const FIELD_FILLERS = {
   id: (t) => poolId(entityKeyOf(t)) ?? poolId('story'),
   nick: () => '徐昭',
   system: () => 'story',
-  workitem_type_id: () => POOL.workitem_type ? Number(POOL.workitem_type.id) : undefined,
+  workitem_type_id: () => POOL.workitem_type ? String(POOL.workitem_type.id) : undefined,
   story_id: () => poolId('story'),
   bug_id: () => poolId('bug'),
   tcase_id: () => poolId('test_case'),
@@ -118,22 +123,43 @@ function buildArgs(tool) {
     if (v === undefined) return { args: null, missing: f };
     args[f] = v;
   }
+  // TAPD 端必填但 schema optional 的参数（首跑 422 实证），按工具补齐
+  const optFill = OPT_FILL[tool];
+  if (optFill) {
+    for (const [f, filler] of Object.entries(optFill)) {
+      const v = filler();
+      if (v === undefined) return { args: null, missing: `${f} (无前置实体)` };
+      args[f] = v;
+    }
+  }
   return { args, missing: null };
 }
 
-// 已知合法 SKIP：依赖外部资源 ID（视图配置/项目集/公司级），无独立 list 来源
+// schema optional 但 TAPD 实际必填（首跑 422 ParamError 实证清单）
+const OPT_FILL = {
+  tapd_get_workflow_all_last_steps: { system: () => 'story' },
+  tapd_get_tcase_result: { test_plan_id: () => poolId('test_plan') },
+  tapd_get_wiki_drawios: { id: () => poolId('wiki') },
+  tapd_get_wiki_entity_permissions: { wiki_id: () => poolId('wiki') },
+  tapd_get_launch_accessories: { form_id: () => undefined },
+  tapd_get_code_commit_infos: { type: () => 'story' },
+  tapd_get_life_times: { entity_id: () => poolId('story'), entity_type: () => 'story' },
+};
+
+// 已知合法 SKIP：tool -> 理由
 // program 两工具在 derived-commands.txt 标"只读"但实为写操作（评审 C1 裁决跳写只读验证），一律跳过防误触发
-const KNOWN_SKIP = new Set([
-  'tapd_program_bind_entities',
-  'tapd_program_relate_workspace',
-  'tapd_get_stories_by_view_conf_id',
-  'tapd_get_bugs_by_view_conf_id',
-  'tapd_get_tasks_by_view_conf_id',
-  'tapd_get_projects',
-  'tapd_get_user_projects',
-  'tapd_get_third_projects',
-  'tapd_get_workspace_reports',
-  'tapd_mini_get_user_projects',
+const KNOWN_SKIP = new Map([
+  ['tapd_program_bind_entities', 'program 写操作（C1 裁决跳过）'],
+  ['tapd_program_relate_workspace', 'program 写操作（C1 裁决跳过）'],
+  ['tapd_get_stories_by_view_conf_id', '依赖外部资源视图配置 ID'],
+  ['tapd_get_bugs_by_view_conf_id', '依赖外部资源视图配置 ID'],
+  ['tapd_get_tasks_by_view_conf_id', '依赖外部资源视图配置 ID'],
+  ['tapd_get_projects', '需 project 级访问权限（凭证权限豁免）'],
+  ['tapd_get_user_projects', '需 project 级访问权限（凭证权限豁免）'],
+  ['tapd_get_third_projects', '需 project 级访问权限（凭证权限豁免）'],
+  ['tapd_get_workspace_reports', '依赖外部资源报表配置'],
+  ['tapd_mini_get_user_projects', '依赖外部资源 mini 协作空间'],
+  ['tapd_get_story_fields_info', 'TAPD 端点对该凭证 302 登录页（curl 直带有效 token 实证，服务端行为非 rc 缺陷）'],
 ]);
 
 // ===== 全量执行 =====
@@ -143,7 +169,7 @@ for (const tool of readTools) {
   try {
     const { args, missing } = buildArgs(tool);
     if (KNOWN_SKIP.has(tool)) {
-      results.SKIP.push(`${tool} (已知外部依赖)`);
+      results.SKIP.push(`${tool} (${KNOWN_SKIP.get(tool)})`);
     } else if (!args) {
       results.SKIP.push(`${tool} (required "${missing}" 无自动填充)`);
     } else {
@@ -152,6 +178,8 @@ for (const tool of readTools) {
       if (!res.isError) {
         results.PASS.push(tool);
         outcome = 'PASS';
+      } else if (/error workspace type/i.test(text)) {
+        results.SKIP.push(`${tool} (39814312 非 mini workspace，环境豁免)`);
       } else if (/403|权限|permission|denied/i.test(text)) {
         results.SKIP.push(`${tool} (403 权限受限: ${text.slice(0, 80)})`);
       } else if (/未找到|不存在|not found|没有数据|为空|empty/i.test(text)) {
