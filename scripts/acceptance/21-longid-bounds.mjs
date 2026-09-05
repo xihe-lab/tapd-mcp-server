@@ -48,7 +48,8 @@ async function callRaw(tool, args) {
       if (!ID_RE.test(k)) continue;
       idFields++;
       toolsWith.add(t.name);
-      if (v.type === 'number' || v.type === 'integer') numberType.push(`${t.name}.${k}`);
+      // workspace_id/company_id 为配置类数值字段（≤8 位安全整数），number 形态是既有设计，不属实体 ID 字符串化范围
+      if ((v.type === 'number' || v.type === 'integer') && k !== 'workspace_id' && k !== 'company_id') numberType.push(`${t.name}.${k}`);
       if (v.type === 'array') arrayShape.push(`${t.name}.${k}`);
     }
   }
@@ -73,10 +74,10 @@ const LONG_ID = story ? String(story.id) : '0';
 
 // ===== C. 运行时：number 双向 =====
 if (story) {
-  // C1 安全整数 number -> guard 转 String 正常出数
-  const r1 = await callRaw('tapd_get_stories', { workspace_id: WORKSPACE_ID, id: Number(story.id) });
-  const d1 = firstOf(jsonOrText(r1));
-  r.check('安全整数 number id -> 转字符串后命中实体', !r1.isError && String(d1?.id) === LONG_ID, textOf(r1).slice(0, 80));
+  // C1 安全整数 number -> guard 转 String 放行（19 位实体 ID 的 number 形态必然不安全，用短 ID 数验证放行路径）
+  const r1 = await callRaw('tapd_get_stories', { workspace_id: WORKSPACE_ID, id: 1000001 });
+  const t1 = textOf(r1);
+  r.check('安全整数 number id -> guard 放行转换（不报精度丢失引导）', !/超出 JS 安全整数范围/.test(t1), t1.slice(0, 80));
 
   // C2 不安全 number（19 位）-> guard 抛错引导（文案含 安全整数/字符串，无 stack）
   const unsafe = 1139814312001001454; // JS 字面量已精度丢失 -> 实际传入 1139814312001001456
@@ -92,9 +93,9 @@ if (story) {
   const d3 = firstOf(jsonOrText(r3));
   r.check('字符串长 id -> 无损透传命中实体（读回 id 相等）', !r3.isError && String(d3?.id) === LONG_ID);
 
-  // C4 字段覆盖抽测：非 id 命名的 ID 型字段（story_id 形态，optional 包装）
-  const r4 = await callRaw('tapd_get_story_related_bugs', { workspace_id: WORKSPACE_ID, story_id: LONG_ID });
-  r.check('story_id 形态字段字符串长 id 正常调用', !r4.isError, textOf(r4).slice(0, 80));
+  // C4 字段覆盖抽测：非 id 命名的 ID 型字段（entry_id 形态；story_related_bugs 属凭证 403 集合不选）
+  const r4 = await callRaw('tapd_get_comments', { workspace_id: WORKSPACE_ID, entry_type: 'stories', entry_id: LONG_ID });
+  r.check('entry_id 形态字段字符串长 id 正常调用', !r4.isError, textOf(r4).slice(0, 80));
 }
 
 // ===== D. 数组形态边界（guard 不包装，行为记录）=====
@@ -102,7 +103,8 @@ if (story) {
   // D1 字符串数组：JSON 传输本身无损，应命中
   const r5 = await callRaw('tapd_batch_fetch_stories', { ids: [LONG_ID] });
   const d5 = jsonOrText(r5);
-  const list5 = Array.isArray(d5) ? d5 : d5?.list ?? [];
+  const flat5 = (Array.isArray(d5) ? d5 : d5?.list ?? []).flat(Infinity);
+  const list5 = flat5.map(n => (n && typeof n === 'object' && Object.values(n).length === 1 && typeof Object.values(n)[0] === 'object' ? Object.values(n)[0] : n));
   r.check('数组形态: 字符串长 id 数组 -> 命中实体', !r5.isError && list5.some(s => String(s?.id) === LONG_ID), textOf(r5).slice(0, 100));
 
   // D2 不安全 number 数组：guard 不拦截（已知边界），JS 侧已精度丢失 -> 断言不误报成功
