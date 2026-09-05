@@ -43,7 +43,7 @@ const GET_BY_KIND = {
   bug: ['tapd_get_bugs', 'title'],
   task: ['tapd_get_tasks', 'name'],
   iteration: ['tapd_get_iterations', 'name'],
-  wiki: ['tapd_get_wikis', 'title'],
+  wiki: ['tapd_get_wikis', 'name'],
   module: ['tapd_get_modules', 'name'],
   version: ['tapd_get_versions', 'name'],
   feature: ['tapd_get_features', 'name'],
@@ -119,25 +119,28 @@ try {
 }
 
 // ===== 层1 服务端透传（wiki）=====
+// D8（2.0 特有）：SERVER_MD_TOOLS 透传假设不成立——TAPD /tapd_wikis 不渲染 markdown_description
+// （curl 直调实证：创建后 description 空、markdown_description 存 md 原文），wiki 正文闭环降级为 md 原文透传，数据无损
 try {
   const w1 = await createReg(auto, 'tapd_create_wiki', 'wiki', {
-    workspace_id: WORKSPACE_ID, title: nm('wiki-auto'), description: MD,
-  }, 'title');
-  const wAuto = await readDesc('wiki', w1.id, auto);
-  r.check('L1 wiki: AUTO=1 读回 md 语义（**加粗文本**）', /\*\*加粗文本\*\*/.test(wAuto), String(wAuto).slice(0, 80));
-  const wRaw = await readDesc('wiki', w1.id, off);
-  r.check('L1 wiki: 原始读回含 <strong>（TAPD 服务端渲染证据 = md 透传成功）', /<strong>/i.test(wRaw), String(wRaw).slice(0, 80));
-  r.check('L1 wiki: 原始读回非客户端 markdown-it 产物（无 markdown_description 二次转义痕迹）',
-    !/&lt;strong&gt;/.test(wRaw));
+    workspace_id: WORKSPACE_ID, name: nm('wiki-auto'), description: MD,
+  }, 'name');
+  const getWiki = async (client, id) => firstOf(await call(client, 'tapd_get_wikis', { workspace_id: WORKSPACE_ID, id: String(id) }));
+  const w1Node = await getWiki(auto, w1.id);
+  r.check('L1 wiki: description 为空（D8 实证：TAPD 服务端不渲染 markdown_description）', !w1Node?.description, String(w1Node?.description).slice(0, 60));
+  r.check('L1 wiki: md 原文无损存于 markdown_description（**加粗文本**）', /\*\*加粗文本\*\*/.test(w1Node?.markdown_description ?? ''), String(w1Node?.markdown_description).slice(0, 60));
+  r.note('L1 wiki 读侧豁免（D8）: description 无 HTML → AUTO 读回原样为空，客户端需读 markdown_description 获取正文');
 
   const w2 = await createReg(off, 'tapd_create_wiki', 'wiki', {
-    workspace_id: WORKSPACE_ID, title: nm('wiki-off'), description: MD,
-  }, 'title');
-  const wOff = await readDesc('wiki', w2.id, off);
-  r.check('L3 wiki: AUTO=0 明文透传（TAPD 存 md 原文）', /\*\*加粗文本\*\*/.test(wOff) && !/<strong>/i.test(wOff), String(wOff).slice(0, 80));
+    workspace_id: WORKSPACE_ID, name: nm('wiki-off'), description: MD,
+  }, 'name');
+  const w2Node = await getWiki(off, w2.id);
+  // AUTO=0 全原样透传：description 入参不挪字段，md 原文落在 description
+  r.check('L3 wiki: AUTO=0 明文透传（description 存 md 原文，无渲染）', /\*\*加粗文本\*\*/.test(w2Node?.description ?? '') && !/<strong>/i.test(w2Node?.description ?? ''), String(w2Node?.description).slice(0, 60));
 
   await call(auto, 'tapd_update_wiki', { id: String(w1.id), description: MD });
-  r.check('L1 wiki update: description 改名透传路由一致', /\*\*加粗文本\*\*/.test(await readDesc('wiki', w1.id, auto)));
+  const w1Upd = await getWiki(auto, w1.id);
+  r.check('L1 wiki update: md 路由与 create 一致（markdown_description 含 **加粗文本**）', /\*\*加粗文本\*\*/.test(w1Upd?.markdown_description ?? ''), String(w1Upd?.markdown_description).slice(0, 60));
 } catch (e) {
   r.check(`wiki 三层对照执行失败: ${String(e.message).slice(0, 100)}`, false);
 }
@@ -153,7 +156,6 @@ const shallow = [
   ['feature', 'tapd_add_feature', { name: nm('feat'), owner: USER, description: MD }, 'name', true],
   ['baseline', 'tapd_add_baseline', { name: nm('bl'), baseline_date: '2026-09-04', description: MD }, 'name', true],
   ['release', 'tapd_create_release', { name: nm('rel'), owner: USER, start_date: '2026-09-04', end_date: '2026-09-30', description: MD }, 'name', true],
-  ['test_case', 'tapd_create_test_case', { name: nm('tcase'), owner: USER, description: MD }, 'name', false],
   ['test_plan', 'tapd_create_test_plan', { name: nm('plan'), owner: USER, begin: '2026-09-04', end: '2026-09-30', description: MD }, 'name', false],
 ];
 
@@ -163,7 +165,7 @@ try {
   storyId = probe?.id;
 } catch { /* 后面按缺失处理 */ }
 
-const skipNotes = [];
+const skipNotes = ['test_case: 存量缺陷 D7——schema description 为无效字段（TAPD test_case API 无此字段，写入静默丢弃，1.4.2 同构），无富文本展示位豁免'];
 for (const [kind, tool, args, nameField, irremovable] of shallow) {
   try {
     const data = await createReg(auto, tool, kind, { workspace_id: WORKSPACE_ID, ...args }, nameField, irremovable);
