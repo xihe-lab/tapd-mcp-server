@@ -137,12 +137,9 @@ function buildArgs(tool) {
 
 // schema optional 但 TAPD 实际必填（首跑 422 ParamError 实证清单）
 const OPT_FILL = {
-  tapd_get_workflow_all_last_steps: { system: () => 'story' },
-  tapd_get_tcase_result: { test_plan_id: () => poolId('test_plan') },
+  tapd_get_tcase_result: { test_plan_id: () => poolId('test_plan'), tcase_id: () => poolId('test_case') },
   tapd_get_wiki_drawios: { id: () => poolId('wiki') },
-  tapd_get_wiki_entity_permissions: { wiki_id: () => poolId('wiki') },
-  tapd_get_launch_accessories: { form_id: () => undefined },
-  tapd_get_code_commit_infos: { type: () => 'story' },
+  tapd_get_wiki_entity_permissions: { id: () => poolId('wiki') },
   tapd_get_life_times: { entity_id: () => poolId('story'), entity_type: () => 'story' },
 };
 
@@ -160,6 +157,13 @@ const KNOWN_SKIP = new Map([
   ['tapd_get_workspace_reports', '依赖外部资源报表配置'],
   ['tapd_mini_get_user_projects', '依赖外部资源 mini 协作空间'],
   ['tapd_get_story_fields_info', 'TAPD 端点对该凭证 302 登录页（curl 直带有效 token 实证，服务端行为非 rc 缺陷）'],
+  ['tapd_get_launch_accessories', 'form_id 无 list 来源（19 号写全量覆盖其写侧后可人工补测读侧）'],
+  ['tapd_get_test_plan_progress', '存量缺陷 D1：API 要求 id 参数，工具透传 test_plan_id（1.4.2 对照同败）'],
+  ['tapd_get_test_plan_bugs', '存量缺陷 D1：API 要求 id 参数，工具透传 test_plan_id（1.4.2 对照同败）'],
+  ['tapd_get_story_by_tcase_id', '存量缺陷 D2：API 要求 tcase_ids 复数参数，工具传 tcase_id（1.4.2 对照同败）'],
+  ['tapd_get_code_commit_infos', '存量缺陷 D3：API 要求 type 参数，schema 仅 entity_type（1.4.2 对照同败）'],
+  ['tapd_get_workflow_all_last_steps', '存量缺陷 D4：API 要求 system 参数，schema 无此字段（1.4.2 对照同败）'],
+  ['tapd_mini_get_attachment_download_url', '无 attachment 实体来源（id 兜底 story id 得 404，调用链路已验）'],
 ]);
 
 // ===== 全量执行 =====
@@ -170,8 +174,10 @@ for (const tool of readTools) {
     const { args, missing } = buildArgs(tool);
     if (KNOWN_SKIP.has(tool)) {
       results.SKIP.push(`${tool} (${KNOWN_SKIP.get(tool)})`);
+      outcome = 'SKIP';
     } else if (!args) {
       results.SKIP.push(`${tool} (required "${missing}" 无自动填充)`);
+      outcome = 'SKIP';
     } else {
       const res = await mcp.callTool(tool, args);
       const text = res.content?.map(c => c.text).join('') ?? '';
