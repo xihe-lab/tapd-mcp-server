@@ -160,6 +160,8 @@ const KNOWN_SKIP = new Map([
   ['tapd_get_launch_accessories', 'form_id 无 list 来源（19 号写全量覆盖其写侧后可人工补测读侧）'],
   ['tapd_get_test_plan_progress', '存量缺陷 D1：API 要求 id 参数，工具透传 test_plan_id（1.4.2 对照同败）'],
   ['tapd_get_test_plan_bugs', '存量缺陷 D1：API 要求 id 参数，工具透传 test_plan_id（1.4.2 对照同败）'],
+  ['tapd_get_test_plan_details', '存量缺陷 D1 同族：API 要求 id 参数，工具透传 test_plan_id（1.4.2 对照同败）'],
+  ['tapd_get_wiki_entity_permissions', '存量缺陷 D5：schema 参数名 id，TAPD API 要求 wiki_id，参数名不匹配（1.4.2 对照同败）'],
   ['tapd_get_story_by_tcase_id', '存量缺陷 D2：API 要求 tcase_ids 复数参数，工具传 tcase_id（1.4.2 对照同败）'],
   ['tapd_get_code_commit_infos', '存量缺陷 D3：API 要求 type 参数，schema 仅 entity_type（1.4.2 对照同败）'],
   ['tapd_get_workflow_all_last_steps', '存量缺陷 D4：API 要求 system 参数，schema 无此字段（1.4.2 对照同败）'],
