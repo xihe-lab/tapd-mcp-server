@@ -48,7 +48,7 @@ const VIA_GET = {
   bug: ['tapd_get_bugs', 'id', 'title'],
   task: ['tapd_get_tasks', 'id', 'name'],
   iteration: ['tapd_get_iterations', 'id', 'name'],
-  wiki: ['tapd_get_wikis', 'id', 'title'],
+  wiki: ['tapd_get_wikis', 'id', 'name'],
   story_category: ['tapd_get_story_categories', 'id', 'name'],
   tcase_category: ['tapd_get_tcase_categories', 'id', 'name'],
   module: ['tapd_get_modules', 'id', 'name'],
@@ -125,7 +125,7 @@ unit('前置:task', async () => {
 unit('前置:wiki', async () => {
   E.wiki = await createReg('tapd_create_wiki', 'wiki', {
     workspace_id: WORKSPACE_ID, name: nm('wiki'), description: 'rc19 前置正文',
-  }, 'name');
+  }, 'name'); // TAPD wiki 返回体标题字段是 name
 });
 
 unit('前置:comment', async () => {
