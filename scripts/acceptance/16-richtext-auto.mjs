@@ -44,12 +44,14 @@ const mcp = new McpClient({ env: AUTH_ENV });
 try {
   await mcp.start();
 
-  // ===== 写路径 1：wiki md → 服务端 markdown_description 透传 =====
+  // ===== 写路径 1：wiki md → D8 修复后 DUAL_WRITE 双写（description 渲染 HTML + markdown_description md 原文）=====
   const wikiCreate = unwrap(await cliJson(['wiki', 'create', '--name', `zzz-delete-me-1308-wiki-${STAMP}`, '--description', MD]));
-  r.check('W1 wiki create: description 清空', wikiCreate?.description === '' || wikiCreate?.description == null);
+  // create 返回体经 CLI 输出层（AUTO 读侧 turndown），description 归一为 md 语义；库内 HTML 证据由 W2b raw 读承担
+  r.check('W1 wiki create 双写: 返回体 description 归一 md 语义（**加粗** 无 HTML 字面）', /\*\*加粗\*\*/.test(wikiCreate?.description ?? '') && !/<strong/i.test(wikiCreate?.description ?? ''), wikiCreate?.description);
   r.check('W2 wiki create: markdown_description = 原始 md', wikiCreate?.markdown_description === MD);
 
   const wikiRaw = unwrap(await cliJson(['wiki', 'list', '--id', String(wikiCreate.id)], { TAPD_RICHTEXT_AUTO: '0' }));
+  r.check('W2b wiki raw 读: 双写两字段均落库', /<(strong|h1|p|ul|li)\b/i.test(wikiRaw?.description ?? '') && wikiRaw?.markdown_description === MD);
   r.check('W3 wiki raw 读: 服务端保存 markdown_description 原文（透传不转）', wikiRaw?.markdown_description === MD);
 
   // ===== 写路径 2：story md → 客户端 markdown-it 转换入库 =====
