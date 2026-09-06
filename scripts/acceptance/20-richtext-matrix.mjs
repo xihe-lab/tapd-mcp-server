@@ -71,22 +71,24 @@ async function readDesc(kind, id, client = auto) {
     new URL('../../packages/core/src/registry/richtext-manifests.generated.ts', import.meta.url), 'utf8');
   const toolMatches = [...manifestSrc.matchAll(/^  '(tapd_[a-z_]+)': \[/gm)].map(m => m[1]);
   r.check(`manifest 写富文本工具 = 30 (实际 ${toolMatches.length})`, toolMatches.length === 30);
-  const serverMd = manifestSrc.match(/SERVER_MD_TOOLS[^=]*= \[([^\]]+)\]/)?.[1] ?? '';
-  r.check('SERVER_MD_TOOLS 仅 wiki 两工具', serverMd.includes('tapd_create_wiki') && serverMd.includes('tapd_update_wiki')
-    && (serverMd.match(/tapd_/g) ?? []).length === 2, serverMd.slice(0, 80));
+  const dualSrc = manifestSrc.match(/DUAL_WRITE_TOOLS[^=]*= \[([^\]]+)\]/)?.[1] ?? '';
+  r.check('DUAL_WRITE_TOOLS 仅 wiki 两工具（D8 修复：双写替代服务端透传）', dualSrc.includes('tapd_create_wiki') && dualSrc.includes('tapd_update_wiki')
+    && (dualSrc.match(/tapd_/g) ?? []).length === 2, dualSrc.slice(0, 80));
   r.check('wiki 路由字段含 description+markdown_description',
     /'tapd_create_wiki': \[\s*'description',\s*'markdown_description'/.test(manifestSrc));
   // 逐工具块解析：非 server 工具（28 个客户端渲染层）路由字段全为 description
   const blocks = [...manifestSrc.matchAll(/'(tapd_[a-z_]+)': \[([^\]]+)\]/g)];
-  const nonServerFields = blocks
-    .filter(b => !serverMd.includes(b[1]))
+  const dualTools = ['tapd_create_wiki', 'tapd_update_wiki'];
+  const nonDualFields = blocks
+    .filter(b => !dualTools.includes(b[1]))
     .flatMap(b => [...b[2].matchAll(/'([a-z_]+)'/g)].map(m => m[1]));
-  r.check(`非 server 工具路由字段全为 description (${blocks.length - 2} 工具 / ${nonServerFields.length} 字段)`,
-    blocks.length === 30 && nonServerFields.length === 28 && nonServerFields.every(f => f === 'description'),
-    [...new Set(nonServerFields)].join(','));
+  r.check(`非双写工具路由字段全为 description (${blocks.length - 2} 工具 / ${nonDualFields.length} 字段)`,
+    blocks.length === 30 && nonDualFields.length === 28 && nonDualFields.every(f => f === 'description'),
+    [...new Set(nonDualFields)].join(','));
   const routeSrc = (await import('node:fs')).readFileSync(
     new URL('../../packages/core/src/registry/richtext.ts', import.meta.url), 'utf8');
   r.check('读侧扫描字段仅 description（READ_RICHTEXT_FIELDS）', /READ_RICHTEXT_FIELDS[^=]*= new Set\(\['description'\]\)/.test(routeSrc));
+  r.check('读侧存量 wiki 回填: description 空时以 markdown_description 补正文（legacyMd）', /out\.description = legacyMd/.test(routeSrc));
   r.check('AUTO 开关解析：TAPD_RICHTEXT_AUTO !== 0 视为开启', /TAPD_RICHTEXT_AUTO !== '0'/.test(routeSrc));
 }
 
@@ -118,18 +120,21 @@ try {
   r.check(`story 三层对照执行失败: ${String(e.message).slice(0, 100)}`, false);
 }
 
-// ===== 层1 服务端透传（wiki）=====
-// D8（2.0 特有）：SERVER_MD_TOOLS 透传假设不成立——TAPD /tapd_wikis 不渲染 markdown_description
-// （curl 直调实证：创建后 description 空、markdown_description 存 md 原文），wiki 正文闭环降级为 md 原文透传，数据无损
+// ===== 层1 wiki 双写（D8 修复后架构）=====
+// 原 D8（2.0 特有）：SERVER_MD_TOOLS 透传假设不成立——TAPD /tapd_wikis 不渲染 markdown_description（curl 直调实证）
+// 修复（410835b/c3471fe）：wiki 改客户端渲染 + 双写（description 存渲染 HTML、markdown_description 存 md 原文），create 拆两段规避服务端同传丢 description
+// 读侧加存量回填：description 空且 markdown_description 有值（存量 wiki）时补正文闭环
 try {
   const w1 = await createReg(auto, 'tapd_create_wiki', 'wiki', {
     workspace_id: WORKSPACE_ID, name: nm('wiki-auto'), description: MD,
   }, 'name');
   const getWiki = async (client, id) => firstOf(await call(client, 'tapd_get_wikis', { workspace_id: WORKSPACE_ID, id: String(id) }));
+  const w1Raw = await getWiki(off, w1.id);
+  r.check('L1 wiki 双写 create: description 原始存渲染 HTML（<strong> 入库证据）', /<strong>/i.test(w1Raw?.description ?? ''), String(w1Raw?.description).slice(0, 60));
+  r.check('L1 wiki 双写 create: markdown_description 存 md 原文（**加粗文本**）', /\*\*加粗文本\*\*/.test(w1Raw?.markdown_description ?? ''), String(w1Raw?.markdown_description).slice(0, 60));
   const w1Node = await getWiki(auto, w1.id);
-  r.check('L1 wiki: description 为空（D8 实证：TAPD 服务端不渲染 markdown_description）', !w1Node?.description, String(w1Node?.description).slice(0, 60));
-  r.check('L1 wiki: md 原文无损存于 markdown_description（**加粗文本**）', /\*\*加粗文本\*\*/.test(w1Node?.markdown_description ?? ''), String(w1Node?.markdown_description).slice(0, 60));
-  r.note('L1 wiki 读侧豁免（D8）: description 无 HTML → AUTO 读回原样为空，客户端需读 markdown_description 获取正文');
+  r.check('L1 wiki AUTO 读回: description turndown 化（**加粗文本** 无 <strong>）', /\*\*加粗文本\*\*/.test(w1Node?.description ?? '') && !/<strong/i.test(w1Node?.description ?? ''), String(w1Node?.description).slice(0, 60));
+  r.note('L1 wiki 存量回填: description 空且 markdown_description 有值时读侧补正文（旧数据闭环，静态断言覆盖）');
 
   const w2 = await createReg(off, 'tapd_create_wiki', 'wiki', {
     workspace_id: WORKSPACE_ID, name: nm('wiki-off'), description: MD,
@@ -139,8 +144,8 @@ try {
   r.check('L3 wiki: AUTO=0 明文透传（description 存 md 原文，无渲染）', /\*\*加粗文本\*\*/.test(w2Node?.description ?? '') && !/<strong>/i.test(w2Node?.description ?? ''), String(w2Node?.description).slice(0, 60));
 
   await call(auto, 'tapd_update_wiki', { id: String(w1.id), description: MD });
-  const w1Upd = await getWiki(auto, w1.id);
-  r.check('L1 wiki update: md 路由与 create 一致（markdown_description 含 **加粗文本**）', /\*\*加粗文本\*\*/.test(w1Upd?.markdown_description ?? ''), String(w1Upd?.markdown_description).slice(0, 60));
+  const w1UpdRaw = await getWiki(off, w1.id);
+  r.check('L1 wiki update 双写: description 存渲染 HTML + markdown_description 存 md 原文（与 create 一致）', /<strong>/i.test(w1UpdRaw?.description ?? '') && /\*\*加粗文本\*\*/.test(w1UpdRaw?.markdown_description ?? ''), String(w1UpdRaw?.description).slice(0, 60));
 } catch (e) {
   r.check(`wiki 三层对照执行失败: ${String(e.message).slice(0, 100)}`, false);
 }
