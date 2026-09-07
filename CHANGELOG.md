@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0-rc.1] - 2026-09-04
 
+### Added
+
+- 三包架构独立成仓（TAPD 1537）：`packages/core`（`@xihe-lab/tapd-core` 共享内核）、`packages/cli`（`@xihe-lab/tapd-cli`）拆分为独立仓库，以 git subtree split 保留路径历史后推入 [tapd-core](https://github.com/xihe-lab/tapd-core) / [tapd-cli](https://github.com/xihe-lab/tapd-cli)，本仓以 git submodule 引用至原路径，pnpm workspace 开发体验不变；发布态三仓各自独立 `pnpm publish`
+
 ### Fixed
 
 - 移植 1.4.3（feature/1.x）长 ID 精度丢失修复（TAPD 1410）：

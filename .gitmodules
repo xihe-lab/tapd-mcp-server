@@ -1,0 +1,6 @@
+[submodule "packages/core"]
+	path = packages/core
+	url = git@github.com:xihe-lab/tapd-core.git
+[submodule "packages/cli"]
+	path = packages/cli
+	url = git@github.com:xihe-lab/tapd-cli.git

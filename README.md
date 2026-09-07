@@ -7,6 +7,17 @@
 
 TAPD 是腾讯敏捷研发管理平台，覆盖需求、计划、研发、测试、发布研发全生命周期。通过 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 接入 Claude、Cursor 等 AI 助手，用自然语言管理需求、缺陷、任务和迭代。
 
+## 三包架构
+
+```
+tapd-mcp-server（本仓）
+├── packages/mcp    → @xihe-lab/tapd-mcp-server   MCP 入口（本仓发布）
+├── packages/core   → @xihe-lab/tapd-core         共享内核（独立仓 submodule）
+└── packages/cli    → @xihe-lab/tapd-cli          CLI 入口（独立仓 submodule）
+```
+
+core 与 cli 独立成仓（[tapd-core](https://github.com/xihe-lab/tapd-core) / [tapd-cli](https://github.com/xihe-lab/tapd-cli)），本仓以 **git submodule** 引用至 `packages/core`、`packages/cli`，pnpm workspace 的 `packages/*` 通配天然覆盖，install/build/test 体验与普通目录包一致。三个仓各自独立 `pnpm publish`（发布态 `workspace:*` 协议自动替换为版本号），发布节奏互不绑定：内核或 CLI 有变更时在各自仓发版，MCP 入口随主仓发版。
+
 ## 系统要求
 
 - Node.js >= 18.0.0
@@ -254,10 +265,17 @@ npm view @xihe-lab/tapd-mcp-server versions
 如需二次开发：
 
 ```bash
-git clone git@github.com:xihe-lab/tapd-mcp-server.git && cd tapd-mcp-server
-npm install && npm run build
+# 方式一：clone 时一并拉取 submodule
+git clone --recursive git@github.com:xihe-lab/tapd-mcp-server.git && cd tapd-mcp-server
+
+# 方式二：已 clone 的仓库补拉 submodule
+git submodule update --init
+
+pnpm install && pnpm build
 npm run dev
 ```
+
+> `packages/core`、`packages/cli` 是 git submodule：更新它们需要进入子目录拉取并在主仓提交新的指针；直接在子目录内的改动属于各自独立仓，需在对应仓内提交推送。
 
 添加新工具：在 `src/tools/` 下创建模块文件，导出 `ToolDef[]` 数组，然后在 `src/tools/index.ts` 中导入即可。
 
