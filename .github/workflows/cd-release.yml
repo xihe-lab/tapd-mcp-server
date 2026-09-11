@@ -163,7 +163,9 @@ jobs:
           fi
           for d in ${{ steps.check.outputs.todo_dirs }}; do
             echo "── 发布 $d ──"
-            (cd "$d" && npm publish --access public --provenance $DIST_TAG) || exit 1
+            # 用 pnpm publish（而非 npm publish）：pnpm 打包时会把 workspace:* 替换为
+            # @xihe-lab/tapd-core 的实际版本号；npm publish 会原样保留 workspace:*，导致依赖版本无效
+            (cd "$d" && pnpm publish --access public --provenance $DIST_TAG) || exit 1
           done
 
       # 顺序约定：① npm 发布成功 → ② 打附注 tag → ③ GitHub Release 挂到该 tag → ④（可选）同步 main
