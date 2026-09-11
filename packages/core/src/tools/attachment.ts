@@ -9,7 +9,7 @@ import { TapdClient } from '../tapd-client.js';
 // Wave 2 接线收敛（需求 1139814312001001548）：file-type 词汇表以 core/richtext 的
 // R6 四桶映射（FILE_TYPE_BY_EXTENSION）为准，本文件不再另设一套已知类型判断；
 // 未知扩展名保留 A 侧「直通」契约（前端取回退图标，data-name/size 仍可渲染）。
-import { FILE_TYPE_BY_EXTENSION, type FileType } from '../richtext/index.js';
+import { FILE_TYPE_BY_EXTENSION } from '../richtext/index.js';
 
 // ---------------------------------------------------------------------------
 // Shared file/anchor helpers (reused by tools/media.ts and Wave 2 richtext lib)
@@ -119,7 +119,7 @@ export function buildAttachmentAnchor(input: AttachmentAnchorInput): string {
   const dot = input.filename.lastIndexOf('.');
   const ext = dot > -1 && dot < input.filename.length - 1 ? input.filename.slice(dot + 1).toLowerCase() : '';
   const fileType = input.file_type
-    ?? (FILE_TYPE_BY_EXTENSION[ext] as FileType | undefined) // richtext R6 四桶优先（text/image/pdf）
+    ?? (FILE_TYPE_BY_EXTENSION[ext]) // richtext R6 四桶优先（text/image/pdf）
     ?? (TEXT_LIKE_EXTENSIONS.has(ext) ? 'text' : ext || 'other'); // 未收录：A 侧文本族 → text，其余扩展名直通
   const name = escapeHtml(input.filename);
   const size = Math.max(0, Math.round(input.size));

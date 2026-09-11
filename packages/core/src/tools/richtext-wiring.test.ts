@@ -58,11 +58,11 @@ const htmlToMdTool = utilityTools.find(t => t.name === 'tapd_html_to_md')!;
 const createCommentTool = registry.get('tapd_create_comment')!;
 
 async function mdRender(params: Record<string, unknown>, client: TapdClient = new RecordingClient() as unknown as TapdClient) {
-  return mdToHtmlTool.handler(client, params as never) as Promise<Record<string, unknown>>;
+  return mdToHtmlTool.handler(client, params) as Promise<Record<string, unknown>>;
 }
 
 async function mdFromHtml(html: string): Promise<string> {
-  const result = await htmlToMdTool.handler({} as TapdClient, { html } as never) as { markdown: string };
+  const result = await htmlToMdTool.handler({} as TapdClient, { html }) as { markdown: string };
   return result.markdown;
 }
 
@@ -116,7 +116,7 @@ const checks: [string, () => Promise<void> | void][] = [
   ['upload_images: 无 workspace 且无默认配置 → 明确报错；默认 false 零副作用', async () => {
     const rec = new RecordingClient();
     await assert.rejects(
-      mdToHtmlTool.handler(rec as unknown as TapdClient, { content: '![a](./x.png)', upload_images: true } as never),
+      mdToHtmlTool.handler(rec as unknown as TapdClient, { content: '![a](./x.png)', upload_images: true }),
       /workspace_id is required/
     );
     const result = await mdRender({ content: '![a](./x.png)' }, rec as unknown as TapdClient);
@@ -136,14 +136,14 @@ const checks: [string, () => Promise<void> | void][] = [
     rec.getResponse = [{ User: { user: '徐昭' } }, { User: { user: 'bob' } }];
     const result = await mdRender({ content: '请 @徐昭 与 @ghost 与 @bob 处理', workspace_id: WS }, rec as unknown as TapdClient);
     assert.equal(rec.getCalls[0].path, '/users');
-    assert.equal((rec.getCalls[0].params as Record<string, unknown>).workspace_id, WS);
+    assert.equal((rec.getCalls[0].params!).workspace_id, WS);
     assert.ok((result.html as string).includes(AT('徐昭')));
     assert.deepEqual(result.warnings, ['@ghost 未命中项目成员昵称（请核对昵称拼写；关键通知场景建议同时填 cc）']);
   }],
 
   ['workspace_id 校验降级：/users 403/失败 → 跳过校验并提示，转换不受影响', async () => {
     const rec = new RecordingClient();
-    rec.get = <T>() => Promise.reject(new Error('403 Forbidden: users::_get required'));
+    rec.get = () => Promise.reject(new Error('403 Forbidden: users::_get required'));
     const result = await mdRender({ content: '请 @徐昭 处理', workspace_id: WS }, rec as unknown as TapdClient);
     assert.ok((result.html as string).includes(AT('徐昭')));
     const warnings = result.warnings as string[];
@@ -201,7 +201,7 @@ const checks: [string, () => Promise<void> | void][] = [
       { entry: 'cli' },
       () => rec as unknown as TapdClient
     );
-    const params = rec.postCalls[0].params as Record<string, unknown>;
+    const params = rec.postCalls[0].params!;
     assert.equal(params.description, `<p>变更通知：${AT('徐昭')} 请确认，材料 <a data-is-tapd-attachment="true" data-can-preview="true" data-file-type="text" data-name="说明.txt" target="_blank" rel="noopener" href="/39814312/attachments/preview_attachments/1/story_description_attachment">说明.txt</a></p>\n`);
     assert.equal(params.raw_html, undefined, 'raw_html 参数消费后不透传 TAPD API');
   }],
@@ -215,7 +215,7 @@ const checks: [string, () => Promise<void> | void][] = [
       { entry: 'cli' },
       () => rec as unknown as TapdClient
     );
-    const params = rec.postCalls[0].params as Record<string, unknown>;
+    const params = rec.postCalls[0].params!;
     assert.equal(params.description, raw, '一字不改直发（R7 服务端保真）');
     assert.equal(params.raw_html, undefined);
   }],
@@ -225,7 +225,7 @@ const checks: [string, () => Promise<void> | void][] = [
       'tapd_create_comment',
       { workspace_id: WS, entry_type: 'stories', entry_id: '1', description: 'hello @徐昭 **加粗**' },
       { entry: 'cli' },
-      () => ({ post: async () => ({}) }) as unknown as TapdClient
+      () => ({ post: () => Promise.resolve({}) }) as unknown as TapdClient
     );
     assert.equal(mdPath.ok, true);
     const rawRec = new RecordingClient();
@@ -235,7 +235,7 @@ const checks: [string, () => Promise<void> | void][] = [
       { entry: 'cli' },
       () => rawRec as unknown as TapdClient
     );
-    assert.equal((rawRec.postCalls[0].params as Record<string, unknown>).description, 'hello @徐昭 **加粗**');
+    assert.equal((rawRec.postCalls[0].params!).description, 'hello @徐昭 **加粗**');
   }],
 
   ['raw_html=true：D8 双写不破坏（wiki markdown_description 维持既有策略——永不自动改写、无 md 源时不回填）', () => {

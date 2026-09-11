@@ -34,7 +34,6 @@ import {
   isAtWhoNode,
   renderMentionHtml,
 } from './index.js';
-import type { HtmlNodeLike } from './mention.js';
 
 // ---------------------------------------------------------------------------
 // md → html（markdown-it，token 级）
@@ -194,13 +193,13 @@ turndown.use(gfm);
 // 保真规则先于 GFM/内建规则匹配：addRule 是 unshift 语义（后注册者先匹配），
 // 在 use(gfm) 之后注册即拿到最高优先级（FSD §8，规则优先级由测试固化）。
 turndown.addRule('tapdAtWho', {
-  filter: node => isAtWhoNode(node as unknown as HtmlNodeLike),
-  replacement: (_content, node) => atWhoNodeToMd(node as unknown as HtmlNodeLike),
+  filter: node => isAtWhoNode(node),
+  replacement: (_content, node) => atWhoNodeToMd(node),
 });
 turndown.addRule('tapdAttachmentAnchor', {
-  filter: node => isAttachmentAnchorNode(node as unknown as HtmlNodeLike),
+  filter: node => isAttachmentAnchorNode(node),
   replacement: (_content, node) => {
-    const md = attachmentAnchorNodeToMd(node as unknown as HtmlNodeLike);
+    const md = attachmentAnchorNodeToMd(node);
     // 识别条件不满足（缺 href 等）→ 保留原节点 HTML，绝不猜测改写
     return md ?? (node as unknown as { outerHTML?: string }).outerHTML ?? '';
   },
@@ -208,7 +207,7 @@ turndown.addRule('tapdAttachmentAnchor', {
 
 // 文本节点字面 @ 保护（round-trip 稳定：命中 mention 规则的 @名字 加倍为 @@名字）。
 // CODE 内文本 isCode 天然绕过 escape 钩子（turndown process 分支），代码段 @ 不被加倍。
-const baseEscape = TurndownService.prototype.escape;
+const baseEscape: (text: string) => string = TurndownService.prototype.escape;
 turndown.escape = (text: string) => baseEscape(escapeAtLiteralsForMd(text));
 
 /** TAPD 富文本 html → md（at-who → @昵称、附件锚点 → attach: 引用、/tfl/ 图片走 GFM 内建规则）。 */
