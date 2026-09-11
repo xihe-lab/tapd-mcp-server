@@ -11,8 +11,20 @@
  * - POST SDK failures throw directly (never fallback, avoid duplicate writes)
  * - Set TAPD_SDK_DISABLED=1 to bypass the SDK entirely (rollback switch)
  */
+import { ReadStream } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
 import TapdSdk from '@opentapd/tapd-node-sdk';
 import { SDK_ROUTES } from './sdk-routes.js';
+
+/**
+ * A param value accepted by the multipart upload channel (TapdClient.postFile).
+ * The file itself MUST be an fs.ReadStream (i.e. fs.createReadStream):
+ * the SDK only switches to multipart/form-data for ReadStream/FILE values
+ * (node-sdk/src/sdk.js:159) — Buffers / Readable.from() silently degrade to
+ * plain form fields.
+ */
+export type FileUploadParam = string | number | boolean | undefined | ReadStream;
 
 export class TapdClient {
   private authHeader: string;
@@ -306,6 +318,77 @@ export class TapdClient {
    */
   async post<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     return this.route<T>('POST', path, params);
+  }
+
+  /**
+   * POST a multipart (file upload) request — the streaming channel for upload
+   * endpoints (`/files/upload_attachment`, `/files/upload_image`, ...).
+   *
+   * Keeps registry.exec the single execution path (FSD §2 ruling: streaming
+   * calls never bypass TapdClient, so audit / timeout / read-only gating and
+   * auth stay unified).
+   *
+   * Routing mirrors route() POST semantics:
+   * - When `POST <path>` is mapped in SDK_ROUTES and the SDK is enabled, the
+   *   request goes through the SDK, which builds multipart/form-data when any
+   *   param value is an fs.ReadStream (node-sdk/src/sdk.js:159).
+   * - POST failures throw directly (never fall back / retry — a flaky network
+   *   must not duplicate an upload).
+   * - Without an SDK route (or with TAPD_SDK_DISABLED=1 rollback switch on),
+   *   falls back to a fetch-based multipart upload (Node 20+ global FormData).
+   */
+  async postFile<T>(path: string, params: Record<string, FileUploadParam>): Promise<T> {
+    const sdkMethod = this.sdkEnabled ? SDK_ROUTES[`POST ${path}`] : undefined;
+    if (sdkMethod) {
+      // Scalars are stringified up-front: the SDK appends values to a
+      // form-data payload as-is, so numbers/booleans must arrive as strings.
+      const sdkParams: Record<string, string | ReadStream> = {};
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined) continue;
+        sdkParams[key] = value instanceof ReadStream ? value : String(value);
+      }
+      const sdk = this.getSdk() as unknown as Record<string, (p: unknown) => Promise<unknown>>;
+      const response = await sdk[sdkMethod](sdkParams);
+      return this.unwrap<T>(response);
+    }
+    return this.postMultipartViaFetch<T>(path, params);
+  }
+
+  /**
+   * fetch-based multipart fallback (no SDK route / SDK disabled). Node 20+
+   * global fetch serializes FormData bodies (boundary included) automatically.
+   */
+  private async postMultipartViaFetch<T>(path: string, params: Record<string, FileUploadParam>): Promise<T> {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined) continue;
+      if (value instanceof ReadStream) {
+        const filePath = typeof value.path === 'string' ? value.path : value.path.toString('utf8');
+        // undici FormData only accepts Blob/string values — buffer the bytes
+        // for the fallback path (the SDK path streams without buffering).
+        const bytes = await readFile(filePath);
+        form.append(key, new Blob([bytes]), basename(filePath));
+      } else {
+        form.append(key, String(value));
+      }
+    }
+
+    const url = new URL(path, this.baseUrl);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Authorization': this.authHeader },
+      body: form,
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TAPD API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
+    }
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`TAPD API returned non-JSON response: ${text.slice(0, 100)}`);
+    }
+    return this.unwrap<T>(await response.json());
   }
 }
 

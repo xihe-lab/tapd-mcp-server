@@ -10,6 +10,11 @@ export const SDK_ROUTES: Partial<Record<RouteKey, string>> = {
   // attachments
   'GET /attachments': 'getAttachments',
   'GET /attachments/down': 'downloadAttachment',
+  'POST /open_app_obj_attachment': 'addOpenAppObjAttachment',
+
+  // files (upload channel — multipart via TapdClient.postFile)
+  'POST /files/upload_attachment': 'uploadAttachment',
+  'POST /files/upload_image': 'uploadImage',
 
   // board-cards
   'GET /board_cards': 'getBoardCards',
