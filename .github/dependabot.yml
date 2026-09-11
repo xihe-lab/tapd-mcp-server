@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # npm 依赖（monorepo 三包 + 根）
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      # 生产依赖按包分组，安全更新单开（快通道）
+      prod-deps:
+        applies-to: version-updates
+        patterns: ['*']
+        exclude-patterns: ['eslint*', 'typescript', 'tsx', '@types/*', 'typescript-eslint*']
+      dev-deps:
+        applies-to: version-updates
+        patterns: ['eslint*', 'typescript', 'tsx', '@types/*', 'typescript-eslint*']
+      security-patches:
+        applies-to: security-updates
+        patterns: ['*']
+    labels: [type/chore, pkg/repo, rel/2.x]
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    # runtime high → rc 线；major 版本留 GA 决策（对齐 TAPD 1538 策略）
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions 版本更新（含 actions/checkout 等）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [type/chore, pkg/repo]
+    commit-message:
+      prefix: chore(ci)
+    # actions major 跨版（如 checkout 4→7）运行时大改，留 GA 决策（对齐 npm 生态与 TAPD 1538 策略）
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

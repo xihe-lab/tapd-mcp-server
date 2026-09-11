@@ -40,3 +40,11 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# 本地残留（worktrees/构建产物/临时脚本）
+.claude/
+*.tgz
+.playwright-mcp/
+
+# 独立安装的临时锁文件（聚合锁文件在基座）
+pnpm-lock.yaml

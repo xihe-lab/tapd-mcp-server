@@ -8,8 +8,8 @@
  * the stdio transport for communication with MCP clients.
  */
 
-import { start } from './server.js';
-import { allTools } from './tools/index.js';
+import { start } from '../server.js';
+import { allTools } from '@xihe-lab/tapd-core';
 
 /**
  * Start the MCP server

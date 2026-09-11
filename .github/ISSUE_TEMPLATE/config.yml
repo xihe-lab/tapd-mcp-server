@@ -1,1 +1,8 @@
 blank_issues_enabled: false
+contact_links:
+  - name: 📖 API 与能力文档
+    url: https://github.com/xihe-lab/tapd-mcp-server/tree/main/docs
+    about: 先查文档——工具清单、富媒体协作指南、测试报告
+  - name: 🏷 TAPD 项目跟踪
+    url: https://www.tapd.cn/39814312
+    about: 需求/缺陷全量在 TAPD（workspace 39814312），GitHub Issue 用于外部反馈与轻量讨论

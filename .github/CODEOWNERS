@@ -1,0 +1,9 @@
+# 默认所有者
+* @xuzhao
+
+# 安全敏感区：改这里必须人审（官方安全加固指南建议）
+/.github/           @xuzhao
+
+# 说明：本仓为 mcp 单包源码仓（tapd-node 父仓聚合体系的子模块）；
+# core/cli 已独立成仓（xihe-lab/tapd-core、xihe-lab/tapd-cli），
+# 构建/测试/发布统一在父仓 xihe-lab/tapd-node 流水线
