@@ -23,6 +23,9 @@
     "url": "git+https://github.com/xihe-lab/tapd-mcp-server.git",
     "directory": "packages/core"
   },
+  "bugs": {
+    "url": "https://github.com/xihe-lab/tapd-mcp-server/issues"
+  },
   "engines": {
     "node": ">=20.0.0"
   },

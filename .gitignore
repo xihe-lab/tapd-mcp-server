@@ -40,3 +40,8 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# 本地残留（worktrees/构建产物/临时脚本）
+.claude/
+*.tgz
+.playwright-mcp/
