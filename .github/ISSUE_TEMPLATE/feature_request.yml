@@ -1,0 +1,42 @@
+name: 功能建议
+description: 新工具、新场景、管道/CLI 体验改进
+labels: ["type/feature", "flow/needs-triage"]
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景与场景
+      description: 你遇到的问题或不便，比方案更重要——请描述真实使用场景
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建议方案
+      description: 期望的能力形态（工具参数 / CLI 命令 / pm 场景均可）
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: 期望的交互示例
+      placeholder: |
+        > 把迭代里未完成的需求列出来，@负责人 确认后移到下迭代
+
+        或 CLI：
+        $ tapd attachment upload ./report.pdf --entity-type story --entity-id 1139...
+  - type: dropdown
+    id: pkg
+    attributes:
+      label: 受益入口（可多选的写主入口）
+      options:
+        - 双入口（core 新工具）
+        - cli（命令体验 / pm 场景 / pipeline）
+        - mcp（agent 消费体验）
+        - 文档 / 其他
+  - type: input
+    id: tapd
+    attributes:
+      label: 关联 TAPD 需求 ID（可选）
+      description: 若已在 TAPD 立项请填长 ID 或短 ID，便于双向追踪
+      placeholder: "1139814312001001546"
