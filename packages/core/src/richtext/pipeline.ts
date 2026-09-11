@@ -209,7 +209,7 @@ turndown.addRule('tapdAttachmentAnchor', {
 // CODE 内文本 isCode 天然绕过 escape 钩子（turndown process 分支），代码段 @ 不被加倍。
 const baseEscape = TurndownService.prototype.escape.bind(
   TurndownService.prototype,
-) as (text: string) => string;
+);
 turndown.escape = (text: string) => baseEscape(escapeAtLiteralsForMd(text));
 
 /** TAPD 富文本 html → md（at-who → @昵称、附件锚点 → attach: 引用、/tfl/ 图片走 GFM 内建规则）。 */
