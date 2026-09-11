@@ -1,56 +1,145 @@
-# 子仓 Release 流水线：tag 与 GitHub Release 由各子仓独立维护（配置随仓走）
-# 触发：基座 tapd-node cd-release 发布成功后 dispatch（version + sha）；也可手动补历史 tag
-# 校验闸：定位发布提交（tag 落在发布时的提交） / 版本一致 / npm 已发布——发布失败的版本绝不打 tag
+# 子仓发布流水线：构建 → OIDC 可信发布 → tag + GitHub Release（全部子仓自治）
+# 触发：
+#   ① push releases/<版本>——单包发布（前置：基座指针已更新且基座 main CI 绿，本流水线会校验）
+#   ② 基座 cd-release 编排 dispatch——全量发布，按依赖序 core → cli → mcp 逐个触发
+#   ③ 手动 dispatch——补历史 tag/Release（npm 已发布的版本自动跳过发布步）
+# 依赖顺序闸：cli/mcp 发布前校验 @xihe-lab/tapd-core 依赖范围在 npm 已可解析（core 必须先发）。
+# 需要 secret：BASE_DISPATCH_TOKEN（PAT：xihe-lab/tapd-node Contents 只读）——仅 push 触发的门禁校验用。
 name: Release
 
 on:
+  push:
+    branches: ['releases/**']
   workflow_dispatch:
     inputs:
       version:
-        description: '发布版本（须与发布提交的 package.json 一致）'
+        description: '发布版本（须与发布提交 package.json 一致）'
         required: true
       sha:
-        description: '发布提交（tag 落点；可早于分支头，用于补历史）'
-        required: true
+        description: '发布提交（tag 落点；缺省为 ref HEAD）'
+        required: false
 
 permissions:
   contents: write
+  id-token: write # npm Trusted Publishing（OIDC）
+
+concurrency:
+  group: release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Tag & GitHub Release
+  publish:
+    name: 构建 · 发布 · tag
     runs-on: ubuntu-latest
+    environment: npm publish # 与 TP 登记一致（可挂 required reviewers 人审）
     steps:
       - name: Checkout（全历史，changelog 需要）
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 定位发布提交：dispatch 的 sha 可能早于 ref HEAD（手动补历史场景），
-      # tag 必须落在发布时的提交上，而非当前分支头
+      # 发布提交定位：dispatch 的 sha 可早于 ref HEAD（补历史）；push 时即 HEAD
       - name: 定位发布提交
-        run: git checkout --detach "${{ inputs.sha }}"
+        run: |
+          if [ -n "${{ inputs.sha }}" ]; then
+            git checkout --detach "${{ inputs.sha }}"
+          fi
+          echo "发布提交: $(git rev-parse --short HEAD)"
 
-      - name: 前置校验
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4 # 版本唯一真源 = package.json packageManager
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      # npm Trusted Publishing（OIDC）需要 npm ≥ 11.5 原生支持
+      - name: Upgrade npm for Trusted Publishing
+        run: npm install -g npm@latest
+
+      - name: Install dependencies（独立解析：cli/mcp 的 core 依赖来自 registry）
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build & Type check
+        run: |
+          pnpm build
+          pnpm type-check
+
+      # push 触发（单包自主发布）时的基座门禁：指针已指到本提交 + 基座 main CI 在该提交上绿。
+      # dispatch（基座编排/手动）跳过——基座编排前已过全量门禁，手动补历史由人工担责。
+      - name: 基座门禁校验（仅 push 触发）
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.BASE_DISPATCH_TOKEN }}
+        run: |
+          DIR=$(basename "$GITHUB_REPOSITORY"); DIR=${DIR#tapd-}; [ "$DIR" = "mcp-server" ] && DIR=mcp
+          BASE=xihe-lab/tapd-node
+          MY_SHA=$(git rev-parse HEAD)
+          HEAD_SHA=$(gh api "repos/$BASE/branches/main" --jq '.commit.sha')
+          PTR=$(gh api "repos/$BASE/contents/$DIR?ref=$HEAD_SHA" --jq '.sha')
+          if [ "$PTR" != "$MY_SHA" ]; then
+            echo "::error::基座 main 的 $DIR 指针($PTR)未对齐本提交($MY_SHA)——先更新基座指针并等 CI 绿再推 release"
+            exit 1
+          fi
+          CI=$(gh run list --repo "$BASE" --workflow ci.yml --branch main --limit 1 --json conclusion,headSha --jq '.[0] | .conclusion + "@" + .headSha')
+          echo "基座 main CI: $CI"
+          case "$CI" in
+            success@"$HEAD_SHA") ;;
+            *) echo "::error::基座 main 最新 CI 不是当前指针提交上的 success"; exit 1 ;;
+          esac
+
+      - name: 前置校验（版本 / 依赖就绪 / 已发布探测）
+        id: check
         run: |
           PV=$(node -p "require('./package.json').version")
           NAME=$(node -p "require('./package.json').name")
-          if [ "$PV" != "${{ inputs.version }}" ]; then
-            echo "::error::版本不一致：package.json=$PV，dispatch=${{ inputs.version }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"; V="${BRANCH#releases/}"
+          else
+            V="${{ inputs.version }}"
+          fi
+          if [ "$V" != "$PV" ]; then
+            echo "::error::版本不一致：期望 $V，package.json=$PV"
             exit 1
           fi
-          if ! npm view "$NAME@$PV" version >/dev/null 2>&1; then
-            echo "::error::npm 上尚无 $NAME@$PV——发布成功才可打 tag"
-            exit 1
+          # 依赖顺序闸：cli/mcp 发布前，core 依赖范围必须已在 npm 可解析（core 先行）
+          RANGE=$(node -p "require('./package.json').dependencies['@xihe-lab/tapd-core'] || ''")
+          if [ -n "$RANGE" ]; then
+            if RESOLVED=$(npm view "@xihe-lab/tapd-core@${RANGE}" version 2>/dev/null); then
+              echo "✓ core 依赖就绪：@xihe-lab/tapd-core@$RANGE → $RESOLVED"
+            else
+              echo "::error::@xihe-lab/tapd-core@$RANGE 在 npm 不可解析——请先发布 core（依赖顺序 core → cli/mcp）"
+              exit 1
+            fi
           fi
-          echo "✓ $NAME@$PV @ $(git rev-parse --short HEAD)"
+          if npm view "$NAME@$PV" version >/dev/null 2>&1; then
+            echo "SKIP_PUBLISH=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$NAME@$PV 已发布，跳过发布（仅补 tag/Release）"
+          else
+            echo "SKIP_PUBLISH=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish（OIDC Trusted Publishing）
+        if: steps.check.outputs.SKIP_PUBLISH != 'true'
+        run: |
+          # Trusted Publishing 专用通道：残留 token 会让 npm 弃用 OIDC——强制清空
+          unset NODE_AUTH_TOKEN NPM_TOKEN
+          V=$(node -p "require('./package.json').version")
+          DIST_TAG=""
+          case "$V" in *-*) DIST_TAG="--tag rc" ;; esac
+          pnpm publish --access public $DIST_TAG --no-git-checks
 
       # 独立追溯：changelog = 本仓上一 tag → 本次提交；依赖声明 = 本仓 package.json 实际范围
-      - name: Tag & Release
+      - name: Tag & GitHub Release（幂等）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          V='${{ inputs.version }}'
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          V=$(node -p "require('./package.json').version")
           CORE_RANGE=$(node -p "require('./package.json').dependencies['@xihe-lab/tapd-core'] || ''")
           if [ -n "$CORE_RANGE" ]; then
             DEP="依赖 \`@xihe-lab/tapd-core ${CORE_RANGE}\`"
@@ -63,9 +152,6 @@ jobs:
           else
             NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges -15)
           fi
-          # 附注 tag 需要 committer 身份（runner 默认无 git ident）
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
             echo "::notice::tag v$V 已存在，跳过"
           else
