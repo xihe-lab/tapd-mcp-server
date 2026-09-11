@@ -9,6 +9,7 @@ name: quality-triage
 domain: quality
 title: 缺陷分诊（建议模式，确认后人工/agent 执行 bug update）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
   high_severity: "1,2"

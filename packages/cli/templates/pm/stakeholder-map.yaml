@@ -14,6 +14,7 @@ name: stakeholder-map
 domain: stakeholder
 title: 干系人参与矩阵（人×参与对象数×角色视角；users 接口可能 403（权限），此时报告降级为仅从存量 owner 字段反推）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
   skip_users: false

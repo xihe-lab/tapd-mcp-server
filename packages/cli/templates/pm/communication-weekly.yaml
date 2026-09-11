@@ -8,6 +8,7 @@ name: communication-weekly
 domain: communication
 title: 迭代周报数据稿（多源聚合到 stdout，人工补充后可选 wiki 落库）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
 steps:

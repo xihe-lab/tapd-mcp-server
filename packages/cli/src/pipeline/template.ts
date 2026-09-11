@@ -33,6 +33,7 @@ const templateSchema = z
     title: z.string().optional(),
     write: z.boolean().optional(),
     domain: z.string().optional(),
+    unwrap: z.boolean().optional(),
     vars: z.record(z.unknown()).optional(),
     steps: z.array(stepSchema).min(1, { message: 'steps 不能为空' }),
     report: z

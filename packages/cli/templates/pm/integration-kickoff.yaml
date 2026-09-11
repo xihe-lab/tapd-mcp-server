@@ -9,6 +9,7 @@ name: integration-kickoff
 domain: integration
 title: 项目启动骨架（章程 wiki + 首迭代 + 发布计划三步落库，软考第8章）
 write: true
+unwrap: true
 vars:
   project_name: "未命名项目"
   startdate: ""

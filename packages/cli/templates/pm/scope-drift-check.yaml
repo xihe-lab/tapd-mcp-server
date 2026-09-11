@@ -13,6 +13,7 @@ name: scope-drift-check
 domain: scope
 title: 范围蔓延检测（对比基线：新增/字段变更/移除三清单，软考第9章）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
   baseline_date: ""

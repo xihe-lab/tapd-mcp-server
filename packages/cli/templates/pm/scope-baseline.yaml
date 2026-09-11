@@ -9,6 +9,7 @@ name: scope-baseline
 domain: scope
 title: 范围基线冻结（当前迭代需求快照 → 项目基线，软考第9章）
 write: true
+unwrap: true
 vars:
   iteration_id: ""
   iteration_name: ""

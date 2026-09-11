@@ -33,6 +33,8 @@ export interface PipelineTemplate {
   write?: boolean;
   /** pm 层域标记（可选元数据）：pipeline run/validate 原生接受，tapd pm 借此路由域分组 */
   domain?: string;
+  /** 工具步骤取回数据后统一解包 TAPD 包裹形态（{Story:{...}} → {...,__entity:'Story'}），过滤/表达式按扁平字段书写 */
+  unwrap?: boolean;
   /** 模板变量（可被 --input 注入覆盖） */
   vars?: Record<string, unknown>;
   steps: PipelineStep[];

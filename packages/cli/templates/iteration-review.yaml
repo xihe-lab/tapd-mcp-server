@@ -4,6 +4,7 @@
 name: iteration-review
 title: 迭代评审进度报告（拉迭代故事 → 生成进度报告）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
   workspace_id: ""

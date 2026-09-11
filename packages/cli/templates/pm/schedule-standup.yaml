@@ -7,6 +7,7 @@ name: schedule-standup
 domain: schedule
 title: 站会三段式材料（昨日变更/今日计划/阻塞扫描，按人分组）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
 steps:

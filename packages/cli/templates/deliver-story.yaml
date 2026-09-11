@@ -3,6 +3,7 @@
 name: deliver-story
 title: 交付流水线（拉需求 → 状态扭转开发中 → 评论交付摘要）
 write: true
+unwrap: true
 vars:
   story_id: ""
   target_status: developing

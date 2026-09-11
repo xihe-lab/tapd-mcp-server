@@ -10,6 +10,7 @@ name: risk-register
 domain: risk
 title: 风险登记（写：创建【风险】需求 label=risk，登记后会在范围度量中被剔除）
 write: true
+unwrap: true
 vars:
   iteration_id: ""
   title: ""

@@ -8,6 +8,7 @@ name: quality-dashboard
 domain: quality
 title: 质量度量盘（缺陷分布/未解清单/缺陷密度，可选测试计划进度）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
   test_plan_id: ""

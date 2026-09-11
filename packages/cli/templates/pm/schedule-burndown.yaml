@@ -7,6 +7,7 @@ name: schedule-burndown
 domain: schedule
 title: 迭代燃尽数据（story/task 剩余量按日趋势 + 总量快照）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
 steps:

@@ -4,6 +4,7 @@
 name: triage-bugs
 title: 缺陷分诊（批量查缺陷 → 规则分配 → 评论分诊摘要）
 write: true
+unwrap: true
 vars:
   severity: ""
   owners: []

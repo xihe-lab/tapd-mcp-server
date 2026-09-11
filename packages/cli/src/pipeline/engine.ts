@@ -11,6 +11,7 @@ import type { CliErrorCode } from '@xihe-lab/tapd-core';
 import { PipelineError } from './types.js';
 import type { PipelineEvent, PipelineTemplate, PlanEntry, RunSummary, StepOutcome } from './types.js';
 import { evalExprStep, evalFilter, evalWhere, extractStepRefs, interpolate, interpolateForPreview } from './expression.js';
+import { unwrapEntities } from './unwrap.js';
 
 export interface RunOptions {
   registry: ToolRegistry;
@@ -275,7 +276,9 @@ export async function runPipeline(
           events.emit({ ts: now(), event: 'step.start', ...emitBase, step: id, uses: node.uses, write: node.write });
           log(`  ▸ ${id} (${node.uses ?? 'expr'})...`);
 
-          const data = node.uses ? await execToolStep(node, ctx, opts) : evalExprStep(node.expr!, ctx);
+          const raw = node.uses ? await execToolStep(node, ctx, opts) : evalExprStep(node.expr!, ctx);
+          // 模板级 unwrap：TAPD 包裹形态（{Story:{...}}）拍平后再进过滤/表达式/下游插值
+          const data = template.unwrap === true ? unwrapEntities(raw) : raw;
           const filtered = node.filter ? evalFilter(node.filter, data, ctx) : data;
           ctx.steps[id] = { data: filtered };
           outcome.status = 'ok';

@@ -7,6 +7,7 @@ name: communication-notify
 domain: communication
 title: 变更通知（需求/缺陷/任务上留言并抄送；措辞必须人审后 --yes）
 write: true
+unwrap: true
 vars:
   entry_type: "stories"
   entry_id: ""

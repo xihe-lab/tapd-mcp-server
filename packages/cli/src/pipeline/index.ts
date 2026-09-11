@@ -16,6 +16,7 @@ export type { ValidationIssue, ValidationResult } from './validate.js';
 export { planWaves, buildPreview, renderPreview, runPipeline } from './engine.js';
 export type { RunOptions } from './engine.js';
 export { interpolate, interpolateForPreview, evalRef, evalWhere, evalFilter, evalExprStep, extractStepRefs, isDeferredStepRef } from './expression.js';
+export { unwrapEntities } from './unwrap.js';
 export type { ExprContext } from './expression.js';
 export { historyPath, recordCommandHistory, readHistory, historyEnabled } from './history.js';
 export { buildTemplateFromHistory, renderTemplateYaml } from './record.js';

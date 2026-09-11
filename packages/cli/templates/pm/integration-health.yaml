@@ -11,6 +11,7 @@ name: integration-health
 domain: integration
 title: 迭代健康盘（时间%vs完成度%对比 + 红旗清单，软考第8章）
 write: false
+unwrap: true
 vars:
   iteration_id: ""
 steps:

@@ -7,6 +7,7 @@ name: integration-close
 domain: integration
 title: 结项检查与关闭（写场景：请先读 dry-run 报告确认无未完成项再加 --yes，软考第8章）
 write: true
+unwrap: true
 vars:
   iteration_id: ""
 steps:
