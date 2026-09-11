@@ -48,6 +48,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@xihe-lab/tapd-core": "^2.0.0-rc.2",
-    "zod": "^3.24.1"
+    "zod": "^3.25.76"
   }
 }
