@@ -15,7 +15,7 @@ jobs:
       # 1) 表单已自动带 type/* + flow/needs-triage
       # 2) 描述含 TAPD 长 ID → tapd/linked
       # 3) 移交默认分派人（可选：REPO_DEFAULT_ASSIGNEE secret 配置后生效）
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         env:
           BODY: ${{ github.event.issue.body }}
           TITLE: ${{ github.event.issue.title }}

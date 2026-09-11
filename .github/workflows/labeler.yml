@@ -27,7 +27,7 @@ jobs:
     steps:
       # PR 描述或标题含 TAPD 长 ID（19-20 位数字）→ 打 tapd/linked
       # 注：脚本注入防护——不可信输入一律经 env 中转（官方安全指南）
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_TITLE: ${{ github.event.pull_request.title }}
