@@ -14,6 +14,8 @@ import { CliError } from './errors.js';
 import { registerConfigCommand } from './commands/config.js';
 import { registerAuthCommand } from './commands/auth.js';
 import { registerAdvisorCommand } from './commands/advisor.js';
+import { registerPipelineCommand } from './commands/pipeline.js';
+import { recordCommandHistory } from './pipeline/history.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json') as { version: string };
@@ -64,6 +66,7 @@ export function buildProgram(registry: ToolRegistry, config: TapdConfig = {}): C
   registerConfigCommand(program);
   registerAuthCommand(ensureResource);
   registerAdvisorCommand(program, registry);
+  registerPipelineCommand(program, registry, config);
   return program;
 }
 
@@ -87,6 +90,7 @@ async function runCommand(
     entry: 'cli',
     readOnly: resolved.readOnly,
     timeoutMs: resolved.timeoutMs,
+    onAudit: recordCommandHistory, // 命令历史（pipeline record 数据源），失败不记录且静默
   };
   const result = await registry.exec(cmd.tool, args, ctx, makeClientFactory(globals));
   if (!result.ok) throw new CliError(result.error!.code, result.error!.message);

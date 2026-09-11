@@ -1,0 +1,51 @@
+# 迭代评审进度报告（纯只读，L0 直接执行）
+# 用法: tapd pipeline run iteration-review --iteration <id>
+#   或: tapd pipeline run templates/iteration-review.yaml --iteration <id>
+name: iteration-review
+title: 迭代评审进度报告（拉迭代故事 → 生成进度报告）
+write: false
+vars:
+  iteration_id: ""
+  workspace_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,priority_label"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,title,severity,current_owner,status"
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  - id: stats
+    expr: "({ stories: steps.stories.data.length, done: steps.stories.data.filter(s => s.status === 'done' || s.status === 'closed').length, inProgress: steps.stories.data.filter(s => s.status !== 'done' && s.status !== 'closed').length, bugs: steps.bugs.data.length, openBugs: steps.bugs.data.filter(b => b.status !== 'closed' && b.status !== 'resolved').length })"
+    depends_on: [stories, bugs]
+
+report:
+  format: markdown
+  template: |
+    # 迭代评审报告
+    - 迭代: ${steps.iteration.data.0.name}（${steps.iteration.data.0.startdate} ~ ${steps.iteration.data.0.enddate}，status=${steps.iteration.data.0.status}）
+    - 需求: 共 ${steps.stats.data.stories} 个，已完成 ${steps.stats.data.done}，进行中 ${steps.stats.data.inProgress}
+    - 缺陷: 共 ${steps.stats.data.bugs} 个，未关闭 ${steps.stats.data.openBugs}
+
+    ## 需求明细
+    | id | 名称 | 处理人 | 状态 |
+    |----|------|--------|------|
+    ${steps.stories.data | rows id,name,owner,status}
+
+    ## 缺陷明细
+    | id | 标题 | 严重度 | 处理人 | 状态 |
+    |----|------|--------|--------|------|
+    ${steps.bugs.data | rows id,title,severity,current_owner,status}

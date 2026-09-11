@@ -1,0 +1,48 @@
+# 缺陷分诊（含写步骤，默认 dry-run 闸门，--yes 确认落库）
+# 规则分配：按 vars.owners 轮询（round-robin）把未分派缺陷分给候选处理人
+# 用法: tapd pipeline run triage-bugs --input '{"severity":"1","owners":["alice","bob"]}' --yes
+name: triage-bugs
+title: 缺陷分诊（批量查缺陷 → 规则分配 → 评论分诊摘要）
+write: true
+vars:
+  severity: ""
+  owners: []
+steps:
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      status: new
+      fields: "id,title,severity,current_owner,status"
+
+  - id: triaged
+    expr: "steps.bugs.data.filter(b => (!vars.severity || b.severity === vars.severity) && !b.current_owner)"
+    depends_on: [bugs]
+
+  - id: assignment
+    expr: "(() => { const pick = i => vars.owners[i % Math.max(vars.owners.length, 1)]; return { count: steps.triaged.data.length, plan: steps.triaged.data.map((b, i) => ({ id: b.id, current_owner: pick(i) })), display: steps.triaged.data.map((b, i) => ({ id: b.id, title: b.title, assignee: pick(i) })) }; })()"
+    depends_on: [triaged]
+
+  - id: assign
+    uses: tapd_batch_update_bugs
+    args:
+      bugs: "${steps.assignment.data.plan | json}"
+    where: "steps.assignment.data.count > 0 && vars.owners.length > 0"
+    depends_on: [assignment]
+
+  - id: triage-comment
+    uses: tapd_create_comment
+    args:
+      entry_type: bug
+      entry_id: "${steps.triaged.data.0.id}"
+      description: "【分诊摘要】本轮共分派 ${steps.assignment.data.count} 个缺陷（round-robin → ${vars.owners | json}）"
+    where: "steps.assignment.data.count > 0"
+    depends_on: [assign]
+
+report:
+  format: markdown
+  template: |
+    # 缺陷分诊报告
+    - 候选处理人: ${vars.owners | json}
+    - 查询缺陷: ${steps.bugs.data.length} 个，其中待分诊 ${steps.assignment.data.count} 个
+    - 分派计划:
+    ${steps.assignment.data.display | rows id,title,assignee}

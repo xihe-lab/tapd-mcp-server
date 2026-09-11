@@ -3,10 +3,12 @@ import { allTools, ToolRegistry, applyConfigToEnv, loadConfig, type TapdConfig }
 import { buildProgram } from './program.js';
 import { CliError } from './errors.js';
 import { EXIT } from './exit-codes.js';
+import { PipelineError } from './pipeline/types.js';
 
 export { buildProgram } from './program.js';
 export { CliError } from './errors.js';
 export { EXIT } from './exit-codes.js';
+export * from './pipeline/index.js';
 
 export async function main(argv: string[] = process.argv): Promise<void> {
   const start = process.hrtime.bigint();
@@ -28,6 +30,11 @@ export async function main(argv: string[] = process.argv): Promise<void> {
 
 function handleError(error: unknown): void {
   if (error instanceof CliError) {
+    process.stderr.write(`${error.render()}\n`);
+    process.exitCode = error.exitCode;
+    return;
+  }
+  if (error instanceof PipelineError) {
     process.stderr.write(`${error.render()}\n`);
     process.exitCode = error.exitCode;
     return;

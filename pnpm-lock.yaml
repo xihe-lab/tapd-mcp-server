@@ -35,6 +35,9 @@ importers:
       commander:
         specifier: ^13.1.0
         version: 13.1.0
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -43,7 +46,7 @@ importers:
     dependencies:
       '@opentapd/tapd-node-sdk':
         specifier: ^1.67.0
-        version: 1.68.0
+        version: 1.68.0(debug@4.4.3)
       markdown-it:
         specifier: ^15.0.1
         version: 15.0.1
@@ -1083,6 +1086,11 @@ packages:
     resolution: {integrity: sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==}
     engines: {node: '>= 6'}
 
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -1253,9 +1261,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentapd/tapd-node-sdk@1.68.0':
+  '@opentapd/tapd-node-sdk@1.68.0(debug@4.4.3)':
     dependencies:
-      axios: 0.21.4
+      axios: 0.21.4(debug@4.4.3)
       camel-case: 4.1.2
       form-data: 2.5.6
       js-base64: 3.9.3
@@ -1402,9 +1410,9 @@ snapshots:
 
   asynckit@0.4.0: {}
 
-  axios@0.21.4:
+  axios@0.21.4(debug@4.4.3):
     dependencies:
-      follow-redirects: 1.16.0
+      follow-redirects: 1.16.0(debug@4.4.3)
     transitivePeerDependencies:
       - debug
 
@@ -1689,7 +1697,9 @@ snapshots:
 
   flatted@3.4.2: {}
 
-  follow-redirects@1.16.0: {}
+  follow-redirects@1.16.0(debug@4.4.3):
+    optionalDependencies:
+      debug: 4.4.3
 
   form-data@2.5.6:
     dependencies:
@@ -2089,6 +2099,8 @@ snapshots:
   wrappy@1.0.2: {}
 
   yaml@1.10.3: {}
+
+  yaml@2.9.0: {}
 
   yocto-queue@0.1.0: {}
 

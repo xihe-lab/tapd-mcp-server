@@ -1,0 +1,37 @@
+# 交付流水线（含写步骤，默认 dry-run 闸门，--yes 确认落库）
+# 用法: tapd pipeline run deliver-story --input '{"story_id":"<长ID>"}' --yes
+name: deliver-story
+title: 交付流水线（拉需求 → 状态扭转开发中 → 评论交付摘要）
+write: true
+vars:
+  story_id: ""
+  target_status: developing
+steps:
+  - id: story
+    uses: tapd_get_stories
+    args:
+      id: "${vars.story_id}"
+      fields: "id,name,owner,status,priority_label"
+
+  - id: start-dev
+    uses: tapd_update_story
+    args:
+      id: "${vars.story_id}"
+      status: "${vars.target_status}"
+    depends_on: [story]
+
+  - id: deliver-comment
+    uses: tapd_create_comment
+    args:
+      entry_type: stories
+      entry_id: "${vars.story_id}"
+      description: "【交付摘要】${steps.story.data.0.name} 已由 tapd pipeline deliver-story 扭转为「${vars.target_status}」"
+    depends_on: [start-dev]
+
+report:
+  format: markdown
+  template: |
+    # 交付摘要
+    - 需求: ${steps.story.data.0.name}（id=${vars.story_id}）
+    - 状态扭转: → ${vars.target_status}
+    - 交付评论: 已发布
