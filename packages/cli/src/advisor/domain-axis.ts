@@ -18,12 +18,14 @@ export interface DomainKeywordEntry {
 }
 
 export const DOMAIN_KEYWORDS: readonly DomainKeywordEntry[] = [
-  { domain: 'integration', zh: '整合管理', keywords: ['integration', '整合', '健康', '结项', '启动', '看板'] },
+  // rc.2 富媒体协作（1139814312001001546/1548）：附件/图片上传下载归整合域（工具/资源整合视角）
+  { domain: 'integration', zh: '整合管理', keywords: ['integration', '整合', '健康', '结项', '启动', '看板', 'attachment', '附件', 'upload', '上传', 'download', '下载', 'image', '图片', '截图'] },
   { domain: 'scope', zh: '范围管理', keywords: ['scope', 'wbs', '基线', '蔓延', '范围', '需求冻结'] },
   { domain: 'schedule', zh: '进度管理', keywords: ['schedule', '进度', '排期', '站会', '燃尽', '逾期'] },
   { domain: 'cost', zh: '成本管理', keywords: ['cost', '成本', '工时', '预算', '超支', 'evm'] },
   { domain: 'quality', zh: '质量管理', keywords: ['quality', '质量', '缺陷', '测试', '用例', '分诊'] },
-  { domain: 'communication', zh: '沟通管理', keywords: ['communication', '沟通', '周报', '通知', '评论'] },
+  // @/提及 是沟通动作（评论 at-who 提及触达），归沟通域；'@' 为子串匹配，查询含 @ 即召回沟通域
+  { domain: 'communication', zh: '沟通管理', keywords: ['communication', '沟通', '周报', '通知', '评论', 'mention', '提及', '@'] },
   { domain: 'risk', zh: '风险管理', keywords: ['risk', '风险', '预警', '登记册', '暴露'] },
   { domain: 'stakeholder', zh: '干系人管理', keywords: ['stakeholder', '干系人', '参与', '相关方'] },
 ];
