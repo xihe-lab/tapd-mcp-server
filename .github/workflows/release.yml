@@ -10,6 +10,10 @@ on:
         description: '演练模式（不发布不推 tag）'
         type: boolean
         default: false
+      sync_main:
+        description: '发布成功后同步 main（fast-forward 合并）'
+        type: boolean
+        default: false
 
 # 同一时间只允许一个发布运行
 concurrency:
@@ -117,6 +121,21 @@ jobs:
         working-directory: packages/mcp
         run: npm publish --access public --provenance
 
+      # 顺序约定：① npm 发布成功 → ② 打附注 tag → ③ GitHub Release 挂到该 tag → ④（可选）同步 main
+      # tag 是发布成功的产物（发布失败不打 tag）；Release 挂在既有 tag 上，避免双重创建
+      - name: Create and push tag
+        if: steps.check.outputs.published == 'false' && inputs.dry_run != true
+        run: |
+          VERSION='${{ steps.version.outputs.version }}'
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::notice::tag v$VERSION 已存在，跳过"
+          else
+            git tag -a "v$VERSION" -m "Release v$VERSION"
+            git push origin "v$VERSION"
+          fi
+
       - name: Update GitHub Release
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
         uses: softprops/action-gh-release@v2
@@ -130,14 +149,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push tag
-        if: steps.check.outputs.published == 'false' && inputs.dry_run != true
+      # 合 main 时机：默认不自动（rc 阶段 main 跟稳定线）；GA 或显式勾选时 fast-forward
+      - name: Sync main（可选）
+        if: inputs.sync_main == true && steps.check.outputs.published == 'false' && inputs.dry_run != true
         run: |
-          VERSION='${{ steps.version.outputs.version }}'
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
+          git fetch origin main
+          git checkout -B main origin/main
+          if git merge --ff-only "${{ github.sha }}"; then
+            git push origin main
+            echo "### 🔀 main 已同步至 v$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::main 无法 fast-forward（存在分叉），需人工合并"
+            exit 1
+          fi
 
       - name: Summary
         run: |
