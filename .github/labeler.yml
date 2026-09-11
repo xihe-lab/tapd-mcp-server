@@ -1,28 +1,21 @@
 # actions/labeler 路径映射（PR 打开时自动打 pkg/* 标签，对齐 LABELS.md 五轴）
-pkg/core:
-  - changed-files:
-      - any-glob-to-any-file: packages/core/**
-
-pkg/cli:
-  - changed-files:
-      - any-glob-to-any-file: packages/cli/**
-
+# mcp 单包仓：core/cli 已独立成仓，本仓改动即 mcp 包或仓库级
 pkg/mcp:
   - changed-files:
-      - any-glob-to-any-file: packages/mcp/**
+      - any-glob-to-any-file: src/**
 
 pkg/repo:
   - changed-files:
       - any-glob-to-any-file:
           - .github/**
-          - scripts/**
-          - pnpm-workspace.yaml
           - package.json
-          - CHANGELOG.md
+          - tsconfig*.json
+          - .env.example
           - README.md
+          - CHANGELOG.md
 
 type/docs:
   - changed-files:
       - any-glob-to-any-file:
           - '**/*.md'
-          - docs/**
+          - 'docs/**'
