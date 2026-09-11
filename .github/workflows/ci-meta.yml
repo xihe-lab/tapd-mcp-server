@@ -20,7 +20,7 @@ jobs:
     name: 基建校验
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # actionlint：workflow 语法静态检查（贝壳官方推荐工具，单二进制无依赖）
       - name: actionlint
         run: |
