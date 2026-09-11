@@ -1,0 +1,59 @@
+# 沟通管理 · 变更通知（含写步骤：tapd_create_comment，默认写闸门拦截，--yes 确认落库）
+# 用法: tapd pm communication notify --input '{"entry_type":"stories","entry_id":"1140...","message":"...","cc":"alice|bob"}' [--yes]
+#   等价: tapd pipeline run templates/pm/communication-notify.yaml --input '...' --yes
+# 措辞纪律: message 为纯文本时自动包一层 <p>（已含 HTML 标签则原样透传）；
+#   **措辞必须人审后 --yes 落库**——无 --yes 时仅输出将创建的评论预览，不触 API。
+name: communication-notify
+domain: communication
+title: 变更通知（需求/缺陷/任务上留言并抄送；措辞必须人审后 --yes）
+write: true
+vars:
+  entry_type: "stories"
+  entry_id: ""
+  message: ""
+  cc: ""
+steps:
+  # ---- 本地整理：entry_type 归一化 + 纯文本包 <p>（不触 API、永不判写）----
+  - id: prep
+    expr: |-
+      (() => {
+        const raw = String(vars.message || '');
+        const isHtml = /^\s*<[a-z][a-z0-9]*\b/i.test(raw);
+        const alias = { story: 'stories', stories: 'stories', task: 'tasks', tasks: 'tasks', bug: 'bug', bug_remark: 'bug_remark' };
+        const type = alias[String(vars.entry_type || '').trim().toLowerCase()] || String(vars.entry_type || '').trim();
+        const cc = String(vars.cc || '').trim();
+        return {
+          ready: raw.trim() !== '' && String(vars.entry_id || '').trim() !== '',
+          entry_type: type,
+          entry_id: String(vars.entry_id || '').trim(),
+          description: isHtml ? raw : '<p>' + raw.trim() + '</p>',
+          cc: cc,
+          wrapped_label: isHtml ? '原文已是 HTML，未二次包裹' : '纯文本，已包 <p> 标签',
+          cc_label: cc || '（无）',
+          ready_label: raw.trim() !== '' && String(vars.entry_id || '').trim() !== '' ? '就绪' : '跳过（entry_id/message 为空）'
+        };
+      })()
+
+  # ---- 写步骤：创建评论 + 抄送（写闸门，--yes 后才执行）----
+  - id: comment
+    uses: tapd_create_comment
+    args:
+      entry_type: "${steps.prep.data.entry_type}"
+      entry_id: "${steps.prep.data.entry_id}"
+      description: "${steps.prep.data.description}"
+      cc: "${steps.prep.data.cc}"
+    where: "steps.prep.data.ready"
+    depends_on: [prep]
+
+report:
+  format: markdown
+  template: |
+    # 变更通知回执
+    - 对象: ${steps.prep.data.entry_type} #${steps.prep.data.entry_id}
+    - 状态: ${steps.prep.data.ready_label}（写操作，措辞必须人审后 --yes 才落库）
+    - 措辞处理: ${steps.prep.data.wrapped_label}
+    - 抄送: ${steps.prep.data.cc_label}
+    - 评论 ID: ${steps.comment.data.id}
+
+    ## 评论正文（预览与落库内容一致）
+    ${steps.prep.data.description}
