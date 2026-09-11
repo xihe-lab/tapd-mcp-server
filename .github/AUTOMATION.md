@@ -23,13 +23,23 @@
 ## 安全基线（官方指南落地清单）
 
 1. `permissions: contents: read` 为默认，写权限按 job 显式声明（labeler: pull-requests: write 等）
-2. npm 凭证进 **environment `npm publish`** 的 `NPM_TOKEN`（持有 environment secret，可加人审）；CI 用 `TAPD_CI_TOKEN`（可选）
+2. npm 发布走 **Trusted Publishing（OIDC）**：零 token 存储，GitHub 身份短期证明（见下方专节）；CI 用 `TAPD_CI_TOKEN`（可选，只读）
 3. 不可信输入（PR 标题/正文、issue body）一律 `env:` 中转再进脚本——零 `${{ }}` 直插 shell
 4. 第三方 action 数量收敛（labeler/stale/gh-release/github-script 均官方或事实标准）
 
-## 待配置（需仓库管理员，一次性）
+## 发布凭证：npm Trusted Publishing（OIDC 免令牌）
 
-- [ ] Settings → Environments → 建 `npm publish` 环境，配 secret `NPM_TOKEN`（automation token，仅 publish 权限）
+采用 npmjs 可信发布（比 secret 方案更优：**零 token 存储、零轮换、身份由 GitHub OIDC 短期证明**，官方供应链最佳实践）。workflow 已适配（`id-token: write` + npm≥11.5 + 无任何 NODE_AUTH_TOKEN）。
+
+**一次性配置（npmjs.com，包维护者操作）**：
+- 登录 npmjs.com → `@xihe-lab/tapd-mcp-server` → Settings → **Trusted Publishers** → 登记：
+  - Repository：`xihe-lab/tapd-mcp-server`
+  - Workflow filename：`release.yml`
+  - Environment（可选，加强绑定）：`npm publish`
+
+**前置校验清单**：
+- [ ] npmjs.com 已按上述登记 Trusted Publisher
+- [ ] Settings → Environments → 建 `npm publish` 环境（可挂 required reviewers 作发布人审；无需任何 secret）
 - [ ] （可选）Secrets → Actions → `TAPD_CI_TOKEN`（只读 TAPD token，启用 CI 集成测试）
 - [ ] （可选）`ISSUE_TRIAGE_ASSIGNEE`（默认分派人用户名）
 - [ ] Settings → Actions → General → Workflow permissions 设为 **Read repository contents**（默认只读）

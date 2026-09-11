@@ -20,7 +20,7 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
-    environment: npm publish # 环境保护规则持有 NPM_TOKEN（官方推荐：secrets 进环境 + 必要时人审）
+    environment: npm publish # 环境保护层：可挂 required reviewers 作发布前人审（无 secret，凭证走 OIDC）
     permissions:
       contents: write
       id-token: write # provenance 溯源签名
@@ -42,6 +42,10 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
+
+      # npm Trusted Publishing（OIDC）需要 npm ≥ 11.5 的原生 OIDC 支持
+      - name: Upgrade npm for Trusted Publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -106,11 +110,12 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      # npm Trusted Publishing：无任何 token，GitHub OIDC 直接向 npm 证明身份
+      #（前提：npmjs.com 包设置里已登记本仓库 + release.yml 为 Trusted Publisher）
       - name: Publish to npm（monorepo：仅 mcp 包；core/cli 手动线另行发布）
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
-        run: pnpm --filter @xihe-lab/tapd-mcp-server publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: packages/mcp
+        run: npm publish --access public --provenance
 
       - name: Update GitHub Release
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
