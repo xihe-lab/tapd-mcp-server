@@ -4,8 +4,14 @@ on:
   push:
     branches:
       - 'releases/**'
+  workflow_dispatch: # 支持手动触发（对齐当前手动发布惯例）
+    inputs:
+      dry_run:
+        description: '演练模式（不发布不推 tag）'
+        type: boolean
+        default: false
 
-# Only one release run at a time
+# 同一时间只允许一个发布运行
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -14,59 +20,66 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
-    environment: npm publish
+    environment: npm publish # 环境保护规则持有 NPM_TOKEN（官方推荐：secrets 进环境 + 必要时人审）
     permissions:
       contents: write
-      id-token: write
+      id-token: write # provenance 溯源签名
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: npm run build
+      - name: Build & Type check & Lint（全量门禁）
+        run: |
+          pnpm -r build
+          pnpm -r type-check
+          pnpm lint
 
-      - name: Type check
-        run: npm run type-check
-
-      - name: Lint
-        run: npm run lint
+      - name: Test (core + cli)
+        run: pnpm --filter @xihe-lab/tapd-core --filter @xihe-lab/tapd-cli test
 
       - name: Get version from branch name
         id: version
         run: |
-          # Extract version from branch name (releases/1.1.0 -> 1.1.0)
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           VERSION="${BRANCH_NAME#releases/}"
+          # workflow_dispatch 在任意分支触发时，取根 package.json 版本兜底
+          if [ "$VERSION" = "$BRANCH_NAME" ]; then
+            VERSION=$(node -p "require('./packages/mcp/package.json').version")
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Verify version matches package.json
+      - name: Verify version matches packages/mcp
         run: |
-          BRANCH_VERSION=${{ steps.version.outputs.version }}
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          BRANCH_VERSION='${{ steps.version.outputs.version }}'
+          PACKAGE_VERSION=$(node -p "require('./packages/mcp/package.json').version")
           if [ "$BRANCH_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "::error::Branch version ($BRANCH_VERSION) does not match package.json version ($PACKAGE_VERSION)"
+            echo "::error::Branch version ($BRANCH_VERSION) != packages/mcp version ($PACKAGE_VERSION)"
             exit 1
           fi
 
       - name: Check if version already published
         id: check
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION='${{ steps.version.outputs.version }}'
           if npm view @xihe-lab/tapd-mcp-server@$VERSION version 2>/dev/null; then
             echo "published=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Version $VERSION already published, skipping"
@@ -78,7 +91,7 @@ jobs:
         if: steps.check.outputs.published == 'false'
         id: changelog
         run: |
-          CURRENT_TAG=${{ steps.version.outputs.tag }}
+          CURRENT_TAG='${{ steps.version.outputs.tag }}'
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           if [ -n "$PREVIOUS_TAG" ]; then
@@ -87,12 +100,20 @@ jobs:
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
           fi
 
-          echo "commits<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          {
+            echo "commits<<EOF"
+            echo "$COMMITS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm（monorepo：仅 mcp 包；core/cli 手动线另行发布）
+        if: steps.check.outputs.published == 'false' && inputs.dry_run != true
+        run: pnpm --filter @xihe-lab/tapd-mcp-server publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Update GitHub Release
-        if: steps.check.outputs.published == 'false'
+        if: steps.check.outputs.published == 'false' && inputs.dry_run != true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -104,19 +125,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to npm
-        if: steps.check.outputs.published == 'false'
-        run: |
-          # Create clean .npmrc with only registry config (no auth)
-          echo 'registry=https://registry.npmjs.org' > "$NPM_CONFIG_USERCONFIG"
-          npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ''
-
       - name: Create and push tag
-        if: steps.check.outputs.published == 'false'
+        if: steps.check.outputs.published == 'false' && inputs.dry_run != true
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION='${{ steps.version.outputs.version }}'
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "Release v$VERSION"
@@ -124,12 +136,16 @@ jobs:
 
       - name: Summary
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION='${{ steps.version.outputs.version }}'
           if [ "${{ steps.check.outputs.published }}" == "false" ]; then
-            echo "### ✅ Published @xihe-lab/tapd-mcp-server@$VERSION" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Changelog:**" >> $GITHUB_STEP_SUMMARY
-            echo "${{ steps.changelog.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ inputs.dry_run }}" == "true" ]; then
+              echo "### 🧪 Dry-run 通过：可发布 @xihe-lab/tapd-mcp-server@$VERSION（未实际发布）" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "### ✅ Published @xihe-lab/tapd-mcp-server@$VERSION" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Changelog:**" >> "$GITHUB_STEP_SUMMARY"
+            echo "${{ steps.changelog.outputs.commits }}" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### ⏭️ Skipped - Version $VERSION already published" >> $GITHUB_STEP_SUMMARY
+            echo "### ⏭️ Skipped - Version $VERSION already published" >> "$GITHUB_STEP_SUMMARY"
           fi

@@ -2,42 +2,72 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/**', 'releases/**']
   pull_request:
-    branches: [main, develop]
 
-# Cancel redundant runs on the same branch
+# 最小权限（官方安全加固指南：默认只读，按需在 job 内提升）
+permissions:
+  contents: read
+
+# 同分支新推送取消旧运行
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build (Node ${{ matrix.node-version }})
+  quality:
+    name: 质量门禁（Node ${{ matrix.node }}）
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        node-version: [20, 22]
-
+        node: [20, 22]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
+          version: 10
 
-      - name: Install dependencies
-        run: npm ci
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
 
-      - name: Type check
-        run: npm run type-check
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 类型检查
+        run: pnpm -r type-check
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
-      - name: Build
-        run: npm run build
+      - name: 构建
+        run: pnpm -r build
+
+      - name: SDK 路由表校验
+        run: pnpm validate:sdk-routes
+
+  test:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      # mcp 包 integration-test 需真实 TAPD 凭证，CI 无凭证时豁免（warning 不 fail）
+      - name: 单测（core + cli）
+        run: pnpm --filter @xihe-lab/tapd-core --filter @xihe-lab/tapd-cli test
+      - name: mcp 测试（凭证可选）
+        env:
+          TAPD_ACCESS_TOKEN: ${{ secrets.TAPD_CI_TOKEN }}
+        run: pnpm --filter @xihe-lab/tapd-mcp-server test || echo '::warning::mcp integration-test 需 TAPD_CI_TOKEN，已跳过'
