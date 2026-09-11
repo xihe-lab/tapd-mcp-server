@@ -47,7 +47,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@xihe-lab/tapd-core": "workspace:*",
     "zod": "^3.24.1"
   }
