@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+import { RAW_HTML_FIELD } from '../registry/richtext.js';
 
 export const bugTools: ToolDef[] = [
   {
@@ -88,6 +89,7 @@ export const bugTools: ToolDef[] = [
       severity: z.string().optional().describe('Severity'),
       current_owner: z.string().optional().describe('Current owner (defaults to TAPD_NICK_NAME env)'),
       description: z.string().optional().describe('Detailed description'),
+      raw_html: RAW_HTML_FIELD,
       module: z.string().optional().describe('Module'),
       iteration_id: z.string().optional().describe('Iteration ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       label: z.string().optional().describe('Label, multiple values separated by |'),
@@ -158,6 +160,7 @@ export const bugTools: ToolDef[] = [
       status: z.string().optional().describe('Status'),
       current_owner: z.string().optional().describe('Current owner'),
       description: z.string().optional().describe('Detailed description'),
+      raw_html: RAW_HTML_FIELD,
       module: z.string().optional().describe('Module'),
       iteration_id: z.string().optional().describe('Iteration ID；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       label: z.string().optional().describe('Label, multiple values separated by |'),

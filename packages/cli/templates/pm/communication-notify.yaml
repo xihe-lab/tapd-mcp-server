@@ -3,6 +3,11 @@
 #   等价: tapd pipeline run templates/pm/communication-notify.yaml --input '...' --yes
 # 措辞纪律: message 为纯文本时自动包一层 <p>（已含 HTML 标签则原样透传）；
 #   **措辞必须人审后 --yes 落库**——无 --yes 时仅输出将创建的评论预览，不触 API。
+# 富媒体（rc.2）: message 文本里可直接写 @昵称——服务端智能识别并触发通知（R4）；
+#   如需 at-who 角标/附件锚点/图片，先用 tapd_md_to_html 预转换（@昵称→at-who、
+#   [📎 名称](attach:<ws>/<id>)→附件锚点、--upload-images 顺带上传本地图片），
+#   再把得到的 HTML 整段作为 message 传入（已含 HTML 标签则本模板原样透传，不二次包裹）。
+#   关键通知场景建议同时填 cc（@ 校验/通知不依赖本地成员名单）。
 name: communication-notify
 domain: communication
 title: 变更通知（需求/缺陷/任务上留言并抄送；措辞必须人审后 --yes）

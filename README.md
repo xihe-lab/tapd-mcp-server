@@ -143,6 +143,42 @@ claude mcp remove tapd
 
 共 **210 个工具**，覆盖 **26 个模块**。AI 助手会根据你的自然语言描述自动选择合适的工具。
 
+## 富媒体协作
+
+在评论、需求/缺陷/任务描述和 Wiki 里 @ 人、贴图、挂附件，四类用法如下（rc.2 新增）。
+
+### @ 提及
+
+在 md 正文里直接写 `@昵称`（如 `请 @徐昭 今天内确认`），写管道会自动转成 TAPD at-who 提及标记（角标 + 通知）。`@@` 表示字面 `@`（不触发提及）；代码段、链接 URL、邮箱里的 `@` 不会被误伤。`tapd_md_to_html` 可传 `workspace_id` 校验昵称是否项目成员（成员接口不可用时自动跳过校验，服务端仍会智能识别）；关键通知场景建议同时填 `cc` 兜底。
+
+### 图片
+
+```text
+1. tapd_upload_image(image_path="./截图.png")
+   → { image_src: "/tfl/pictures/202609/截图.png", markdown: "![image](/tfl/...)" }
+2. 把返回的 markdown 拼进 description / comment 正文
+```
+
+或者一步到位：`tapd_md_to_html(content="...![截图](./截图.png)...", upload_images=true)`——扫描 md 里本地存在的图片路径，逐个上传图床并替换为 `/tfl/` 远端路径（默认关闭的显式副作用，返回 `uploaded_images` 清单）。读侧用 `tapd_get_image_url` 可把 `/tfl/` 路径换回临时访问 URL。
+
+### 附件
+
+```text
+1. tapd_upload_attachment(file_path="./设计稿.pdf", entity_type="story", entity_id="1139...")
+   → 返回 embed_html（富文本锚点）与 embed_md（[📎 设计稿.pdf](attach:<ws>/<id>)）
+2. 把 embed_md / embed_html 拼进评论或描述正文
+```
+
+`tapd_md_to_html` / 写管道会把 `[📎 名称](attach:<ws>/<id>)` 引用自动渲染成 TAPD 附件锚点卡片；读方向 `tapd_html_to_md` 把锚点还原为同名 md 引用。下载走 `tapd_download_attachment`（`/attachments/down`，无需额外授权）。第三方系统文件不传本体、只登记链接：`tapd_attach_external_file`。
+
+### 内部链接（零成本）
+
+正文里直接写 TAPD 工作项 URL 的 md 链接即可，如 `[需求详情](https://www.tapd.cn/39814312/prong/stories/view/1139814312001001548)`——前端自动卡片化，无需任何转换。
+
+### raw_html 直发通道
+
+`comment/story/task/bug/wiki` 的 create/update 工具支持 `raw_html: true`：`description` 原样透传（绕过 md→html 自动转换），适合已含 TAPD 原生富文本标记或需要确定性透传的场景。默认 `false` 走 md 管道（@昵称 / 附件引用自动转换）。
+
 ## 常见问题
 
 ### AI 助手没有识别到 TAPD 工具
