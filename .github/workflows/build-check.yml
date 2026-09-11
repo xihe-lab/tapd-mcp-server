@@ -1,0 +1,51 @@
+# PR / feature 分支轻量构建门禁：main 保持纯源码（零工具链 devDeps），
+# 构建工具链由本流水线临时注入（与 release.yml 同机制，不落仓库树）。
+# main 分支不由本门禁覆盖——聚合验证在基座 tapd-node CI；releases/** 由 release.yml 接管。
+name: Build Check
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main, 'releases/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buildcheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 独立构建门禁
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4 # 版本唯一真源 = package.json packageManager
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: 注入构建工具链（临时，不落仓库树）
+        run: pnpm add -D --ignore-scripts typescript@^5.8.3 @types/node@^22.13.10 tsx@^4.19.2
+
+      - name: Build & Type check
+        run: |
+          pnpm build
+          pnpm type-check
+
+      - name: Test（如声明）
+        run: |
+          if [ "$(node -p "require('./package.json').scripts && require('./package.json').scripts.test ? 1 : 0")" = "1" ]; then
+            pnpm test
+          else
+            echo "（无 test 脚本，跳过——聚合测试在基座 CI）"
+          fi
