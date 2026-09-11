@@ -1,135 +1,79 @@
-name: Release - Publish to npm
+# 子仓 Release 流水线：tag 与 GitHub Release 由各子仓独立维护（配置随仓走）
+# 触发：基座 tapd-node cd-release 发布成功后 dispatch（version + sha）；也可手动补历史 tag
+# 校验闸：定位发布提交（tag 落在发布时的提交） / 版本一致 / npm 已发布——发布失败的版本绝不打 tag
+name: Release
 
 on:
-  push:
-    branches:
-      - 'releases/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本（须与发布提交的 package.json 一致）'
+        required: true
+      sha:
+        description: '发布提交（tag 落点；可早于分支头，用于补历史）'
+        required: true
 
-# Only one release run at a time
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: write
 
 jobs:
-  publish:
-    name: Publish to npm
+  release:
+    name: Tag & GitHub Release
     runs-on: ubuntu-latest
-    environment: npm publish
-    permissions:
-      contents: write
-      id-token: write
-
     steps:
-      - name: Checkout
+      - name: Checkout（全历史，changelog 需要）
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          registry-url: 'https://registry.npmjs.org'
+      # 定位发布提交：dispatch 的 sha 可能早于 ref HEAD（手动补历史场景），
+      # tag 必须落在发布时的提交上，而非当前分支头
+      - name: 定位发布提交
+        run: git checkout --detach "${{ inputs.sha }}"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Get version from branch name
-        id: version
+      - name: 前置校验
         run: |
-          # Extract version from branch name (releases/1.1.0 -> 1.1.0)
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          VERSION="${BRANCH_NAME#releases/}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Verify version matches package.json
-        run: |
-          BRANCH_VERSION=${{ steps.version.outputs.version }}
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ "$BRANCH_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "::error::Branch version ($BRANCH_VERSION) does not match package.json version ($PACKAGE_VERSION)"
+          PV=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          if [ "$PV" != "${{ inputs.version }}" ]; then
+            echo "::error::版本不一致：package.json=$PV，dispatch=${{ inputs.version }}"
             exit 1
           fi
-
-      - name: Check if version already published
-        id: check
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          if npm view @xihe-lab/tapd-mcp-server@$VERSION version 2>/dev/null; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Version $VERSION already published, skipping"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
+          if ! npm view "$NAME@$PV" version >/dev/null 2>&1; then
+            echo "::error::npm 上尚无 $NAME@$PV——发布成功才可打 tag"
+            exit 1
           fi
+          echo "✓ $NAME@$PV @ $(git rev-parse --short HEAD)"
 
-      - name: Generate changelog
-        if: steps.check.outputs.published == 'false'
-        id: changelog
+      # 独立追溯：changelog = 本仓上一 tag → 本次提交；依赖声明 = 本仓 package.json 实际范围
+      - name: Tag & Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          CURRENT_TAG=${{ steps.version.outputs.tag }}
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          V='${{ inputs.version }}'
+          CORE_RANGE=$(node -p "require('./package.json').dependencies['@xihe-lab/tapd-core'] || ''")
+          if [ -n "$CORE_RANGE" ]; then
+            DEP="依赖 \`@xihe-lab/tapd-core ${CORE_RANGE}\`"
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
+            DEP="无内部依赖（内核根基）"
           fi
-
-          echo "commits<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Update GitHub Release
-        if: steps.check.outputs.published == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          generate_release_notes: false
-          body: |
-            ## Changelog
-
-            ${{ steps.changelog.outputs.commits }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm
-        if: steps.check.outputs.published == 'false'
-        run: |
-          # Create clean .npmrc with only registry config (no auth)
-          echo 'registry=https://registry.npmjs.org' > "$NPM_CONFIG_USERCONFIG"
-          npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ''
-
-      - name: Create and push tag
-        if: steps.check.outputs.published == 'false'
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "$PREV_TAG..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges -15)
+          fi
+          # 附注 tag 需要 committer 身份（runner 默认无 git ident）
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
-
-      - name: Summary
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          if [ "${{ steps.check.outputs.published }}" == "false" ]; then
-            echo "### ✅ Published @xihe-lab/tapd-mcp-server@$VERSION" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Changelog:**" >> $GITHUB_STEP_SUMMARY
-            echo "${{ steps.changelog.outputs.commits }}" >> $GITHUB_STEP_SUMMARY
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+            echo "::notice::tag v$V 已存在，跳过"
           else
-            echo "### ⏭️ Skipped - Version $VERSION already published" >> $GITHUB_STEP_SUMMARY
+            git tag -a "v$V" -m "Release v$V"
+            git push origin "v$V"
           fi
+          PRE_FLAG=""
+          case "$V" in *-*) PRE_FLAG="--prerelease" ;; esac
+          NOTES_BODY=$(printf '## 依赖\n%s\n\n## Changelog\n%s' "$DEP" "$NOTES")
+          gh release view "v$V" >/dev/null 2>&1 || \
+            gh release create "v$V" --title "v$V" $PRE_FLAG --notes "$NOTES_BODY"
