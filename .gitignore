@@ -45,3 +45,6 @@ temp/
 .claude/
 *.tgz
 .playwright-mcp/
+
+# 独立安装的临时锁文件（聚合锁文件在基座）
+pnpm-lock.yaml
