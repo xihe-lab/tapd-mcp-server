@@ -63,6 +63,9 @@ jobs:
           else
             NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges -15)
           fi
+          # 附注 tag 需要 committer 身份（runner 默认无 git ident）
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
             echo "::notice::tag v$V 已存在，跳过"
           else
