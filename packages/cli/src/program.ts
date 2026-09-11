@@ -15,6 +15,7 @@ import { registerConfigCommand } from './commands/config.js';
 import { registerAuthCommand } from './commands/auth.js';
 import { registerAdvisorCommand } from './commands/advisor.js';
 import { registerPipelineCommand } from './commands/pipeline.js';
+import { registerPmCommand } from './commands/pm.js';
 import { recordCommandHistory } from './pipeline/history.js';
 
 const require = createRequire(import.meta.url);
@@ -67,6 +68,7 @@ export function buildProgram(registry: ToolRegistry, config: TapdConfig = {}): C
   registerAuthCommand(ensureResource);
   registerAdvisorCommand(program, registry);
   registerPipelineCommand(program, registry, config);
+  registerPmCommand(program, registry, config);
   return program;
 }
 

@@ -9,6 +9,7 @@ export { buildProgram } from './program.js';
 export { CliError } from './errors.js';
 export { EXIT } from './exit-codes.js';
 export * from './pipeline/index.js';
+export * from './pm/index.js';
 
 export async function main(argv: string[] = process.argv): Promise<void> {
   const start = process.hrtime.bigint();
