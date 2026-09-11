@@ -1,0 +1,73 @@
+# 工时执行报告（软考第11章 成本管理，纯只读 L0，类比 EVM）
+# 数据源：迭代 tasks（effort/effort_completed/remain/exceed/owner）+ tapd_get_timesheets
+# （spentdate 按迭代区间时间查询，校验填报完整性）
+# 用法: tapd pm cost report [--iteration <id>] [--dry-run]
+#       可用 --input '{"date_from":"2026-09-01","date_to":"2026-09-11"}' 覆盖填报窗口
+name: cost-report
+domain: cost
+title: 工时执行报告（effort/exceed 聚合 + timesheets 完整性校验，类比 EVM）
+write: false
+vars:
+  iteration_id: ""
+  date_from: ""
+  date_to: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,effort,effort_completed,remain,exceed"
+      limit: 200
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: window
+    expr: "(() => { const it = (steps.iteration.data ?? [])[0] ?? {}; const vf = String(vars.date_from ?? ''), vt = String(vars.date_to ?? ''); const from = vf !== '' ? vf : (String(it.startdate ?? '').slice(0, 10) || today); const to = vt !== '' ? vt : (String(it.enddate ?? '').slice(0, 10) || today); return { from: from, to: to, range: from + '~' + to }; })()"
+    depends_on: [iteration]
+
+  - id: timesheets
+    uses: tapd_get_timesheets
+    args:
+      spentdate: "${steps.window.data.range}"
+      fields: "entity_type,entity_id,owner,timespent,spentdate"
+      limit: 200
+    depends_on: [window]
+
+  - id: cost
+    expr: "(() => { const arr = v => Array.isArray(v) ? v : (v && Array.isArray(v.data) ? v.data : []); const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; }; const ownerOf = v => { const s = String(v ?? '').trim(); return s === '' ? '(未分派)' : s; }; const r2 = n => Math.round(n * 100) / 100; const t = arr(steps.tasks.data); const ts = arr(steps.timesheets.data); const byOwner = {}; const ensure = o => { if (!byOwner[o]) byOwner[o] = { owner: o, tasks: 0, effort: 0, effortCompleted: 0, remain: 0, exceed: 0, timespent: 0 }; return byOwner[o]; }; let budget = 0, used = 0, remain = 0, exceed = 0; for (const k of t) { const r = ensure(ownerOf(k.owner)); r.tasks++; r.effort += num(k.effort); r.effortCompleted += num(k.effort_completed); r.remain += num(k.remain); r.exceed += num(k.exceed); budget += num(k.effort); used += num(k.effort_completed); remain += num(k.remain); exceed += num(k.exceed); } for (const w of ts) { ensure(ownerOf(w.owner)).timespent += num(w.timespent); } const ownerRows = Object.values(byOwner).map(r => ({ owner: r.owner, tasks: r.tasks, effort: r2(r.effort), effortCompleted: r2(r.effortCompleted), remain: r2(r.remain), exceed: r2(r.exceed), timespent: r2(r.timespent), rate: r.effort > 0 ? r2(r.effortCompleted) + '/' + r2(r.effort) : '0/0' })).sort((a, b) => b.effort - a.effort); const ac = ts.reduce((a, w) => a + num(w.timespent), 0); const filledEntities = new Set(ts.filter(w => String(w.entity_type) === 'task').map(w => String(w.entity_id))); const noSheet = t.filter(k => num(k.effort) > 0 && !filledEntities.has(String(k.id))); const missingOwners = ownerRows.filter(r => r.effort > 0 && r.timespent === 0).map(r => ({ owner: r.owner, effort: r.effort, tasks: r.tasks })); const totalsRows = [{ label: '预算 BAC = Σeffort', hours: r2(budget) }, { label: '已耗 EV = Σeffort_completed', hours: r2(used) }, { label: '剩余 = Σremain', hours: r2(remain) }, { label: '超支 = Σexceed', hours: r2(exceed) }, { label: '填报 AC = Σtimespent(区间内)', hours: r2(ac) }, { label: '偏差 CV = EV - AC', hours: r2(used - ac) }, { label: 'CPI = EV/AC', hours: ac > 0 ? r2(used / ac) + '（' + r2(used) + '/' + r2(ac) + '）' : 'n/a（分母为 0）' }]; return { totals: { budget: r2(budget), used: r2(used), remain: r2(remain), exceed: r2(exceed), ac: r2(ac), cv: r2(used - ac), window: steps.window.data, taskCount: t.length, sheetCount: ts.length, missingOwnerCount: missingOwners.length, missingTaskCount: noSheet.length }, totalsRows: totalsRows, ownerRows: ownerRows, missingOwners: missingOwners, missingTasks: noSheet.slice(0, 20).map(k => ({ id: String(k.id), name: k.name, owner: ownerOf(k.owner), effort: num(k.effort) })) }; })()"
+    depends_on: [iteration, tasks, window, timesheets]
+
+report:
+  format: markdown
+  template: |
+    # 工时执行报告 — ${steps.iteration.data.0.name}（${steps.iteration.data.0.startdate} ~ ${steps.iteration.data.0.enddate}）
+
+    - 任务 ${steps.cost.data.totals.taskCount} 个（已剔除 zzz-delete-me* 测试数据）；工时填报记录 ${steps.cost.data.totals.sheetCount} 条，窗口 ${steps.cost.data.totals.window.from} ~ ${steps.cost.data.totals.window.to}
+
+    ## 总量（EVM 类比）
+    | 指标 | 工时(h) |
+    |---|---|
+    ${steps.cost.data.totalsRows | rows label,hours}
+
+    ## 按 owner 分解
+    | 处理人 | 任务数 | 预算(h) | 已耗 EV(h) | 剩余(h) | 超支(h) | 填报 AC(h) | 完成率 EV/预算 |
+    |---|---|---|---|---|---|---|---|
+    ${steps.cost.data.ownerRows | rows owner,tasks,effort,effortCompleted,remain,exceed,timespent,rate}
+
+    ## 填报缺失名单（owner 级：有预算任务但区间零填报，共 ${steps.cost.data.totals.missingOwnerCount} 人）
+    | 处理人 | 名下任务预算(h) | 任务数 |
+    |---|---|---|
+    ${steps.cost.data.missingOwners | rows owner,effort,tasks}
+
+    ## 任务级缺失（effort>0 且窗口内无该任务填报，共 ${steps.cost.data.totals.missingTaskCount} 个，至多列 20）
+    | id | 任务 | 处理人 | 预算(h) |
+    |---|---|---|---|
+    ${steps.cost.data.missingTasks | rows id,name,owner,effort}
+
+    ---
+    口径：预算=Σ任务 effort；已耗(EV)=Σ effort_completed；剩余=Σ remain；超支=Σ exceed；填报(AC)=区间内 timesheets 的 timespent 合计（spentdate 用 TAPD 时间区间查询「起~止」，limit 200 超限截断不翻页）；完成率与 CPI 均保留分母（如 9/12）；owner 级缺失 = 该人名下任务 effort>0 但区间零填报记录；任务级缺失 = 任务 effort>0 且区间内无 entity_type=task、entity_id=该任务的填报记录（以任务表 effort 口径为准，不与 timesheet 交叉折算）。

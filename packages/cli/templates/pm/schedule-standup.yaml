@@ -1,0 +1,108 @@
+# 站会三段式材料（软考第10章 进度管理，纯只读 L0）
+# 三段式：昨日完成 / 今日计划 / 阻塞扫描，全部按人（owner）分组
+# 数据源：迭代 stories/tasks/bugs 快照 + story_changes/task_changes（按迭代实体 id 列表
+# 合并成 TAPD 多 ID 查询，逗号分隔，控制步骤规模为 2 次 changes 调用而非逐实体查询）
+# 用法: tapd pm schedule standup [--iteration <id>] [--dry-run]
+name: schedule-standup
+domain: schedule
+title: 站会三段式材料（昨日变更/今日计划/阻塞扫描，按人分组）
+write: false
+vars:
+  iteration_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,begin,due"
+      limit: 200
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,progress,begin,due"
+      limit: 200
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,title,current_owner,status"
+      limit: 200
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  - id: dates
+    expr: "(() => { const fmt = ms => new Date(ms).toISOString().slice(0, 10); const base = new Date(today + 'T00:00:00Z').getTime(); return { today: today, yesterday: fmt(base - 86400000) }; })()"
+
+  - id: story_ids
+    expr: "(steps.stories.data.length > 0 ? steps.stories.data.map(s => String(s.id)).join(',') : '0')"
+    depends_on: [stories]
+
+  - id: task_ids
+    expr: "(steps.tasks.data.length > 0 ? steps.tasks.data.map(t => String(t.id)).join(',') : '0')"
+    depends_on: [tasks]
+
+  - id: story_changes
+    uses: tapd_get_story_changes
+    args:
+      story_id: "${steps.story_ids.data}"
+      fields: "story_id,field,old_value,new_value,created,author"
+      limit: 200
+    depends_on: [story_ids]
+
+  - id: task_changes
+    uses: tapd_get_task_changes
+    args:
+      task_id: "${steps.task_ids.data}"
+      fields: "task_id,field,old_value,new_value,created,author"
+      limit: 200
+    depends_on: [task_ids]
+
+  - id: standup
+    expr: "(() => { const arr = v => Array.isArray(v) ? v : (v && Array.isArray(v.data) ? v.data : []); const num = v => { const n = Number(String(v ?? '').replace('%', '')); return Number.isFinite(n) ? n : 0; }; const ownerOf = v => { const s = String(v ?? '').trim(); return s === '' ? '(未分派)' : s; }; const DONE = ['done', 'closed', 'close', 'completed', 'finish', 'finished', 'delivered', 'resolved']; const isDone = st => DONE.includes(String(st ?? '').toLowerCase()); const s = arr(steps.stories.data), t = arr(steps.tasks.data), b = arr(steps.bugs.data); const sc = arr(steps.story_changes.data), tc = arr(steps.task_changes.data); const y = steps.dates.data.yesterday, td = steps.dates.data.today; const evts = [...sc.map(c => ({ kind: 'story', id: String(c.story_id), field: c.field, nw: c.new_value, created: c.created, author: c.author })), ...tc.map(c => ({ kind: 'task', id: String(c.task_id), field: c.field, nw: c.new_value, created: c.created, author: c.author }))]; const recent = evts.filter(c => String(c.created ?? '').slice(0, 10) >= y); const doneEvts = recent.filter(c => c.field === 'status' && isDone(c.nw)); const doneRows = []; const seen = new Set(); for (const e of doneEvts) { const key = e.kind + ':' + e.id; if (seen.has(key)) continue; seen.add(key); const ent = e.kind === 'story' ? s.find(x => String(x.id) === e.id) : t.find(x => String(x.id) === e.id); doneRows.push({ owner: ownerOf(ent ? ent.owner : ''), kind: e.kind, id: e.id, name: ent ? ent.name : '(迭代外实体)', author: e.author ?? '', at: String(e.created ?? '').slice(0, 10) }); } const planRows = t.filter(x => !isDone(x.status)).map(x => ({ owner: ownerOf(x.owner), id: String(x.id), name: x.name, status: x.status, progress: num(x.progress), begin: x.begin ?? '', due: x.due ?? '' })); const blockRows = planRows.filter(r => r.progress === 0 && r.begin !== '' && r.begin < td).map(r => ({ owner: r.owner, id: r.id, name: r.name, begin: r.begin, due: r.due, status: r.status })); const bugMap = {}; for (const g of b) { if (isDone(g.status)) continue; const o = ownerOf(g.current_owner); bugMap[o] = (bugMap[o] ?? 0) + 1; } const bugRows = Object.keys(bugMap).sort().map(o => ({ owner: o, openBugs: bugMap[o] })); const owners = [...new Set([...doneRows.map(r => r.owner), ...planRows.map(r => r.owner), ...blockRows.map(r => r.owner), ...bugRows.map(r => r.owner)])].sort(); const summary = owners.map(o => ({ owner: o, doneYesterday: doneRows.filter(r => r.owner === o).length, plannedToday: planRows.filter(r => r.owner === o).length, blocked: blockRows.filter(r => r.owner === o).length, openBugs: bugMap[o] ?? 0 })); return { summary: summary, doneRows: doneRows, planRows: planRows, blockRows: blockRows, bugRows: bugRows, counts: { today: td, yesterday: y, changes: recent.length, done: doneRows.length, planned: planRows.length, blocked: blockRows.length, storyCount: s.length, taskCount: t.length, bugCount: b.length } }; })()"
+    depends_on: [iteration, bugs, dates, story_changes, task_changes]
+
+report:
+  format: markdown
+  template: |
+    # 站会三段式材料 — ${steps.iteration.data.0.name}（${steps.iteration.data.0.startdate} ~ ${steps.iteration.data.0.enddate}）
+
+    - 数据窗口: 昨日 ${steps.standup.data.counts.yesterday} → 今日 ${steps.standup.data.counts.today}
+    - 范围: 需求 ${steps.standup.data.counts.storyCount} / 任务 ${steps.standup.data.counts.taskCount} / 缺陷 ${steps.standup.data.counts.bugCount}（已剔除 zzz-delete-me* 测试数据）；昨日以来变更事件 ${steps.standup.data.counts.changes} 条
+
+    ## 按人汇总
+    | 处理人 | 昨日完成 | 今日计划 | 阻塞 | 未解 bug |
+    |---|---|---|---|---|
+    ${steps.standup.data.summary | rows owner,doneYesterday,plannedToday,blocked,openBugs}
+
+    ## 一、昨日完成（${steps.standup.data.counts.done}）
+    | 处理人 | 类型 | id | 名称 | 变更人 | 完成日 |
+    |---|---|---|---|---|---|
+    ${steps.standup.data.doneRows | rows owner,kind,id,name,author,at}
+
+    ## 二、今日计划（${steps.standup.data.counts.planned}）
+    | 处理人 | id | 任务 | 状态 | 进度% | begin | due |
+    |---|---|---|---|---|---|---|
+    ${steps.standup.data.planRows | rows owner,id,name,status,progress,begin,due}
+
+    ## 三、阻塞扫描（${steps.standup.data.counts.blocked}）
+    | 处理人 | id | 任务 | begin | due | 状态 |
+    |---|---|---|---|---|---|
+    ${steps.standup.data.blockRows | rows owner,id,name,begin,due,status}
+
+    ## 未解 bug 分布
+    | 处理人 | 未解 bug |
+    |---|---|
+    ${steps.standup.data.bugRows | rows owner,openBugs}
+
+    ---
+    口径：昨日完成 = story/task 变更记录中 status → done 类状态且 created >= 昨日（每实体去重取首条，按实体当前 owner 归组）；今日计划 = 迭代内未完成任务；阻塞 = 任务 progress=0 且 begin < 今日；未解 bug = 状态不在 done/closed/... 的迭代内缺陷。变更查询按迭代实体 id 列表合并多 ID 查询（limit 200，超限截断不翻页；空迭代以 id=0 占位保证步骤可执行）。
