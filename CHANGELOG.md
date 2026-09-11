@@ -5,23 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.4] - 2026-09-11
+## [2.0.0-rc.2] - 2026-09-12
+
+### Added
+
+- **pm 管理语义层**（软考高项知识域 × 人机协作）：`tapd pm` 命令组八域 15 场景（整合/范围/进度/成本/质量/风险/沟通/干系人），模板即 pipeline，写场景统一闸门（TAPD 1539-1545）
+- **pipeline 研发流编排引擎**：`tapd pipeline run/validate/record`，波次并发、事件流、dry-run（TAPD 1539）
+- **advisor 域轴 + 角色轴**：`--persona dev|qa|pm` 意图路由，高项知识域关键词索引（TAPD 1545）
+- **附件协作闭环**：`tapd_upload_attachment`（实体绑定+embed_html）/ `tapd_download_attachment`（/attachments/down 签名 URL + sha1 落盘）/ `tapd_attach_external_file`；评论与描述内嵌文件（data 五件套锚点）（TAPD 1546）
+- **图片闭环**：`tapd_upload_image` + `tapd_md_to_html --upload-images` 本地图自动上传（/tfl/ 读写双向）（TAPD 1547）
+- **@ 提及与保真管道**：`@昵称` md 语法 ↔ at-who 角标（服务端通知实证）、`[📎 name](attach:ws/id)` 附件引用、写工具 `raw_html` 直发旁路（TAPD 1548）
+- **GitHub 自动化体系**：CI 场景路由（core/cli/mcp/meta 路径触发）、CD 三包 Trusted Publishing（OIDC 免令牌 + prerelease dist-tag 防护）、labeler/triage/stale/dependabot
+
+### Changed
+
+- **仓库形态**：瘦身为 mcp 单包源码仓并并入 [tapd-node](https://github.com/xihe-lab/tapd-node) 父仓聚合体系——core/cli 独立成仓以 submodule 挂载，构建/测试/发布统一在父仓流水线；本仓移除 monorepo 工具链与 CI/CD 配置（TAPD 1537 收口）
 
 ### Fixed
 
-- 附件下载 URL 工具修复（`tapd_get_attachment_download_url`）：
-  - 原实现调用 `GET /attachments/documents_down`，该端点需要 `attachments::documents_down` 权限，普通 OAuth token 一律 403（v1.5.0 失败分析中记录的权限受限 API）
-  - 改走 `GET /attachments/down`（普通读权限 `attachment#r` 即可），返回体 `Attachment.download_url` 即签名下载地址（file.tapd.cn，限时有效）
-  - 工具名与参数签名保持不变（向后兼容）；`filename` 参数保留但不再必传给端点
-  - 真机验证：OAuth token 获取 URL → fetch 字节 → 与上传内容 sha1 一致（62B 样本）
+- pipeline `unwrap` 模板级解包 TAPD 包裹形态（{Story:{...}} 拍平，真机 L2 冒烟发现）
+- 显式 `--dry-run` 豁免写闸门（预览即结果 exit 0）
+- risk-scan 两路改 opt-in 门控（tcase_result/time_relative 需实体级参数）
+- 1.x 附件下载 OAuth 403 回流修复（/attachments/documents_down → /attachments/down，另见 v1.4.4）
 
-## [1.4.3] - 2026-09-04
+## [2.0.0-rc.1] - 2026-09-04
 
 ### Fixed
 
-- 修复智能体首次调用时长 ID 传为数值类型导致精度丢失/校验失败的问题：
+- 移植 1.4.3（feature/1.x）长 ID 精度丢失修复（TAPD 1410）：
   - 全部 260 处长 ID 参数（`id`/`story_id`/`bug_id`/`iteration_id` 等，含 optional 字段）描述追加「必须以字符串（带引号）传递」引导，从源头避免 LLM 按直觉生成 JSON 数值
-  - `server.ts` 注册时统一为字符串型 ID 参数（257 个，覆盖 `z.string().optional()`/`.nullable()` 包裹形态）包装 `z.preprocess` 防御层：安全整数范围内的数值（≤16 位，短 ID 场景）自动转字符串救回；超出安全范围的数值返回明确错误「请以字符串（带引号）重传」
+  - `ToolRegistry` 注册期统一为字符串型 ID 参数包装 `z.preprocess` 防御层（MCP 与 CLI 双入口共用）：安全整数范围内的数值自动转字符串救回；超出安全范围的数值返回明确错误「请以字符串（带引号）重传」，optional/nullable 包裹形态均覆盖
   - 全量 210 工具 schema 校验：`type:"string"` 输出与 required 语义零变化，`workspace_id` 等数值型短 ID 参数行为不变
 
 ## [1.4.0] - 2026-05-19

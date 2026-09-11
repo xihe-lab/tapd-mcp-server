@@ -1,0 +1,73 @@
+name: 缺陷报告
+description: 报告工具、CLI、MCP 或管道的行为问题
+labels: ["type/bug", "flow/needs-triage"]
+body:
+  - type: textarea
+    id: desc
+    attributes:
+      label: 问题描述
+      description: 一句话概括错误行为
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 调用 tapd_xxx / 执行 tapd xxx ...
+        2. 传参 ...
+        3. 观察 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 vs 实际行为
+    validations:
+      required: true
+  - type: dropdown
+    id: pkg
+    attributes:
+      label: 影响包
+      options:
+        - core（工具内核 / TapdClient / registry / richtext）
+        - cli（命令 / pm 层 / pipeline / advisor）
+        - mcp（MCP Server 入口）
+        - 不确定 / 跨包
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: 相关工具名 / 命令（如适用）
+      placeholder: 如 tapd_create_comment、tapd pm risk scan
+  - type: dropdown
+    id: version
+    attributes:
+      label: 版本
+      options:
+        - 2.0.0-rc.2 及以上（2.x monorepo）
+        - 2.0.0-rc.1
+        - 1.4.x（1.x 线）
+        - 未发布（main/分支自建）
+    validations:
+      required: true
+  - type: dropdown
+    id: auth
+    attributes:
+      label: 认证方式
+      options:
+        - OAuth（TAPD_ACCESS_TOKEN，读写）
+        - Basic（API User/Password，只读）
+        - 无关
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境信息
+      placeholder: Node 版本 / OS / MCP 客户端（Claude Code、Cursor…）或 CLI 直用
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错输出 / 日志
+      description: 脱敏后粘贴（token 替换为 ***）
+      render: shell

@@ -1,6 +1,5 @@
 # TAPD MCP Server
 
-[![CI](https://github.com/xihe-lab/tapd-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/xihe-lab/tapd-mcp-server/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@xihe-lab/tapd-mcp-server.svg)](https://www.npmjs.com/package/@xihe-lab/tapd-mcp-server)
 [![license](https://img.shields.io/npm/l/@xihe-lab/tapd-mcp-server.svg)](https://github.com/xihe-lab/tapd-mcp-server/blob/main/LICENSE)
 [![Node.js](https://img.shields.io/node/v/@xihe-lab/tapd-mcp-server.svg)](https://www.npmjs.com/package/@xihe-lab/tapd-mcp-server)
@@ -84,21 +83,6 @@ claude mcp remove tapd
 
 配置格式与上方相同。
 
-#### WorkBuddy（腾讯 CodeBuddy 办公客户端）
-
-WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
-
-| 级别 | 配置文件路径 | 适用场景 |
-|------|-------------|---------|
-| 用户级 | `~/.workbuddy/mcp.json` | 配置一次，所有项目复用（推荐） |
-| 项目级 | `<项目目录>/.workbuddy/mcp.json` | 仅当前项目生效 |
-
-操作入口：侧边栏 **插件** → 右上角 **MCP 服务器** → **配置 MCP**，在可视化编辑器中粘贴与上方相同的 `mcpServers` 配置并保存（也可直接编辑上述路径的 JSON 文件）。
-
-保存后检查 MCP Server 状态灯：🟢 连接成功；🔴 配置异常（依次检查 JSON 格式、`npx` 环境、凭证有效性）。
-
-> 安全提示：`TAPD_ACCESS_TOKEN` 是调用凭证。使用项目级配置时，请将 `.workbuddy/` 加入 `.gitignore`，避免提交到仓库。
-
 ### 3. 开始使用
 
 配置完成后重启客户端，直接用自然语言与 AI 助手对话：
@@ -158,6 +142,42 @@ WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
 
 共 **210 个工具**，覆盖 **26 个模块**。AI 助手会根据你的自然语言描述自动选择合适的工具。
 
+## 富媒体协作
+
+在评论、需求/缺陷/任务描述和 Wiki 里 @ 人、贴图、挂附件，四类用法如下（rc.2 新增）。
+
+### @ 提及
+
+在 md 正文里直接写 `@昵称`（如 `请 @徐昭 今天内确认`），写管道会自动转成 TAPD at-who 提及标记（角标 + 通知）。`@@` 表示字面 `@`（不触发提及）；代码段、链接 URL、邮箱里的 `@` 不会被误伤。`tapd_md_to_html` 可传 `workspace_id` 校验昵称是否项目成员（成员接口不可用时自动跳过校验，服务端仍会智能识别）；关键通知场景建议同时填 `cc` 兜底。
+
+### 图片
+
+```text
+1. tapd_upload_image(image_path="./截图.png")
+   → { image_src: "/tfl/pictures/202609/截图.png", markdown: "![image](/tfl/...)" }
+2. 把返回的 markdown 拼进 description / comment 正文
+```
+
+或者一步到位：`tapd_md_to_html(content="...![截图](./截图.png)...", upload_images=true)`——扫描 md 里本地存在的图片路径，逐个上传图床并替换为 `/tfl/` 远端路径（默认关闭的显式副作用，返回 `uploaded_images` 清单）。读侧用 `tapd_get_image_url` 可把 `/tfl/` 路径换回临时访问 URL。
+
+### 附件
+
+```text
+1. tapd_upload_attachment(file_path="./设计稿.pdf", entity_type="story", entity_id="1139...")
+   → 返回 embed_html（富文本锚点）与 embed_md（[📎 设计稿.pdf](attach:<ws>/<id>)）
+2. 把 embed_md / embed_html 拼进评论或描述正文
+```
+
+`tapd_md_to_html` / 写管道会把 `[📎 名称](attach:<ws>/<id>)` 引用自动渲染成 TAPD 附件锚点卡片；读方向 `tapd_html_to_md` 把锚点还原为同名 md 引用。下载走 `tapd_download_attachment`（`/attachments/down`，无需额外授权）。第三方系统文件不传本体、只登记链接：`tapd_attach_external_file`。
+
+### 内部链接（零成本）
+
+正文里直接写 TAPD 工作项 URL 的 md 链接即可，如 `[需求详情](https://www.tapd.cn/39814312/prong/stories/view/1139814312001001548)`——前端自动卡片化，无需任何转换。
+
+### raw_html 直发通道
+
+`comment/story/task/bug/wiki` 的 create/update 工具支持 `raw_html: true`：`description` 原样透传（绕过 md→html 自动转换），适合已含 TAPD 原生富文本标记或需要确定性透传的场景。默认 `false` 走 md 管道（@昵称 / 附件引用自动转换）。
+
 ## 常见问题
 
 ### AI 助手没有识别到 TAPD 工具
@@ -180,7 +200,7 @@ WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
 
 TAPD 的需求/缺陷/任务等实体长 ID 为 19-20 位数字（如 `1139814312001001378`），超出 JS 安全整数上限（`Number.MAX_SAFE_INTEGER`，16 位），以 JSON 数值形式传递会丢精度导致查询为空。所有长 ID 参数必须以字符串（带引号）传递。
 
-自 v1.4.3 起：所有工具的长 ID 参数描述已包含引导提示；若传入安全整数范围内的数值（≤16 位，如短 ID）会自动转为字符串；超出安全范围的数值会返回明确错误提示，请按提示以字符串重传。
+所有工具的长 ID 参数描述均已包含引导提示；若传入安全整数范围内的数值（≤16 位，如短 ID）会自动转为字符串；超出安全范围的数值会返回明确错误提示，请按提示以字符串重传。
 
 ### 支持 Basic Auth 吗
 
@@ -205,9 +225,24 @@ claude mcp add -s user tapd \
   -- npx -y "@xihe-lab/tapd-mcp-server@latest"
 ```
 
-### Claude Desktop / Cursor / WorkBuddy
+### Claude Desktop / Cursor
 
-修改配置文件中的版本号为 `@latest` 或删除版本锁定（WorkBuddy 的配置文件路径见上文「WorkBuddy 配置」小节）：
+修改配置文件中的版本号为 `@latest` 或删除版本锁定（WorkBuddy 的配置文件路径见下文「WorkBuddy」小节）：
+
+#### WorkBuddy（腾讯 CodeBuddy 办公客户端）
+
+WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
+
+| 级别 | 配置文件路径 | 适用场景 |
+|------|-------------|---------|
+| 用户级 | `~/.workbuddy/mcp.json` | 配置一次，所有项目复用（推荐） |
+| 项目级 | `<项目目录>/.workbuddy/mcp.json` | 仅当前项目生效 |
+
+操作入口：侧边栏 **插件** → 右上角 **MCP 服务器** → **配置 MCP**，在可视化编辑器中粘贴与上方相同的 `mcpServers` 配置并保存（也可直接编辑上述路径的 JSON 文件）。
+
+保存后检查 MCP Server 状态灯：🟢 连接成功；🔴 配置异常（依次检查 JSON 格式、`npx` 环境、凭证有效性）。
+
+> 安全提示：`TAPD_ACCESS_TOKEN` 是调用凭证。使用项目级配置时，请将 `.workbuddy/` 加入 `.gitignore`，避免提交到仓库。
 
 ```json
 {
@@ -266,15 +301,15 @@ npm view @xihe-lab/tapd-mcp-server versions
 
 ## 本地开发
 
-如需二次开发：
+本仓是 [tapd-node](https://github.com/xihe-lab/tapd-node) 父仓聚合体系的子模块（mcp 单包源码仓），共享内核在 [tapd-core](https://github.com/xihe-lab/tapd-core)，命令行在 [tapd-cli](https://github.com/xihe-lab/tapd-cli)；构建、测试与发布统一在父仓流水线。二次开发在父仓 checkout 中进行：
 
 ```bash
-git clone git@github.com:xihe-lab/tapd-mcp-server.git && cd tapd-mcp-server
-npm install && npm run build
-npm run dev
+git clone --recurse-submodules git@github.com:xihe-lab/tapd-node.git && cd tapd-node
+pnpm install && pnpm build
+pnpm --filter @xihe-lab/tapd-mcp-server dev
 ```
 
-添加新工具：在 `src/tools/` 下创建模块文件，导出 `ToolDef[]` 数组，然后在 `src/tools/index.ts` 中导入即可。
+添加新工具：工具定义位于 tapd-core 仓（`core/src/tools/`，导出 `ToolDef[]` 后在 `core/src/tools/index.ts` 合入），MCP 侧在 `src/` 完成注册与接线。
 
 ## 许可证
 

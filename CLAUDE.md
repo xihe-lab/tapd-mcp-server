@@ -2,133 +2,48 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
-## Project Overview
+## 仓库定位
 
-TAPD MCP Server — an MCP (Model Context Protocol) server that exposes TAPD (Tencent Agile Product Development) APIs as tools for AI assistants like Claude, Cursor, and VS Code.
+本仓是 **mcp 单包源码仓**，为 [tapd-node](https://github.com/xihe-lab/tapd-node) 父仓聚合体系的子模块（挂载于 `mcp/`）：
 
-- **Package**: `@xihe-lab/tapd-mcp-server`
-- **Runtime**: Node.js >= 18, ESM (`"type": "module"`)
-- **Transport**: stdio
+- 共享内核（工具定义、TapdClient、注册表、richtext 语义库）在 [xihe-lab/tapd-core](https://github.com/xihe-lab/tapd-core)
+- 命令行入口在 [xihe-lab/tapd-cli](https://github.com/xihe-lab/tapd-cli)
+- 构建、测试、发布统一在父仓流水线（ci.yml / cd-release.yml）
 
-## Common Commands
+本仓**不携带工具链 devDependencies**（typescript/tsx/eslint 由 tapd-node 根承载），独立 `pnpm install` 无法完整构建——一切开发验证在父仓 checkout 中进行。
+
+## 常用命令（在 tapd-node 父仓中执行）
 
 ```bash
-npm install
-npm run build       # TypeScript compile (tsc)
-npm run dev         # Run with tsx in dev mode
-npm run type-check  # Type check without emitting
-npm run lint        # ESLint
+pnpm --filter @xihe-lab/tapd-mcp-server build   # tsc 编译
+pnpm --filter @xihe-lab/tapd-mcp-server dev     # tsx 开发模式运行
+pnpm --filter @xihe-lab/tapd-mcp-server test    # 集成自检
+pnpm build && pnpm test                          # 全量门禁（含 core/cli）
 ```
 
-## Architecture
+## 架构
 
 ```
 src/
-  index.ts          # Entry point, starts stdio transport
-  server.ts         # MCP server init + tool registration
-  tapd-client.ts    # HTTP client (TapdClient), dual auth support
-  types.ts          # ToolDef interface and shared types
-  utils.ts          # Utility helpers
-  tools/
-    index.ts        # Aggregates all tool modules into allTools[]
-    *.ts            # Individual tool modules (25 modules)
+  bin/tapd-mcp-server.ts   # 入口，stdio transport
+  server.ts                # MCP server 初始化与工具注册（工具来自 @xihe-lab/tapd-core allTools）
+  integration-test.ts      # 集成自检
 ```
 
-### Adding a New Tool
+新增工具：在 tapd-core 的 `src/tools/` 添加 `ToolDef[]` 模块并合入 `tools/index.ts`；本仓只做注册与接线调整。
 
-1. Create `src/tools/<module>.ts` exporting a `ToolDef[]` array
-2. Import and spread it in `src/tools/index.ts`
+## 认证与环境变量
 
-Tool definition pattern:
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `TAPD_ACCESS_TOKEN` | 二选一 | 个人访问令牌（推荐） |
+| `TAPD_API_USER` + `TAPD_API_PASSWORD` | 二选一 | API 账号 + 密钥 |
+| `TAPD_API_BASE_URL` | 否 | 默认 `https://api.tapd.cn` |
+| `TAPD_DEFAULT_WORKSPACE_ID` | 否 | 默认项目 ID |
+| `TAPD_NICK_NAME` | 否 | owner/creator 默认值 |
 
-```typescript
-import { z } from 'zod';
-import type { ToolDef } from '../types.js';
+## 关键约定
 
-export const myTools: ToolDef[] = [
-  {
-    name: 'tapd_my_tool',
-    description: 'Tool description',
-    inputSchema: z.object({
-      workspace_id: z.number().optional().describe('项目ID(可省略,使用默认配置)'),
-      // ... params
-    }),
-    handler: async (client, params) => {
-      return client.get('/some_endpoint', params);
-    },
-  },
-];
-```
-
-### ToolDef Interface
-
-```typescript
-interface ToolDef {
-  name: string;               // e.g. tapd_get_stories
-  description: string;        // Natural language description for LLM
-  inputSchema: z.ZodTypeAny;  // Zod schema for input validation
-  handler: (client: TapdClient, params: any) => Promise<unknown>;
-}
-```
-
-### TapdClient
-
-Dual authentication via `TapdClient`:
-
-- `TapdClient.fromAccessToken(token)` — Bearer Token (recommended)
-- `TapdClient.fromBasicAuth(user, password)` — Basic Auth
-
-Static helpers for defaults from env vars:
-
-- `TapdClient.getDefaultWorkspaceId()` — `TAPD_DEFAULT_WORKSPACE_ID`
-- `TapdClient.getNickName()` — `TAPD_NICK_NAME`
-- `TapdClient.getDefaultStoryWorkitemTypeId()` — `TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID`
-- `TapdClient.getDefaultTaskWorkitemTypeId()` — `TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID`
-- `TapdClient.toLongId(id, workspaceId)` — Short ID to long ID conversion
-
-Request methods: `client.get(path, params)` and `client.post(path, params)`.
-
-GET requests auto-retry on 429/5xx (max 3 retries, exponential backoff). POST requests never retry.
-
-## Conventions
-
-### Parameter Design
-
-- All IDs use `z.string()` — never `z.number()` — to avoid JavaScript precision loss for large TAPD IDs (> MAX_SAFE_INTEGER)
-- `workspace_id` is optional in most tools; defaults to `TAPD_DEFAULT_WORKSPACE_ID` env var
-- Owner/creator fields default to `TAPD_NICK_NAME` env var
-- Description strings in `.describe()` use Chinese for consistency with TAPD's UI
-
-### API Endpoint Paths
-
-- GET endpoints: `/stories`, `/bugs`, `/tasks`, `/iterations`, etc.
-- POST endpoints: same paths for create, entity ID in params for update
-- Query API path: `/workitem_types` (not `/stories/workitem_types`)
-
-### File Naming
-
-Tool modules in `src/tools/` use kebab-case: `mini-item.ts`, `custom-fields.ts`, etc.
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `TAPD_ACCESS_TOKEN` | One of two | Personal access token (recommended) |
-| `TAPD_API_USER` + `TAPD_API_PASSWORD` | One of two | API account + secret |
-| `TAPD_API_BASE_URL` | No | API base URL, default `https://api.tapd.cn` |
-| `TAPD_DEFAULT_WORKSPACE_ID` | No | Default workspace ID |
-| `TAPD_NICK_NAME` | No | Default owner/creator nickname |
-| `TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID` | No | Default STORY workitem type ID |
-| `TAPD_DEFAULT_TASK_WORKITEM_TYPE_ID` | No | Default TASK workitem type ID |
-
-## Key Patterns
-
-### workitem_type_id Resolution (tapd_create_story)
-
-Priority chain: user parameter → env var (`TAPD_DEFAULT_STORY_WORKITEM_TYPE_ID`) → API query (`GET /workitem_types` → find STORY type).
-
-This enables creating TASK-type items via Story API (bypasses `tasks::create` permission requirement).
-
-### Short ID Conversion
-
-TAPD uses long IDs (e.g. `1139814312001000205`). Short IDs (≤9 digits) are auto-converted using `TapdClient.toLongId()` with workspace ID prefix.
+- TAPD 长实体 ID（19-20 位）**必须以字符串传递**（JS 精度上限 16 位）——工具描述已内置引导，registry 有 z.preprocess 防御层（core 仓）
+- 描述与评论支持富媒体：`@昵称` 提及、`[📎 名称](attach:<ws>/<id>)` 附件引用、`raw_html` 直发旁路（转换管道在 core richtext 语义库）
+- 发布为 npm 包 `@xihe-lab/tapd-mcp-server`，用户经 `npx -y @xihe-lab/tapd-mcp-server` 运行
