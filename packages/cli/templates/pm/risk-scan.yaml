@@ -1,0 +1,75 @@
+# 风险扫描（S5 / 软考高项第15章 风险管理）
+# 六路只读扫描，输出「候选风险清单」（类别/描述/证据/建议等级）供人工裁决：
+#   ① 逾期任务   tapd_get_tasks（due < today 且 status != done，zzz 过滤）
+#   ② 逾期缺陷   tapd_get_bugs（deadline < today 且未解，zzz 过滤）
+#   ③ 阻塞用例   tapd_get_tcase_result(result=block)（工作区级查询，无迭代维度）
+#   ④ 超支任务   tasks 里 exceed > 0
+#   ⑤ 依赖停滞   tapd_get_time_relative_stories 前置未完成（后置为迭代内需求）
+#   ⑥ 外部依赖   stories source 非空
+# 本模板零写步骤：确认要跟踪的候选项后，用 `tapd pm risk register` 登记为【风险】需求。
+# 用法: tapd pm risk scan --iteration <id>
+name: risk-scan
+domain: risk
+title: 风险扫描（六路只读扫描，候选清单供人工裁决）
+write: false
+vars:
+  iteration_id: ""
+steps:
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,due,effort,exceed"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,title,severity,status,current_owner,deadline"
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  - id: blocked
+    uses: tapd_get_tcase_result
+    args:
+      result: block
+      limit: 200
+      fields: "id,tcase_id,test_plan_id,result,executed_by,executed"
+
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,status,owner,source"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: relations
+    uses: tapd_get_time_relative_stories
+    args:
+      limit: 200
+      fields: "predecessor_id,successor_id,relation_type"
+
+  - id: scan
+    expr: "(() => { const asArr = v => Array.isArray(v) ? v : []; const norm = v => String(v === undefined || v === null ? '' : v).trim(); const UNRESOLVED = ['closed', 'resolved', 'rejected', 'reject']; const DONEISH = ['done', 'closed', 'completed', '已关闭', '已完成']; const isDone = s => DONEISH.includes(norm(s).toLowerCase()); const tasks = asArr(steps.tasks.data); const bugs = asArr(steps.bugs.data); const blockedCases = asArr(steps.blocked.data); const stories = asArr(steps.stories.data); const relations = asArr(steps.relations.data); const findings = []; for (const t of tasks) { if (norm(t.due) !== '' && norm(t.due) < today && !isDone(t.status)) { findings.push({ category: '进度', kind: '逾期任务', id: norm(t.id), desc: '任务「' + norm(t.name) + '」逾期未完成（应完成 ' + norm(t.due) + '，状态 ' + (norm(t.status) || '-') + '）', evidence: 'task ' + norm(t.id) + ' due=' + norm(t.due) + ' status=' + norm(t.status) + ' owner=' + (norm(t.owner) || '-'), level: '高' }); } } for (const t of tasks) { const exceed = Number(t.exceed) || 0; if (exceed > 0) { const effort = Number(t.effort) || 0; const pct = effort > 0 ? Math.round((exceed / effort) * 100) : null; findings.push({ category: '成本', kind: '超支任务', id: norm(t.id), desc: '任务「' + norm(t.name) + '」超支 ' + exceed + ' 工时' + (pct !== null ? ('（超出预估 ' + pct + '%）') : ''), evidence: 'task ' + norm(t.id) + ' effort=' + (norm(t.effort) || '-') + ' exceed=' + exceed, level: pct !== null && pct >= 30 ? '高' : '中' }); } } for (const b of bugs) { if (norm(b.deadline) !== '' && norm(b.deadline) < today && !UNRESOLVED.includes(norm(b.status).toLowerCase())) { findings.push({ category: '质量', kind: '逾期缺陷', id: norm(b.id), desc: '缺陷「' + norm(b.title) + '」超过解决截止 ' + norm(b.deadline) + ' 仍未解（severity=' + (norm(b.severity) || '-') + '）', evidence: 'bug ' + norm(b.id) + ' deadline=' + norm(b.deadline) + ' status=' + norm(b.status) + ' owner=' + (norm(b.current_owner) || '-'), level: norm(b.severity) === '1' ? '高' : '中' }); } } for (const c of blockedCases) { findings.push({ category: '质量', kind: '阻塞用例', id: norm(c.tcase_id) || norm(c.id), desc: '测试用例执行被阻塞（result=block），需解除环境/依赖阻塞后回归', evidence: 'tcase ' + (norm(c.tcase_id) || norm(c.id)) + ' plan=' + (norm(c.test_plan_id) || '-') + ' by=' + (norm(c.executed_by) || '-') + ' at=' + (norm(c.executed) || '-'), level: '中' }); } const byId = new Map(stories.map(s => [norm(s.id), s])); const seenRel = new Set(); for (const r of relations) { const succ = byId.get(norm(r.successor_id)); if (!succ) continue; const pred = byId.get(norm(r.predecessor_id)); if (pred && isDone(pred.status)) continue; const key = norm(r.predecessor_id) + '->' + norm(r.successor_id); if (seenRel.has(key)) continue; seenRel.add(key); findings.push({ category: '依赖', kind: '依赖停滞', id: norm(succ.id), desc: '需求「' + norm(succ.name) + '」的前置「' + (pred ? norm(pred.name) : norm(r.predecessor_id) + '（迭代外）') + '」未完成（状态 ' + (pred ? (norm(pred.status) || '-') : '迭代外') + '），后置无法推进', evidence: 'relation pred=' + norm(r.predecessor_id) + ' succ=' + norm(r.successor_id) + ' type=' + (norm(r.relation_type) || '-'), level: '高' }); } for (const s of stories) { if (norm(s.source) !== '') { findings.push({ category: '依赖', kind: '外部依赖', id: norm(s.id), desc: '需求「' + norm(s.name) + '」来源外部（source=' + norm(s.source) + '），交付受外部制约，需跟踪', evidence: 'story ' + norm(s.id) + ' source=' + norm(s.source) + ' owner=' + (norm(s.owner) || '-'), level: '中' }); } } const catCount = {}; for (const f of findings) catCount[f.category] = (catCount[f.category] || 0) + 1; const categorySummary = Object.keys(catCount).map(k => k + ' ' + catCount[k]).join('，'); return { today, total: findings.length, categorySummary, scanned: { tasks: tasks.length, bugs: bugs.length, blocked: blockedCases.length, stories: stories.length, relations: relations.length }, findings }; })()"
+    depends_on: [tasks, bugs, blocked, stories, relations]
+
+report:
+  format: markdown
+  template: |
+    # 风险扫描报告（候选清单 — 输出供人工裁决，本模板零写步骤）
+    - 扫描日期: ${steps.scan.data.today}；迭代: ${vars.iteration_id}
+    - 扫描量: 任务 ${steps.scan.data.scanned.tasks} / 缺陷 ${steps.scan.data.scanned.bugs} / 用例结果 ${steps.scan.data.scanned.blocked} / 需求 ${steps.scan.data.scanned.stories} / 前后置关系 ${steps.scan.data.scanned.relations}（zzz 脏数据已过滤）
+    - 候选风险: ${steps.scan.data.total} 项（${steps.scan.data.categorySummary}）
+
+    ## 候选清单（类别 / 描述 / 证据 / 建议等级）
+    | 类别 | 类型 | 对象 | 描述 | 证据 | 建议等级 |
+    | --- | --- | --- | --- | --- | --- |
+    ${steps.scan.data.findings | rows category,kind,id,desc,evidence,level}
+
+    ## 裁决与去向
+    - 确认要跟踪的候选项 → `tapd pm risk register --iteration <id> --yes --input '{"title":"...","category":"...","probability":"高|中|低","impact":"...","strategy":"...","owner":"...","trigger":"..."}'` 登记为【风险】需求（label=risk）
+    - 阻塞用例为工作区级查询（tapd_get_tcase_result 无迭代维度），请按 test_plan / tcase 上下文人工归位
+    - 建议等级仅为规则初判（高/中），最终等级以人工裁决为准；未确认的候选项不会落库

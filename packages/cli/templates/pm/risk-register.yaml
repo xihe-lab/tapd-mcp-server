@@ -1,0 +1,54 @@
+# 风险登记（S5 / 软考高项第15章 风险管理）
+# 写场景（含写步骤，默认 dry-run 闸门，--yes 确认落库）：
+#   以 tapd_create_story 落一条【风险】需求：name=【风险】<title>、label=risk、迭代关联、
+#   priority_label 按 probability 映射（高/High→High，中/Medium→Middle，低/Low→Low，未知→Middle）。
+#   描述 markdown 由 expr 组装（类别 + 概率×影响 + 触发条件 + 应对策略 + 责任人），经 ${} 注入写步骤。
+# 口径：登记后（label=risk 或名称以【风险】开头）会在范围度量中被剔除（pm scope/quality 模板内置过滤）。
+# 用法: tapd pm risk register --iteration <id> --yes \
+#         --input '{"title":"联调环境不可用","category":"进度","probability":"高","impact":"里程碑延期","strategy":"规避","owner":"alice","trigger":"环境连续 3 天不可用"}'
+name: risk-register
+domain: risk
+title: 风险登记（写：创建【风险】需求 label=risk，登记后会在范围度量中被剔除）
+write: true
+vars:
+  iteration_id: ""
+  title: ""
+  category: ""
+  probability: ""
+  impact: ""
+  strategy: ""
+  owner: ""
+  trigger: ""
+steps:
+  - id: assemble
+    expr: "(() => { const norm = v => String(v === undefined || v === null ? '' : v).trim(); const PMAP = { '高': 'High', 'high': 'High', 'h': 'High', '3': 'High', '中高': 'High', '中': 'Middle', 'medium': 'Middle', 'mid': 'Middle', 'm': 'Middle', '2': 'Middle', '低': 'Low', 'low': 'Low', 'l': 'Low', '1': 'Low' }; const p = norm(vars.probability).toLowerCase(); const priority_label = PMAP[p] || 'Middle'; const lines = ['【风险】' + norm(vars.title), '', '- 类别: ' + (norm(vars.category) || '未分类'), '- 概率×影响: ' + (norm(vars.probability) || '未填') + ' × ' + (norm(vars.impact) || '未填') + '（priority_label=' + priority_label + '）', '- 触发条件: ' + (norm(vars.trigger) || '未填'), '- 应对策略: ' + (norm(vars.strategy) || '未填'), '- 责任人: ' + (norm(vars.owner) || '未指定'), '- 关联迭代: ' + (norm(vars.iteration_id) || '未关联'), '- 登记说明: 由 tapd pm risk register 创建于 ' + today + '；label=risk，范围度量会剔除本项']; return { priority_label, probability: norm(vars.probability) || '未填', description: lines.join('\\n') }; })()"
+
+  # 缺 title / iteration_id 时跳过写步骤（宁可不落库，不产垃圾数据）
+  - id: register
+    uses: tapd_create_story
+    args:
+      name: "【风险】${vars.title}"
+      label: risk
+      iteration_id: "${vars.iteration_id}"
+      priority_label: "${steps.assemble.data.priority_label}"
+      description: "${steps.assemble.data.description}"
+    where: "String(vars.title || '').trim() !== '' && String(vars.iteration_id || '').trim() !== ''"
+    depends_on: [assemble]
+
+  - id: register_status
+    expr: "(() => { const titleOk = String(vars.title || '').trim() !== ''; const iterOk = String(vars.iteration_id || '').trim() !== ''; return { status: titleOk && iterOk ? '写步骤 register 已放行执行（闸门通过），成功时下方为新需求 id' : '写步骤 register 被跳过：缺少必填变量（title / iteration_id），请传 --iteration <id> 并在 --input 提供 title' }; })()"
+    depends_on: [assemble]
+
+report:
+  format: markdown
+  template: |
+    # 风险登记结果（登记后会在范围度量中被剔除 — label=risk）
+    - 目标需求: 【风险】${vars.title}
+    - 迭代: ${vars.iteration_id}；priority_label: ${steps.assemble.data.priority_label}（probability=${steps.assemble.data.probability}）
+    - 状态: ${steps.register_status.data.status}
+    - 新需求 id: ${steps.register.data.id}
+
+    ## 已写入的需求描述（markdown）
+    ${steps.assemble.data.description}
+
+    > 口径说明：登记项带 label=risk（名称以【风险】开头），pm scope/quality 的范围度量会自动剔除；如需撤销请删除该需求或移除 risk 标签。
