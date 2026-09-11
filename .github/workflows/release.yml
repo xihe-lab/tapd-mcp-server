@@ -1,16 +1,16 @@
 # 子仓 Release 流水线：tag 与 GitHub Release 由各子仓独立维护（配置随仓走）
 # 触发：基座 tapd-node cd-release 发布成功后 dispatch（version + sha）；也可手动补历史 tag
-# 校验三重闸：版本一致 / sha 为 ref HEAD / npm 已发布——发布失败的版本绝不打 tag
+# 校验闸：定位发布提交（tag 落在发布时的提交） / 版本一致 / npm 已发布——发布失败的版本绝不打 tag
 name: Release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: '发布版本（须与本仓 package.json 一致）'
+        description: '发布版本（须与发布提交的 package.json 一致）'
         required: true
       sha:
-        description: '发布提交（须为触发 ref 的 HEAD）'
+        description: '发布提交（tag 落点；可早于分支头，用于补历史）'
         required: true
 
 permissions:
@@ -26,16 +26,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 定位发布提交：dispatch 的 sha 可能早于 ref HEAD（手动补历史场景），
+      # tag 必须落在发布时的提交上，而非当前分支头
+      - name: 定位发布提交
+        run: git checkout --detach "${{ inputs.sha }}"
+
       - name: 前置校验
         run: |
           PV=$(node -p "require('./package.json').version")
           NAME=$(node -p "require('./package.json').name")
           if [ "$PV" != "${{ inputs.version }}" ]; then
             echo "::error::版本不一致：package.json=$PV，dispatch=${{ inputs.version }}"
-            exit 1
-          fi
-          if [ "$(git rev-parse HEAD)" != "${{ inputs.sha }}" ]; then
-            echo "::error::sha 非 ref HEAD——子仓已前进，请核对指针"
             exit 1
           fi
           if ! npm view "$NAME@$PV" version >/dev/null 2>&1; then
