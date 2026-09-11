@@ -1,0 +1,41 @@
+# 缺陷分诊（S5 / 软考高项第12章 质量管理）
+# 只读「建议模式」：本模板零写步骤，只产分配建议表；
+#   确认后由人工执行 `tapd bug update <id> --owner <建议归属>`，或由 agent 调 tapd_update_bug 落库。
+# 规则（对齐 templates/triage-bugs.yaml 的写法）：
+#   高严重度（vars.high_severity，默认 "1,2"）→ 建议 te（测试口）复核；
+#   其余未解缺陷 → 按 current_owner 现有未解负载做负载均衡（负载最小者优先）。
+# 用法: tapd pm quality triage --iteration <id>
+name: quality-triage
+domain: quality
+title: 缺陷分诊（建议模式，确认后人工/agent 执行 bug update）
+write: false
+vars:
+  iteration_id: ""
+  high_severity: "1,2"
+steps:
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,title,severity,status,priority_label,current_owner,te,de"
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  - id: triage
+    expr: "(() => { const asArr = v => Array.isArray(v) ? v : []; const norm = v => String(v === undefined || v === null ? '' : v).trim(); const UNRESOLVED = ['closed', 'resolved', 'rejected', 'reject']; const open = asArr(steps.bugs.data).filter(b => !UNRESOLVED.includes(norm(b.status).toLowerCase())); const highs = norm(vars.high_severity).split(',').map(s => s.trim()).filter(Boolean); const isHigh = b => highs.includes(norm(b.severity)); const high = open.filter(isHigh); const rest = open.filter(b => !isHigh(b)); const owners = [...new Set(open.map(b => norm(b.current_owner)).filter(o => o !== ''))]; const load = {}; for (const o of owners) load[o] = 0; for (const b of rest) { const o = norm(b.current_owner); if (load[o] !== undefined) load[o] += 1; } const pickMin = () => { let best = null; for (const o of owners) { if (best === null || load[o] < load[best]) best = o; } return best; }; const plan = []; for (const b of high) { plan.push({ id: norm(b.id), title: norm(b.title), severity: norm(b.severity), priority_label: norm(b.priority_label), current_owner: norm(b.current_owner), suggested: norm(b.te) !== '' ? norm(b.te) : '（te 未指定，请人工确认）', rule: '高严重度→te' }); } for (const b of rest) { const target = owners.length > 0 ? pickMin() : '（无候选处理人，请人工指派）'; if (target !== null && load[target] !== undefined) load[target] += 1; plan.push({ id: norm(b.id), title: norm(b.title), severity: norm(b.severity), priority_label: norm(b.priority_label), current_owner: norm(b.current_owner), suggested: target, rule: '按 current_owner 负载均衡' }); } return { openCount: open.length, highCount: high.length, restCount: rest.length, owners, plan }; })()"
+    depends_on: [bugs]
+
+report:
+  format: markdown
+  template: |
+    # 缺陷分诊（建议模式 — 确认后由人工/agent 执行 bug update，本模板零写步骤）
+    - 迭代: ${vars.iteration_id}
+    - 未解缺陷: ${steps.triage.data.openCount} 个 = 高严重度 ${steps.triage.data.highCount}（建议转 te 复核）+ 其余 ${steps.triage.data.restCount}（按 current_owner 负载均衡）
+    - 候选处理人池: ${steps.triage.data.owners | join}
+
+    ## 分配建议表
+    | id | 标题 | 严重度 | 优先级 | 当前处理人 | 建议归属 | 规则 |
+    | --- | --- | --- | --- | --- | --- | --- |
+    ${steps.triage.data.plan | rows id,title,severity,priority_label,current_owner,suggested,rule}
+
+    > 建议模式说明：本场景只读不落库。确认后请人工执行 `tapd bug update <id> --owner <建议归属>`，或由 agent 调 tapd_update_bug 完成转派。

@@ -1,0 +1,87 @@
+# 质量度量盘（S5 / 软考高项第12章 质量管理）
+# 只读场景（L0 直接执行）：缺陷 severity×status 分布 + 未解清单 + 缺陷密度（保留分母）
+# 可选测试计划进度：pm 默认拿不到 test_plan_id，需经 --input '{"test_plan_id":"..."}' 传入；
+#   未传时跳过该步骤并在报告中注明（不报错）。
+# 用法: tapd pm quality dashboard --iteration <id>
+#   或: tapd pm quality dashboard --input '{"test_plan_id":"1139814312001001234"}'
+name: quality-dashboard
+domain: quality
+title: 质量度量盘（缺陷分布/未解清单/缺陷密度，可选测试计划进度）
+write: false
+vars:
+  iteration_id: ""
+  test_plan_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+    where: "String(vars.iteration_id || '').trim() !== ''"
+
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,title,severity,status,priority_label,current_owner,te,de,deadline"
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  # 范围分母：剔除 zzz 脏数据与【风险】项（label=risk / 名称【风险】前缀，登记后不再计入范围度量）
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,status,owner"
+    filter: "!item.name.startsWith('zzz-delete-me') && !item.name.startsWith('【风险】')"
+
+  - id: test_plan
+    uses: tapd_get_test_plan_progress
+    args:
+      test_plan_id: "${vars.test_plan_id}"
+    where: "String(vars.test_plan_id || '').trim() !== ''"
+
+  - id: open_bugs
+    expr: "(() => { const asArr = v => Array.isArray(v) ? v : []; const norm = s => String(s === undefined || s === null ? '' : s).trim().toLowerCase(); const UNRESOLVED = ['closed', 'resolved', 'rejected', 'reject']; return asArr(steps.bugs.data).filter(b => !UNRESOLVED.includes(norm(b.status))); })()"
+    depends_on: [bugs]
+
+  - id: distribution
+    expr: "(() => { const asArr = v => Array.isArray(v) ? v : []; const norm = v => { const s = String(v === undefined || v === null ? '' : v).trim(); return s === '' ? '-' : s; }; const bugs = asArr(steps.bugs.data); const sevs = [...new Set(bugs.map(b => norm(b.severity)))].sort((a, b) => (Number(a) || 99) - (Number(b) || 99)); const stats = [...new Set(bugs.map(b => norm(b.status)))].sort(); const cell = (sv, st) => bugs.filter(b => norm(b.severity) === sv && norm(b.status) === st).length; const head = '| 严重度 | ' + stats.join(' | ') + ' | 合计 |'; const sep = '| ' + Array(stats.length + 2).fill('---').join(' | ') + ' |'; const rows = sevs.map(sv => '| ' + sv + ' | ' + stats.map(st => cell(sv, st)).join(' | ') + ' | ' + bugs.filter(b => norm(b.severity) === sv).length + ' |'); const bySeverity = {}; const byStatus = {}; for (const b of bugs) { bySeverity[norm(b.severity)] = (bySeverity[norm(b.severity)] || 0) + 1; byStatus[norm(b.status)] = (byStatus[norm(b.status)] || 0) + 1; } return { total: bugs.length, sevs, stats, bySeverity, byStatus, matrixTable: [head, sep].concat(rows).join('\\n') }; })()"
+    depends_on: [bugs, open_bugs]
+
+  - id: stats
+    expr: "(() => { const total = steps.distribution.data.total; const open = steps.open_bugs.data.length; const stories = steps.stories.data.length; return { total, open, stories, densityText: stories > 0 ? (total + '/' + stories) : (total + '/0（需求分母为 0，密度无意义）'), densityNum: stories > 0 ? Math.round((total / stories) * 100) / 100 : null }; })()"
+    depends_on: [distribution, stories]
+
+  # 注意：依赖声明用 bugs（wave 0）而非 iteration —— iteration 可能被 where 跳过，
+  # 依赖被跳过步骤会连锁跳过；挂到下一波次可确定性读取 steps.iteration 的最终状态。
+  - id: header
+    expr: "(() => { const list = steps.iteration && Array.isArray(steps.iteration.data) ? steps.iteration.data : []; const it = list[0]; return { name: it ? it.name : '（未识别迭代，请检查 --iteration）', range: it ? ((it.startdate || '-') + ' ~ ' + (it.enddate || '-')) : '-' }; })()"
+    depends_on: [bugs]
+
+  # 注意：test_plan 可能被 where 跳过（未传 test_plan_id），直接依赖它会连锁跳过；
+  # 挂到 stats（必然后于 wave 0 的 test_plan）之后，可确定性读取其执行/跳过状态。
+  - id: testplan_note
+    expr: "(() => { const tp = steps.test_plan; if (!tp || tp.data === undefined || tp.data === null) return '未提供 vars.test_plan_id（示例 --input {\"test_plan_id\":\"1139...\"}），已跳过测试计划执行进度。'; return '测试计划执行进度（原始返回）:\\n' + (typeof tp.data === 'string' ? tp.data : JSON.stringify(tp.data, null, 2)); })()"
+    depends_on: [stats]
+
+report:
+  format: markdown
+  template: |
+    # 质量度量盘 — ${steps.header.data.name}
+    - 迭代区间: ${steps.header.data.range}
+    - 缺陷: 全量 ${steps.stats.data.total}，未解 ${steps.stats.data.open}
+    - 需求（范围分母，已剔除 zzz 脏数据与【风险】项）: ${steps.stats.data.stories}
+    - 缺陷密度（有效缺陷/需求，保留分母）: ${steps.stats.data.densityText}
+
+    ## severity × status 分布
+    ${steps.distribution.data.matrixTable}
+
+    ## 未解缺陷清单（${steps.open_bugs.data | length}）
+    | id | 标题 | 严重度 | 状态 | 处理人 | 解决截止 |
+    | --- | --- | --- | --- | --- | --- |
+    ${steps.open_bugs.data | rows id,title,severity,status,current_owner,deadline}
+
+    ## 测试计划执行进度
+    ${steps.testplan_note.data}
