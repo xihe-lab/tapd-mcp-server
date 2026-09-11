@@ -149,6 +149,9 @@ jobs:
       - name: Publish target packages
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
         run: |
+          # Trusted Publishing 专用通道：任何残留 token（如环境 secret NODE_AUTH_TOKEN）都会
+          # 让 npm 放弃 OIDC 改走 token 认证，导致登记之外的包 404——强制清空，走纯 OIDC
+          unset NODE_AUTH_TOKEN NPM_TOKEN
           VERSION='${{ steps.version.outputs.version }}'
           # prerelease 版本（含 -rc.x 等）必须打 rc 标签，严禁抢占 latest（latest = 稳定线）
           if [[ "$VERSION" == *-* ]]; then
