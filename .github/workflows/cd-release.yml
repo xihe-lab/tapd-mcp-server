@@ -14,6 +14,11 @@ on:
         description: '发布成功后同步 main（fast-forward 合并）'
         type: boolean
         default: false
+      targets:
+        description: '发布目标包（monorepo 阶段三包同版本号；push releases/** 默认 all）'
+        type: choice
+        options: [all, mcp, core, cli]
+        default: all
 
 # 同一时间只允许一个发布运行
 concurrency:
@@ -75,25 +80,50 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Verify version matches packages/mcp
+      # 目标包解析：push 事件无 inputs → all；dispatch 按选择
+      - name: Resolve targets
+        id: targets
+        run: |
+          T='${{ inputs.targets }}'
+          [ -z "$T" ] && T='all'
+          echo "targets=$T" >> "$GITHUB_OUTPUT"
+          case "$T" in
+            all) DIRS="packages/mcp packages/core packages/cli" ;;
+            mcp) DIRS="packages/mcp" ;;
+            core) DIRS="packages/core" ;;
+            cli) DIRS="packages/cli" ;;
+          esac
+          echo "dirs=$DIRS" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches target packages
         run: |
           BRANCH_VERSION='${{ steps.version.outputs.version }}'
-          PACKAGE_VERSION=$(node -p "require('./packages/mcp/package.json').version")
-          if [ "$BRANCH_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "::error::Branch version ($BRANCH_VERSION) != packages/mcp version ($PACKAGE_VERSION)"
-            exit 1
-          fi
+          for d in ${{ steps.targets.outputs.dirs }}; do
+            PV=$(node -p "require('./$d/package.json').version")
+            if [ "$BRANCH_VERSION" != "$PV" ]; then
+              echo "::error::Branch version ($BRANCH_VERSION) != $d version ($PV)"
+              exit 1
+            fi
+          done
+          echo "✓ 目标包版本一致: ${{ steps.targets.outputs.targets }}"
 
-      - name: Check if version already published
+      - name: Check unpublished packages
         id: check
         run: |
           VERSION='${{ steps.version.outputs.version }}'
-          if npm view @xihe-lab/tapd-mcp-server@$VERSION version 2>/dev/null; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Version $VERSION already published, skipping"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
+          TODO=""
+          for d in ${{ steps.targets.outputs.dirs }}; do
+            NAME=$(node -p "require('./$d/package.json').name")
+            if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+              echo "::notice::$NAME@$VERSION 已发布，跳过"
+            else
+              TODO="$TODO $d"
+            fi
+          done
+          {
+            echo "todo_dirs=${TODO# }"
+            echo "published=$([ -z "$TODO" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Generate changelog
         if: steps.check.outputs.published == 'false'
@@ -115,11 +145,14 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # npm Trusted Publishing：无任何 token，GitHub OIDC 直接向 npm 证明身份
-      #（前提：npmjs.com 包设置里已登记本仓库 + release.yml 为 Trusted Publisher）
-      - name: Publish to npm（monorepo：仅 mcp 包；core/cli 手动线另行发布）
+      #（前提：每个包在 npmjs.com 分别登记本仓库 + cd-release.yml 为 Trusted Publisher）
+      - name: Publish target packages
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
-        working-directory: packages/mcp
-        run: npm publish --access public --provenance
+        run: |
+          for d in ${{ steps.check.outputs.todo_dirs }}; do
+            echo "── 发布 $d ──"
+            (cd "$d" && npm publish --access public --provenance) || exit 1
+          done
 
       # 顺序约定：① npm 发布成功 → ② 打附注 tag → ③ GitHub Release 挂到该 tag → ④（可选）同步 main
       # tag 是发布成功的产物（发布失败不打 tag）；Release 挂在既有 tag 上，避免双重创建
