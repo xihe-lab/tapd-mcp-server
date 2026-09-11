@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.2] - 2026-09-12
+
+### Added
+
+- **pm 管理语义层**（软考高项知识域 × 人机协作）：`tapd pm` 命令组八域 15 场景（整合/范围/进度/成本/质量/风险/沟通/干系人），模板即 pipeline，写场景统一闸门（TAPD 1539-1545）
+- **pipeline 研发流编排引擎**：`tapd pipeline run/validate/record`，波次并发、事件流、dry-run（TAPD 1539）
+- **advisor 域轴 + 角色轴**：`--persona dev|qa|pm` 意图路由，高项知识域关键词索引（TAPD 1545）
+- **附件协作闭环**：`tapd_upload_attachment`（实体绑定+embed_html）/ `tapd_download_attachment`（/attachments/down 签名 URL + sha1 落盘）/ `tapd_attach_external_file`；评论与描述内嵌文件（data 五件套锚点）（TAPD 1546）
+- **图片闭环**：`tapd_upload_image` + `tapd_md_to_html --upload-images` 本地图自动上传（/tfl/ 读写双向）（TAPD 1547）
+- **@ 提及与保真管道**：`@昵称` md 语法 ↔ at-who 角标（服务端通知实证）、`[📎 name](attach:ws/id)` 附件引用、写工具 `raw_html` 直发旁路（TAPD 1548）
+- **GitHub 自动化体系**：CI 场景路由（core/cli/mcp/meta 路径触发）、CD 三包 Trusted Publishing（OIDC 免令牌 + prerelease dist-tag 防护）、labeler/triage/stale/dependabot
+
+### Fixed
+
+- pipeline `unwrap` 模板级解包 TAPD 包裹形态（{Story:{...}} 拍平，真机 L2 冒烟发现）
+- 显式 `--dry-run` 豁免写闸门（预览即结果 exit 0）
+- risk-scan 两路改 opt-in 门控（tcase_result/time_relative 需实体级参数）
+- 1.x 附件下载 OAuth 403 回流修复（/attachments/documents_down → /attachments/down，另见 v1.4.4）
+
 ## [2.0.0-rc.1] - 2026-09-04
 
 ### Fixed

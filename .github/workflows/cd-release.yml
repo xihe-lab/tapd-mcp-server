@@ -149,9 +149,18 @@ jobs:
       - name: Publish target packages
         if: steps.check.outputs.published == 'false' && inputs.dry_run != true
         run: |
+          VERSION='${{ steps.version.outputs.version }}'
+          # prerelease 版本（含 -rc.x 等）必须打 rc 标签，严禁抢占 latest（latest = 稳定线）
+          if [[ "$VERSION" == *-* ]]; then
+            DIST_TAG="--tag rc"
+            echo "/dist-tag: $DIST_TAG（prerelease）"
+          else
+            DIST_TAG=""
+            echo "/dist-tag: latest（正式版）"
+          fi
           for d in ${{ steps.check.outputs.todo_dirs }}; do
             echo "── 发布 $d ──"
-            (cd "$d" && npm publish --access public --provenance) || exit 1
+            (cd "$d" && npm publish --access public --provenance $DIST_TAG) || exit 1
           done
 
       # 顺序约定：① npm 发布成功 → ② 打附注 tag → ③ GitHub Release 挂到该 tag → ④（可选）同步 main

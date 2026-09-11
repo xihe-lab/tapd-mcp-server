@@ -1,6 +1,6 @@
 {
   "name": "@xihe-lab/tapd-core",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.2",
   "description": "Shared kernel for TAPD tools: tool definitions, TapdClient and registry, shared by CLI and MCP entries",
   "type": "module",
   "main": "dist/index.js",
