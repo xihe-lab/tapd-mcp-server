@@ -47,7 +47,10 @@ export const attachmentTools: ToolDef[] = [
   },
   {
     name: 'tapd_get_attachment_download_url',
-    description: 'Get download URL for a single attachment (valid for 300s)',
+    description:
+      'Get download URL for a single attachment. Returns the Attachment object whose download_url field ' +
+      'is a signed file.tapd.cn URL (valid for a limited period). Works with ordinary read scope ' +
+      '(attachment#r) on OAuth; no extra permission needed.',
     inputSchema: z.object({
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().describe('Attachment ID (required)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
@@ -58,7 +61,10 @@ export const attachmentTools: ToolDef[] = [
       if (!workspaceId) {
         throw new Error('workspace_id is required (either provide it or set TAPD_DEFAULT_WORKSPACE_ID env)');
       }
-      return client.get('/attachments/documents_down', { ...params, workspace_id: workspaceId });
+      // 1.4.4 修复：原 /attachments/documents_down 端点需要额外权限（attachments::documents_down），
+      // 普通 OAuth token 一律 403；改走 /attachments/down（attachment#r 即可），返回体 Attachment.download_url
+      // 即签名下载地址。参数签名与工具名保持不变（向后兼容）。
+      return client.get('/attachments/down', { workspace_id: workspaceId, id: params.id });
     },
   },
   // Mini (轻协作) API attachment tools

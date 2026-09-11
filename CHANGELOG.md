@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2026-09-11
+
+### Fixed
+
+- 附件下载 URL 工具修复（`tapd_get_attachment_download_url`）：
+  - 原实现调用 `GET /attachments/documents_down`，该端点需要 `attachments::documents_down` 权限，普通 OAuth token 一律 403（v1.5.0 失败分析中记录的权限受限 API）
+  - 改走 `GET /attachments/down`（普通读权限 `attachment#r` 即可），返回体 `Attachment.download_url` 即签名下载地址（file.tapd.cn，限时有效）
+  - 工具名与参数签名保持不变（向后兼容）；`filename` 参数保留但不再必传给端点
+  - 真机验证：OAuth token 获取 URL → fetch 字节 → 与上传内容 sha1 一致（62B 样本）
+
 ## [1.4.3] - 2026-09-04
 
 ### Fixed
