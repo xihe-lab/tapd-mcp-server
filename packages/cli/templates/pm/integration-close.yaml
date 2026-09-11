@@ -1,0 +1,117 @@
+# 结项检查与关闭（写场景）—— 整合管理（软考高项第4版 第8章）
+# 场景: tapd pm integration close
+# ⚠ 请先读 dry-run 报告确认无未完成项再加 --yes（不加 --yes 时本模板被写闸门拦截，只出检查报告预览）
+# 编排: 只读扫描（迭代内未完成需求/任务清单）→ 结项检查报告 → tapd_update_iteration(status=done)
+# 口径: 完成态 = resolved/closed/done 或已填 completed；任务完成态 = done；列表过滤 zzz-delete-me*
+name: integration-close
+domain: integration
+title: 结项检查与关闭（写场景：请先读 dry-run 报告确认无未完成项再加 --yes，软考第8章）
+write: true
+vars:
+  iteration_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # ---- 只读扫描段（波次 1，并发）----
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,completed"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,due"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: scan
+    expr: >-
+      (() => {
+      const stories = steps.stories.data || [];
+      const tasks = steps.tasks.data || [];
+      const it = (steps.iteration.data && steps.iteration.data[0]) || {};
+      const DONE = ['resolved', 'closed', 'done'];
+      const isDoneStory = x => DONE.indexOf(String(x.status || '').toLowerCase()) >= 0 || Boolean(x.completed);
+      const openStories = stories.filter(x => !isDoneStory(x));
+      const openTasks = tasks.filter(x => String(x.status || '').toLowerCase() !== 'done');
+      const blockers = openStories.length + openTasks.length;
+      return {
+      itName: it.name || '（未找到迭代，请检查 --iteration）',
+      itRange: (it.startdate || '?') + ' ~ ' + (it.enddate || '?'),
+      storyTotal: stories.length,
+      openStoryCount: openStories.length,
+      openStoryRows: openStories.length > 0
+      ? openStories.map(x => ({ id: x.id, name: x.name, owner: x.owner, status: x.status }))
+      : [{ id: '-', name: '（无未完成需求）', owner: '-', status: '-' }],
+      taskTotal: tasks.length,
+      openTaskCount: openTasks.length,
+      openTaskRows: openTasks.length > 0
+      ? openTasks.map(x => ({ id: x.id, name: x.name, owner: x.owner, status: x.status }))
+      : [{ id: '-', name: '（无未完成任务）', owner: '-', status: '-' }],
+      blockers: blockers,
+      verdict: blockers === 0 ? '无未完成项，可结项' : '存在 ' + blockers + ' 个未完成项——请勿加 --yes，先处理或移交',
+      };
+      })()
+    depends_on: [iteration, stories, tasks]
+
+  # ---- 写步骤（双保险：无 --yes 时被写闸门拦截；--yes 后仍由扫描结果门控——
+  #      还有未完成项（blockers>0）时 where 为假，写步骤跳过不落库）----
+  - id: close
+    uses: tapd_update_iteration
+    args:
+      id: "${vars.iteration_id}"
+      status: done
+    where: "steps.scan.data.blockers === 0"
+    depends_on: [scan]
+
+  - id: close_ref
+    expr: >-
+      (() => {
+      const r = steps.close.data || {};
+      const inner = r.Iteration || r.iteration || r;
+      return {
+      id: String(inner.id || vars.iteration_id),
+      closeLine: '已执行，迭代 ' + (inner.id || vars.iteration_id) + ' 现状态: ' + (inner.status || 'done'),
+      };
+      })()
+    depends_on: [close]
+
+report:
+  format: markdown
+  template: |
+    # 结项检查报告 — ${steps.scan.data.itName}
+
+    - 迭代: ${steps.scan.data.itRange}（id=${vars.iteration_id}）
+    - 扫描结论: ${steps.scan.data.verdict}
+    - 需求: 共 ${steps.scan.data.storyTotal} 项，未完成 ${steps.scan.data.openStoryCount}
+    - 任务: 共 ${steps.scan.data.taskTotal} 个，未完成 ${steps.scan.data.openTaskCount}
+
+    > ⚠ 本场景含写步骤 tapd_update_iteration(status=done)。请先读 dry-run 计划与扫描结论
+    > 确认无未完成项再加 --yes；双保险：不加 --yes 时写闸门拦截（仅计划预览），
+    > 加了 --yes 但扫描仍有未完成项时，写步骤按 where 门控自动跳过，不落库。
+
+    ## 未完成需求（${steps.scan.data.openStoryCount} 项）
+
+    | id | 名称 | 处理人 | 状态 |
+    | ---- | ---- | ---- | ---- |
+    ${steps.scan.data.openStoryRows | rows id,name,owner,status}
+
+    ## 未完成任务（${steps.scan.data.openTaskCount} 个）
+
+    | id | 名称 | 处理人 | 状态 |
+    | ---- | ---- | ---- | ---- |
+    ${steps.scan.data.openTaskRows | rows id,name,owner,status}
+
+    ## 关闭结果
+
+    - tapd_update_iteration(id=${vars.iteration_id}, status=done)：${steps.close_ref.data.closeLine}

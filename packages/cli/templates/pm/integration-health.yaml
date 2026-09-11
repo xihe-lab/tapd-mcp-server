@@ -1,0 +1,154 @@
+# 迭代健康盘（纯只读，L0 直接执行）—— 整合管理（软考高项第4版 第8章）
+# 场景: tapd pm integration health
+#   ≡ tapd pipeline run templates/pm/integration-health.yaml --iteration <id>
+# 口径:
+#   时间消耗% = (今天-开始)/(结束-开始)，截断到 [0,100]
+#   完成度%   = 已完成需求占比，分母剔除风险项（label 含 risk 或名称以【风险】开头）
+#               完成态 = resolved/closed/done（resolved+end，兼容常见工作流别名）
+#   红旗     = 时间-完成偏差>20% / 逾期任务 / 未解缺陷 / 迭代到期仍有未完成需求
+#   一切比率保留分母（如 8/15），迭代/需求/任务/缺陷列表均过滤 zzz-delete-me*
+name: integration-health
+domain: integration
+title: 迭代健康盘（时间%vs完成度%对比 + 红旗清单，软考第8章）
+write: false
+vars:
+  iteration_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,priority_label,label,completed"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,due,progress"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: bugs
+    uses: tapd_get_bugs
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,title,severity,current_owner,status"
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  # 聚合：本地计算，不触 API。dayNum 为纯 JS 民用日序数（沙箱无 Date，只许 Math/String）
+  - id: health
+    expr: >-
+      (() => {
+      const stories = steps.stories.data || [];
+      const tasks = steps.tasks.data || [];
+      const bugs = steps.bugs.data || [];
+      const it = (steps.iteration.data && steps.iteration.data[0]) || {};
+      const dayNum = s => {
+      const p = String(s || '').split('-').map(Number);
+      if (p.length !== 3 || p.some(x => Number.isNaN(x))) return null;
+      const m = p[1];
+      const d = p[2];
+      const yy = m <= 2 ? p[0] - 1 : p[0];
+      const era = Math.floor(yy / 400);
+      const yoe = yy - era * 400;
+      const mp = (m + 9) % 12;
+      const doy = Math.floor((153 * mp + 2) / 5) + d - 1;
+      const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+      return era * 146097 + doe - 719468;
+      };
+      const t = dayNum(today);
+      const s0 = dayNum(it.startdate);
+      const e0 = dayNum(it.enddate);
+      let timePct = null;
+      if (s0 !== null && e0 !== null && e0 > s0) {
+      timePct = Math.round(Math.min(Math.max((t - s0) / (e0 - s0), 0), 1) * 100);
+      }
+      const DONE = ['resolved', 'closed', 'done'];
+      const BUG_CLOSED = ['resolved', 'verified', 'closed', 'rejected'];
+      const isRisk = x => String(x.label || '').indexOf('risk') >= 0 || String(x.name || '').indexOf('【风险】') === 0;
+      const isDone = x => DONE.indexOf(String(x.status || '').toLowerCase()) >= 0 || Boolean(x.completed);
+      const scope = stories.filter(x => !isRisk(x));
+      const doneList = scope.filter(isDone);
+      const donePct = scope.length > 0 ? Math.round(doneList.length / scope.length * 100) : null;
+      const overdue = tasks.filter(x => x.due && String(x.due).slice(0, 10) < today && String(x.status || '').toLowerCase() !== 'done');
+      const openBugs = bugs.filter(x => BUG_CLOSED.indexOf(String(x.status || '').toLowerCase()) < 0);
+      const notDone = scope.filter(x => !isDone(x));
+      const flags = [];
+      if (timePct !== null && donePct !== null && timePct - donePct > 20) {
+      flags.push({ item: '进度滞后', detail: '时间消耗 ' + timePct + '% 高于完成度 ' + donePct + '%（偏差 ' + (timePct - donePct) + 'pp，阈值 20%）' });
+      }
+      if (overdue.length > 0) {
+      flags.push({ item: '逾期任务', detail: overdue.length + '/' + tasks.length + ' 个任务逾期未完（如 #' + overdue[0].id + ' ' + overdue[0].name + '）' });
+      }
+      if (openBugs.length > 0) {
+      flags.push({ item: '未解缺陷', detail: '未解决缺陷 ' + openBugs.length + '/' + bugs.length + ' 个（sev1=' + openBugs.filter(b => String(b.severity) === '1').length + '）' });
+      }
+      if (e0 !== null && t > e0 && notDone.length > 0) {
+      flags.push({ item: '到期未完', detail: '迭代已于 ' + it.enddate + ' 到期，仍有 ' + notDone.length + ' 个需求未完成' });
+      }
+      let timeDisplay = '迭代缺少起止日期，无法计算';
+      if (timePct !== null) {
+      const tail = e0 !== null && t > e0 ? '已超期 ' + (t - e0) + ' 天' : '距结束还剩 ' + (e0 - t) + ' 天';
+      timeDisplay = timePct + '%（' + tail + '）';
+      }
+      const riskCount = stories.length - scope.length;
+      const realFlags = flags.slice();
+      if (realFlags.length === 0) flags.push({ item: '-', detail: '无红旗（时间/任务/缺陷/到期四路扫描均通过）' });
+      return {
+      itName: it.name || '（未找到迭代，请检查 --iteration）',
+      itRange: (it.startdate || '?') + ' ~ ' + (it.enddate || '?'),
+      itStatus: it.status || '?',
+      today: today,
+      statusLabel: realFlags.length === 0 ? '绿（健康）' : '红（' + realFlags.length + ' 项红旗）',
+      timeDisplay: timeDisplay,
+      doneDisplay: donePct === null ? '无有效需求范围' : doneList.length + '/' + scope.length + '（' + donePct + '%）',
+      riskNote: '分母剔除风险项 ' + riskCount + ' 个：label 含 risk 或名称以【风险】开头',
+      storyLine: stories.length + ' 项（范围口径 ' + scope.length + '）',
+      taskLine: tasks.length + ' 个（逾期 ' + overdue.length + '）',
+      bugLine: bugs.length + ' 个（未解决 ' + openBugs.length + '）',
+      flagSummary: realFlags.length === 0 ? '无' : realFlags.length + ' 项，见下表',
+      flags: flags,
+      notDoneCount: notDone.length,
+      notDoneRows: notDone.length > 0
+      ? notDone.map(x => ({ id: x.id, name: x.name, owner: x.owner, status: x.status }))
+      : [{ id: '-', name: '（范围内需求已全部完成）', owner: '-', status: '-' }],
+      };
+      })()
+    depends_on: [iteration, stories, tasks, bugs]
+
+report:
+  format: markdown
+  template: |
+    # 迭代健康盘 — ${steps.health.data.itName}
+
+    - 迭代: ${steps.health.data.itRange}（status=${steps.health.data.itStatus}）
+    - 报告日期: ${steps.health.data.today}｜总体状态: ${steps.health.data.statusLabel}
+    - 时间消耗: ${steps.health.data.timeDisplay}
+    - 完成度: ${steps.health.data.doneDisplay}（${steps.health.data.riskNote}）
+    - 需求: ${steps.health.data.storyLine}｜任务: ${steps.health.data.taskLine}｜缺陷: ${steps.health.data.bugLine}
+    - 红旗: ${steps.health.data.flagSummary}
+
+    ## 红旗清单
+
+    | 类别 | 说明 |
+    | ---- | ---- |
+    ${steps.health.data.flags | rows item,detail}
+
+    ## 未完成需求（范围口径 ${steps.health.data.notDoneCount} 项）
+
+    | id | 名称 | 处理人 | 状态 |
+    | ---- | ---- | ---- | ---- |
+    ${steps.health.data.notDoneRows | rows id,name,owner,status}
+
+    > 口径脚注（对齐 tapd-pm skill 11-performance 剧本A）：完成度只统计范围口径
+    > （剔除 label 含 risk / 名称【风险】前缀）；完成态 = resolved+end；比率均保留分母。

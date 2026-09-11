@@ -1,0 +1,93 @@
+# 项目启动骨架（写场景：默认 dry-run 闸门预览，--yes 确认后依次落库）—— 整合管理（软考高项第4版 第8章）
+# 场景: tapd pm integration kickoff
+#   --input '{"project_name":"XX系统","startdate":"2026-09-11","enddate":"2026-10-11","wiki_content":"# 章程正文(md)"}' --yes
+# 编排（3 个写步骤串行）: tapd_create_wiki(章程) → tapd_create_iteration(首迭代)
+#   → tapd_create_release(发布计划；TAPD 发布计划无原生迭代关联字段，
+#     依赖前步产出的迭代 ID 经 ${steps...} 记录进 description)
+# 本地 expr 步骤只做创建结果形态归一（Iteration/Wiki/Release 包裹兼容），不触 API
+name: integration-kickoff
+domain: integration
+title: 项目启动骨架（章程 wiki + 首迭代 + 发布计划三步落库，软考第8章）
+write: true
+vars:
+  project_name: "未命名项目"
+  startdate: ""
+  enddate: ""
+  wiki_content: ""
+steps:
+  # 写步骤 1/3：项目章程 wiki（markdown 正文）
+  - id: charter
+    uses: tapd_create_wiki
+    args:
+      name: "${vars.project_name} 项目章程"
+      markdown_description: "${vars.wiki_content}"
+      note: "由 tapd pm integration kickoff 生成；项目周期 ${vars.startdate} ~ ${vars.enddate}"
+
+  - id: charter_ref
+    expr: >-
+      (() => {
+      const w = steps.charter.data || {};
+      const inner = w.Wiki || w.wiki || w;
+      return { id: String(inner.id || ''), title: inner.name || '' };
+      })()
+    depends_on: [charter]
+
+  # 写步骤 2/3：首迭代（open）
+  - id: new_iteration
+    uses: tapd_create_iteration
+    args:
+      name: "${vars.project_name} 首迭代"
+      startdate: "${vars.startdate}"
+      enddate: "${vars.enddate}"
+      status: open
+      description: "项目启动骨架创建；章程 wiki#${steps.charter_ref.data.id} ${steps.charter_ref.data.title}"
+    depends_on: [charter_ref]
+
+  - id: iteration_ref
+    expr: >-
+      (() => {
+      const r = steps.new_iteration.data || {};
+      const inner = r.Iteration || r.iteration || r;
+      return { id: String(inner.id || ''), name: inner.name || '' };
+      })()
+    depends_on: [new_iteration]
+
+  # 写步骤 3/3：发布计划（迭代 ID 以描述记录：tapd_create_release 无迭代关联字段）
+  - id: release
+    uses: tapd_create_release
+    args:
+      name: "${vars.project_name} 首发布计划"
+      start_date: "${vars.startdate}"
+      end_date: "${vars.enddate}"
+      release_date: "${vars.enddate}"
+      description: "由 pm integration kickoff 创建；关联首迭代 ${steps.iteration_ref.data.name}（id=${steps.iteration_ref.data.id}）"
+    depends_on: [iteration_ref]
+
+  - id: summary
+    expr: >-
+      (() => {
+      const r = steps.release.data || {};
+      const inner = r.Release || r.release || r;
+      return {
+      range: (vars.startdate || '?') + ' ~ ' + (vars.enddate || '?'),
+      wikiId: steps.charter_ref.data.id,
+      wikiTitle: steps.charter_ref.data.title,
+      iterationId: steps.iteration_ref.data.id,
+      iterationName: steps.iteration_ref.data.name,
+      releaseId: String(inner.id || ''),
+      };
+      })()
+    depends_on: [release]
+
+report:
+  format: markdown
+  template: |
+    # 项目启动骨架已创建 — ${vars.project_name}
+
+    - 项目周期: ${steps.summary.data.range}
+    - 章程 wiki: ${steps.summary.data.wikiTitle}（wiki#${steps.summary.data.wikiId}）
+    - 首迭代: ${steps.summary.data.iterationName}（id=${steps.summary.data.iterationId}）
+    - 发布计划: ${steps.summary.data.releaseId}
+
+    > 本场景含 3 个写步骤（wiki create → iteration create → release create，串行依赖）。
+    > 不加 --yes 时仅输出计划预览不落库；后续用 `tapd pm scope baseline` 冻结范围基线。

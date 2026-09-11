@@ -1,0 +1,92 @@
+# 范围基线冻结（写场景：需求快照写入 TAPD 项目基线）—— 范围管理（软考高项第4版 第9章）
+# 场景: tapd pm scope baseline
+#   [--input '{"iteration_name":"自定义名(缺省取迭代名)"}'] --yes
+# 编排: 拉当前迭代需求快照(id/name/status/priority/label) → expr 摘要（含剔除风险项口径）
+#   → tapd_add_baseline(name=<迭代名>-基线-<今天>, baseline_date=今天(经 expr 计算), description=快照 JSON)
+# 口径: 快照过滤 zzz-delete-me*；度量分母剔除风险项（label 含 risk 或名称以【风险】开头），
+#   但快照本体全量入基线（冻结的是完整范围，风险项也是范围）
+name: scope-baseline
+domain: scope
+title: 范围基线冻结（当前迭代需求快照 → 项目基线，软考第9章）
+write: true
+vars:
+  iteration_id: ""
+  iteration_name: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # 快照（只读，波次 1 与 iteration 并发）
+  - id: snapshot
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,status,priority,label"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # 摘要 + 快照单行 JSON（供基线 description 落库）
+  - id: summary
+    expr: >-
+      (() => {
+      const rows = steps.snapshot.data || [];
+      const isRisk = x => String(x.label || '').indexOf('risk') >= 0 || String(x.name || '').indexOf('【风险】') === 0;
+      const scope = rows.filter(x => !isRisk(x));
+      const byStatus = {};
+      rows.forEach(x => {
+      const k = String(x.status || 'unknown');
+      byStatus[k] = (byStatus[k] || 0) + 1;
+      });
+      const statusRows = Object.keys(byStatus).sort().map(k => ({ status: k, count: byStatus[k] }));
+      return {
+      total: rows.length,
+      scopeTotal: scope.length,
+      riskExcluded: rows.length - scope.length,
+      statusLine: statusRows.map(r => r.status + '=' + r.count).join('，') || '（空）',
+      statusRows: statusRows,
+      snapshotJson: JSON.stringify(rows),
+      };
+      })()
+    depends_on: [snapshot]
+
+  # 基线名与基线日期（日期 = 今天，经 expr 计算生成）
+  - id: freeze_meta
+    expr: >-
+      (() => {
+      const it = (steps.iteration.data && steps.iteration.data[0]) || {};
+      const itName = it.name || vars.iteration_name || '未命名迭代';
+      return { itName: itName, name: itName + '-基线-' + today, date: today };
+      })()
+    depends_on: [iteration]
+
+  # 写步骤：冻结基线
+  - id: freeze
+    uses: tapd_add_baseline
+    args:
+      name: "${steps.freeze_meta.data.name}"
+      baseline_date: "${steps.freeze_meta.data.date}"
+      description: "范围基线快照（迭代 ${steps.freeze_meta.data.itName}，共 ${steps.summary.data.total} 项，剔除风险项后 ${steps.summary.data.scopeTotal} 项）｜快照JSON：${steps.summary.data.snapshotJson}"
+    depends_on: [snapshot, summary, freeze_meta]
+
+report:
+  format: markdown
+  template: |
+    # 范围基线已冻结 — ${steps.freeze_meta.data.name}
+
+    - 基线名称: ${steps.freeze_meta.data.name}
+    - 基线日期: ${steps.freeze_meta.data.date}（快照时点，expr 计算）
+    - 覆盖迭代: ${steps.freeze_meta.data.itName}
+    - 快照规模: ${steps.summary.data.total} 项需求（剔除风险项 ${steps.summary.data.riskExcluded} 后，范围口径 ${steps.summary.data.scopeTotal} 项）
+    - 状态分布: ${steps.summary.data.statusLine}
+
+    > 后续用 `tapd pm scope drift-check --input '{"baseline_date":"${steps.freeze_meta.data.date}"}'` 检测范围蔓延。
+
+    ## 需求快照（${steps.summary.data.total} 项）
+
+    | id | 名称 | 状态 | 优先级 |
+    | ---- | ---- | ---- | ---- |
+    ${steps.snapshot.data | rows id,name,status,priority}

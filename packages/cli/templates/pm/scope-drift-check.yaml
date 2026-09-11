@@ -1,0 +1,128 @@
+# 范围蔓延检测（纯只读，L0 直接执行）—— 范围管理（软考高项第4版 第9章）
+# 场景: tapd pm scope drift-check
+#   --input '{"baseline_date":"2026-09-01"}' [--iteration <id>]
+# 编排三路只读拉取（并发）:
+#   tapd_get_story_changes(limit=200, created>=基线)   —— 注意: 该工具 schema 不含 created
+#     参数（传了会在静态校验报错且运行期被丢弃），故拉最近 200 条按 created desc 排序后
+#     在 filter 里做 created>=baseline_date 的本地过滤（字符串日期前缀比较成立）
+#   tapd_get_stories(当前迭代)                          —— 新增清单 = created>=基线
+#   tapd_get_removed_stories(limit=200, deleted>=基线)  —— 同理本地过滤 deleted
+# 产出: 新增/字段变更/移除三清单 + 范围口径结论（剔除风险项：label 含 risk 或名称以【风险】开头）
+# 口径: 需求/回收站列表过滤 zzz-delete-me*；比率与清单计数保留分母
+name: scope-drift-check
+domain: scope
+title: 范围蔓延检测（对比基线：新增/字段变更/移除三清单，软考第9章）
+write: false
+vars:
+  iteration_id: ""
+  baseline_date: ""
+steps:
+  - id: changes
+    uses: tapd_get_story_changes
+    args:
+      limit: 200
+      order: "created desc"
+      fields: "id,story_id,field,value_before,value_after,author,created"
+    filter: "!vars.baseline_date || String(item.created || '').slice(0, 10) >= vars.baseline_date"
+
+  - id: current
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      limit: 200
+      fields: "id,name,owner,status,label,created"
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: removed
+    uses: tapd_get_removed_stories
+    args:
+      limit: 200
+      fields: "id,name,owner,creator,deleted"
+    filter: "String(item.name || '').startsWith('zzz-delete-me') === false && (!vars.baseline_date || String(item.deleted || '').slice(0, 10) >= vars.baseline_date)"
+
+  - id: drift
+    expr: >-
+      (() => {
+      const cur = steps.current.data || [];
+      const chs = steps.changes.data || [];
+      const rem = steps.removed.data || [];
+      const bd = String(vars.baseline_date || '');
+      const byId = {};
+      cur.forEach(s => { byId[String(s.id)] = s; });
+      const isRisk = s => String(s.label || '').indexOf('risk') >= 0 || String(s.name || '').indexOf('【风险】') === 0;
+      const riskCount = cur.filter(isRisk).length;
+      const addedAll = cur.filter(s => !bd || String(s.created || '').slice(0, 10) >= bd);
+      const addedScope = addedAll.filter(s => !isRisk(s));
+      const addedRows = addedScope.map(s => ({ id: s.id, name: s.name, owner: s.owner, status: s.status, created: String(s.created || '').slice(0, 10) }));
+      if (addedAll.length > addedScope.length) {
+      addedRows.push({ id: '-', name: '（另有 ' + (addedAll.length - addedScope.length) + ' 项风险项新增，未计入范围口径）', owner: '-', status: '-', created: '-' });
+      }
+      if (addedRows.length === 0) {
+      addedRows.push({ id: '-', name: '（基线以来无新增需求）', owner: '-', status: '-', created: '-' });
+      }
+      const changeRows = chs.map(c => ({
+      story_id: c.story_id,
+      story: (byId[String(c.story_id)] || {}).name || '（迭代外/已移除需求）',
+      field: c.field,
+      from: c.value_before,
+      to: c.value_after,
+      author: c.author,
+      created: c.created,
+      }));
+      if (changeRows.length === 0) {
+      changeRows.push({ story_id: '-', story: '（基线以来无字段变更记录）', field: '-', from: '-', to: '-', author: '-', created: '-' });
+      }
+      const changedStories = {};
+      changeRows.forEach(r => { if (r.story_id !== '-') changedStories[String(r.story_id)] = true; });
+      const removedRows = rem.map(r => ({ id: r.id, name: r.name, owner: r.owner, deleted: String(r.deleted || '').slice(0, 10) }));
+      if (removedRows.length === 0) {
+      removedRows.push({ id: '-', name: '（基线以来无移除需求）', owner: '-', deleted: '-' });
+      }
+      const driftTotal = addedScope.length + changeRows.filter(r => r.story_id !== '-').length + rem.length;
+      return {
+      baselineDisplay: bd || '（未提供 baseline_date，按可拉取的全量记录展示）',
+      currentLine: '当前范围 ' + cur.length + ' 项（剔除风险项 ' + riskCount + ' 后，范围口径 ' + (cur.length - riskCount) + ' 项）',
+      addedCount: addedAll.length,
+      addedScopeCount: addedScope.length,
+      changeCount: changeRows.filter(r => r.story_id !== '-').length,
+      changedStoryCount: Object.keys(changedStories).length,
+      removedCount: rem.length,
+      driftTotal: driftTotal,
+      verdict: driftTotal === 0 ? '基线以来无范围变动，范围受控' : '检测到范围活动 ' + driftTotal + ' 处（新增 ' + addedScope.length + ' / 字段变更 ' + changeRows.filter(r => r.story_id !== '-').length + ' / 移除 ' + rem.length + '），请评审是否纳入基线变更',
+      addedRows: addedRows,
+      changeRows: changeRows,
+      removedRows: removedRows,
+      };
+      })()
+    depends_on: [changes, current, removed]
+
+report:
+  format: markdown
+  template: |
+    # 范围蔓延检测报告
+
+    - 对比基线: ${steps.drift.data.baselineDisplay}
+    - 迭代: id=${vars.iteration_id}｜${steps.drift.data.currentLine}
+    - 结论: ${steps.drift.data.verdict}
+
+    ## 一、基线后新增（范围口径 ${steps.drift.data.addedScopeCount}/${steps.drift.data.addedCount}）
+
+    | id | 名称 | 处理人 | 状态 | 创建日期 |
+    | ---- | ---- | ---- | ---- | ---- |
+    ${steps.drift.data.addedRows | rows id,name,owner,status,created}
+
+    ## 二、字段变更（${steps.drift.data.changeCount} 条记录，涉及 ${steps.drift.data.changedStoryCount} 个需求）
+
+    | 需求ID | 需求名 | 字段 | 原值 | 新值 | 变更人 | 时间 |
+    | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+    ${steps.drift.data.changeRows | rows story_id,story,field,from,to,author,created}
+
+    ## 三、移除（${steps.drift.data.removedCount} 项）
+
+    | id | 名称 | 处理人 | 删除日期 |
+    | ---- | ---- | ---- | ---- |
+    ${steps.drift.data.removedRows | rows id,name,owner,deleted}
+
+    > 口径：新增=当前迭代内 created>=基线 的需求（风险项单列不计入口径）；变更记录取自
+    > story_changes（工具 schema 无 created 参数，按 created desc 拉 200 条后本地过滤）；
+    > 移除=回收站 deleted>=基线；全列表已过滤 zzz-delete-me*。
