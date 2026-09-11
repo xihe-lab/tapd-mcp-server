@@ -37,3 +37,7 @@ updates:
     labels: [type/chore, pkg/repo]
     commit-message:
       prefix: chore(ci)
+    # actions major 跨版（如 checkout 4→7）运行时大改，留 GA 决策（对齐 npm 生态与 TAPD 1538 策略）
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
