@@ -146,7 +146,7 @@ function makeRegistry(): { registry: ToolRegistry; tracker: Tracker } {
       handler: (_c, p) => {
         const args = p as Record<string, unknown>;
         tracker.timesheetsArgs.push(args);
-        const m = /^>=\s*(\d{4}-\d{2}-\d{2})/.exec(String(args.spentdate ?? ''));
+        const m = /^>=\s*(\d{4}-\d{2}-\d{2})/.exec(String((args.spentdate as string | undefined) ?? ''));
         const since = m ? m[1] : '';
         return Promise.resolve(TIMESHEET_ROWS.filter(r => !since || String(r.spentdate).slice(0, 10) >= since));
       },

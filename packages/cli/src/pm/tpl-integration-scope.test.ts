@@ -172,22 +172,22 @@ async function runTpl(
 // ---- 检查项 ----
 
 const checks: [string, () => void | Promise<void>][] = [
-  ['发现：五个场景模板收录于内置目录，域/场景/写标记正确，别名可解析', async () => {
+  ['发现：五个场景模板收录于内置目录，域/场景/写标记正确，别名可解析', () => {
     const catalog = discoverPmTemplates();
     for (const spec of CASES) {
       const entry = catalog.entries.find(e => e.file.endsWith(`templates/pm/${spec.file}`));
       assert.ok(entry, `未发现模板 ${spec.file}`);
-      assert.equal(entry!.source, 'builtin');
-      assert.equal(entry!.domain, spec.domain, `${spec.file} 域键`);
-      assert.equal(entry!.scenario, spec.scenario, `${spec.file} 场景名`);
-      assert.equal(entry!.name, spec.file.replace(/\.yaml$/, ''), 'name 约定 = 文件名 stem');
-      assert.equal(entry!.write, spec.writeSteps.length > 0, `${spec.file} write 标记`);
+      assert.equal(entry.source, 'builtin');
+      assert.equal(entry.domain, spec.domain, `${spec.file} 域键`);
+      assert.equal(entry.scenario, spec.scenario, `${spec.file} 场景名`);
+      assert.equal(entry.name, spec.file.replace(/\.yaml$/, ''), 'name 约定 = 文件名 stem');
+      assert.equal(entry.write, spec.writeSteps.length > 0, `${spec.file} write 标记`);
       // 别名路由指向同一文件（tapd pm <domain> <scenario>）
-      assert.equal(resolvePmEntry(catalog, spec.domain, spec.scenario).file, entry!.file);
+      assert.equal(resolvePmEntry(catalog, spec.domain, spec.scenario).file, entry.file);
     }
   }],
 
-  ['加载：剥离 domain 字段后过 S1 严格 schema，模板结构与 vars 齐备', async () => {
+  ['加载：剥离 domain 字段后过 S1 严格 schema，模板结构与 vars 齐备', () => {
     for (const spec of CASES) {
       const catalog = discoverPmTemplates();
       const entry = resolvePmEntry(catalog, spec.domain, spec.scenario);
@@ -204,7 +204,7 @@ const checks: [string, () => void | Promise<void>][] = [
     }
   }],
 
-  ['静态校验：真实 toolRegistry 上 validateTemplate 全绿，写步骤清单与 write 标记一致', async () => {
+  ['静态校验：真实 toolRegistry 上 validateTemplate 全绿，写步骤清单与 write 标记一致', () => {
     for (const spec of CASES) {
       const catalog = discoverPmTemplates();
       const { template } = loadPmTemplate(resolvePmEntry(catalog, spec.domain, spec.scenario));
@@ -220,14 +220,14 @@ const checks: [string, () => void | Promise<void>][] = [
     }
   }],
 
-  ['数据口径：列表步骤内置 zzz 过滤；范围模板剔除风险项；drift 对基线日期本地过滤', async () => {
+  ['数据口径：列表步骤内置 zzz 过滤；范围模板剔除风险项；drift 对基线日期本地过滤', () => {
     for (const spec of CASES) {
       const catalog = discoverPmTemplates();
       const { template } = loadPmTemplate(resolvePmEntry(catalog, spec.domain, spec.scenario));
       for (const step of template.steps) {
         if (step.uses && LIST_TOOLS.has(step.uses)) {
           assert.ok(step.filter, `${spec.file}/${step.id}（${step.uses}）缺 zzz 过滤`);
-          assert.ok(step.filter!.includes('zzz-delete-me'), `${spec.file}/${step.id} 过滤不含 zzz-delete-me`);
+          assert.ok(step.filter.includes('zzz-delete-me'), `${spec.file}/${step.id} 过滤不含 zzz-delete-me`);
         }
       }
       const exprBlob = template.steps.map(s => s.expr ?? '').join('\n');
@@ -236,7 +236,7 @@ const checks: [string, () => void | Promise<void>][] = [
         assert.ok(exprBlob.includes('【风险】'), `${spec.file} expr 未按名称前缀剔除风险项`);
       }
     }
-    const drift = await loadByScenario('scope', 'drift-check');
+    const drift = loadByScenario('scope', 'drift-check');
     const changesStep = drift.steps.find(s => s.id === 'changes')!;
     assert.ok(changesStep.filter!.includes('vars.baseline_date'), 'changes 步骤按 baseline_date 本地过滤');
     assert.ok(!changesStep.args || !('created' in changesStep.args), 'story_changes schema 无 created 参数，不得声明（会被丢弃并被校验报错）');
@@ -419,7 +419,7 @@ const checks: [string, () => void | Promise<void>][] = [
   }],
 ];
 
-async function loadByScenario(domain: string, scenario: string) {
+function loadByScenario(domain: string, scenario: string) {
   const catalog = discoverPmTemplates();
   return loadPmTemplate(resolvePmEntry(catalog, domain, scenario)).template;
 }

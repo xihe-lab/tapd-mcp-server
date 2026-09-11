@@ -9,8 +9,8 @@
 function unwrapOne(item: unknown): unknown {
   if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
     const keys = Object.keys(item);
-    if (keys.length === 1 && /^[A-Z][A-Za-z0-9]*$/.test(keys[0]!)) {
-      const inner = (item as Record<string, unknown>)[keys[0]!];
+    if (keys.length === 1 && /^[A-Z][A-Za-z0-9]*$/.test(keys[0])) {
+      const inner = (item as Record<string, unknown>)[keys[0]];
       if (inner !== null && typeof inner === 'object' && !Array.isArray(inner)) {
         return { ...(inner as Record<string, unknown>), __entity: keys[0] };
       }
