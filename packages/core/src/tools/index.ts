@@ -26,6 +26,7 @@ import { programTools } from './program.js';
 import { reportTools } from './report.js';
 import { utilityTools } from './utility.js';
 import { imageTools } from './image.js';
+import { mediaTools } from './media.js';
 
 export const allTools: ToolDef[] = [
   ...workspaceTools,
@@ -54,4 +55,5 @@ export const allTools: ToolDef[] = [
   ...reportTools,
   ...utilityTools,
   ...imageTools,
+  ...mediaTools,
 ];
