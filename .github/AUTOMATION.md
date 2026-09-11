@@ -71,11 +71,15 @@ workflow 已适配（`id-token: write` + npm≥11.5 + 无 token）。**一次性
 ```
 
 **前置校验清单**：
-- [ ] npmjs.com 登记 Trusted Publisher（文件名 cd-release.yml）
-- [ ] Settings → Environments → 建 `npm publish`（可挂 required reviewers；无需 secret）
+- [x] npmjs.com 登记 Trusted Publisher ×3（mcp-server / core / cli，文件名均为 cd-release.yml）
+- [x] Settings → Environments → `npm publish`
+- [x] Actions → General → Workflow permissions → Read repository contents
 - [ ] （可选）`TAPD_CI_TOKEN`、`ISSUE_TRIAGE_ASSIGNEE`
-- [ ] Actions → General → Workflow permissions → Read repository contents
-- [ ] 分支保护：feature/2.0-test-plan 与 main——required checks 按场景名（`core`/`cli`/`mcp`/`meta` job 名）、禁 force push
+
+**分支保护策略**（2026-09-12 定稿：不做是正确答案）：
+- `feature/**` 临时分支：**永不保护**（合入即删，CI 为 advisory，质量由 CD 发布门禁兜底）
+- `releases/**`：不保护——发布安全由 Trusted Publisher 绑定 + environment 人审 + 版本一致性校验三重把守
+- `main`：暂不保护（单人开发无 review 意义）；**触发条件**：引入外部协作者/接受社区 PR 时开启（required checks + review）
 
 ## 六、发布双通道
 
