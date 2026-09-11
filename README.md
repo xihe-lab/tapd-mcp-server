@@ -301,15 +301,7 @@ npm view @xihe-lab/tapd-mcp-server versions
 
 ## 本地开发
 
-本仓是 [tapd-node](https://github.com/xihe-lab/tapd-node) 父仓聚合体系的子模块（mcp 单包源码仓），共享内核在 [tapd-core](https://github.com/xihe-lab/tapd-core)，命令行在 [tapd-cli](https://github.com/xihe-lab/tapd-cli)；构建、测试与发布统一在父仓流水线。二次开发在父仓 checkout 中进行：
-
-```bash
-git clone --recurse-submodules git@github.com:xihe-lab/tapd-node.git && cd tapd-node
-pnpm install && pnpm build
-pnpm --filter @xihe-lab/tapd-mcp-server dev
-```
-
-添加新工具：工具定义位于 tapd-core 仓（`core/src/tools/`，导出 `ToolDef[]` 后在 `core/src/tools/index.ts` 合入），MCP 侧在 `src/` 完成注册与接线。
+`@xihe-lab/tapd-mcp-server` 以 npm 包分发，通过 `npx -y @xihe-lab/tapd-mcp-server` 运行（配置见上文）。本仓为 MCP 入口层（stdio server 接线），工具内核在同组织包 `@xihe-lab/tapd-core` 中演进——新增工具遵循其 `ToolDef[]` 模式（zod schema + handler，按 TAPD 领域模块组织）。
 
 ## 许可证
 
