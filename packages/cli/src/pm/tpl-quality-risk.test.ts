@@ -286,7 +286,12 @@ const checks: [string, () => void | Promise<void>][] = [
   }],
 
   ['risk-scan：六路命中 + 控制组排除 + 候选表（类别/描述/证据/建议等级）', async () => {
-    const r = await loadAndRun('risk', 'scan', { fixtures: { bugs: SCAN_BUGS, stories: SCAN_STORIES } });
+    // blocked/relations 自 L2 真机修复后为 opt-in（tcase_result/time_relative_stories 需实体级参数），
+    // 显式传入三参以保持「六路命中」测试意图；默认缺省路径的降级见后续 dry-run/默认行为断言。
+    const r = await loadAndRun('risk', 'scan', {
+      vars: { tcase_id: 'tc-1', test_plan_id: 'tp-1', relations_story_id: '1139814312001001539' },
+      fixtures: { bugs: SCAN_BUGS, stories: SCAN_STORIES },
+    });
     assert.ok(r.steps('scan').status === 'ok');
     for (const id of ['tasks', 'bugs', 'blocked', 'stories', 'relations']) {
       assert.equal(r.steps(id).status, 'ok', `数据源 ${id} 执行`);
