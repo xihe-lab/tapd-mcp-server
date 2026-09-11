@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "tsx src/output/formatter.test.ts && tsx src/flags.test.ts && tsx src/pipeline/template.test.ts && tsx src/pipeline/expression.test.ts && tsx src/pipeline/validate.test.ts && tsx src/pipeline/engine.test.ts && tsx src/pipeline/record.test.ts && tsx src/pm/domains.test.ts && tsx src/pm/discovery.test.ts && tsx src/pm/iteration.test.ts && tsx src/pm/pm-command.test.ts"
+    "test": "tsx src/output/formatter.test.ts && tsx src/flags.test.ts && tsx src/pipeline/template.test.ts && tsx src/pipeline/expression.test.ts && tsx src/pipeline/validate.test.ts && tsx src/pipeline/engine.test.ts && tsx src/pipeline/record.test.ts && tsx src/pm/domains.test.ts && tsx src/pm/discovery.test.ts && tsx src/pm/iteration.test.ts && tsx src/pm/pm-command.test.ts && tsx src/pm/tpl-integration-scope.test.ts && tsx src/pm/tpl-schedule-cost.test.ts && tsx src/pm/tpl-quality-risk.test.ts && tsx src/pm/tpl-communication-stakeholder.test.ts && tsx src/advisor/domain-axis.test.ts"
   },
   "keywords": [
     "tapd",

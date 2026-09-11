@@ -317,7 +317,9 @@ const checks: [string, () => void | Promise<void>][] = [
       (error: unknown) =>
         error instanceof CliError &&
         error.code === 'INVALID_ARGS' &&
-        error.message.includes('域 risk 下没有场景 "nope"，可用场景: scan'),
+        error.message.includes('域 risk 下没有场景 "nope"') &&
+          error.message.includes('可用场景') &&
+          error.message.includes('scan'),
     );
   }],
   ['自定义域可执行：pm procurement audit 走同一条别名链路', async () => {

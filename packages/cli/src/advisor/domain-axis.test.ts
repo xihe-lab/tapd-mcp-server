@@ -105,16 +105,24 @@ const checks: [string, () => void | Promise<void>][] = [
   ['多域命中：按域表序排 pm 场景（quality 在 risk 前），原子块稳定跟随', () => {
     const result = advise('风险和用例分诊一起看', index);
     assert.deepEqual(result.matchedDomains, ['quality', 'risk']);
-    assert.deepEqual(
-      commands(result.hits.filter(h => h.kind === 'pm')),
-      ['pm quality dashboard', 'pm risk register', 'pm risk scan'],
-    );
+    // 集成后内置模板随域动态扩展（fixture + builtin 叠加），断言排序性质而非精确清单：
+    // quality 与 risk 场景都出现，且所有 quality 场景先于所有 risk 场景，pm 块整体在原子块之前。
+    const pm = commands(result.hits.filter(h => h.kind === 'pm'));
+    const domOf = (c: string) => (c.startsWith('pm quality ') ? 'quality' : c.startsWith('pm risk ') ? 'risk' : 'other');
+    const seq = pm.map(domOf);
+    assert.ok(seq.includes('quality') && seq.includes('risk'), 'quality 与 risk 的 pm 场景都必须出现');
+    const firstRisk = seq.indexOf('risk');
+    assert.ok(seq.every((d, i) => d !== 'quality' || i < firstRisk), '域表序：quality 场景必须全部排在 risk 场景之前');
+    const firstAtomic = result.hits.findIndex(h => h.kind === 'atomic');
+    const lastPm = result.hits.map(h => h.kind === 'pm').lastIndexOf(true);
+    assert.ok(firstAtomic < 0 || lastPm < firstAtomic, 'pm 场景块必须在原子块之前');
   }],
 
   ['未收录域：无模板自动跳过 pm 候选，退化为原子召回（给集成者的行为保证）', () => {
-    const result = advise('冻结范围基线', index, { limit: 10 });
+    // 八域现已全部收录内置模板，改用注入空目录直接验证降级语义（不再依赖「某域恰好无模板」）
+    const result = advise('冻结范围基线', index, { limit: 10, catalog: { entries: [], warnings: [] } });
     assert.deepEqual(result.matchedDomains, ['scope']);
-    assert.ok(result.hits.every(h => h.kind !== 'pm'), 'scope 无模板时不得出现 pm 候选');
+    assert.ok(result.hits.every(h => h.kind !== 'pm'), '目录为空时不得出现 pm 候选');
     assert.ok(result.hits.length > 0, '域命中但无模板时仍应返回原子候选');
   }],
 
