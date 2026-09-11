@@ -1,0 +1,86 @@
+# 迭代燃尽数据（软考第10章 进度管理，纯只读 L0）
+# 剩余量按「完成日回放」近似：实体完成日取变更记录 status→done 的最早时间，
+# 缺失时回退实体 completed 字段；按迭代 startdate~today 逐日推算剩余件数与剩余工时。
+# 若变更接口不可用，趋势退化为快照日单点（report 脚注注明口径）。
+# 用法: tapd pm schedule burndown [--iteration <id>] [--dry-run]
+name: schedule-burndown
+domain: schedule
+title: 迭代燃尽数据（story/task 剩余量按日趋势 + 总量快照）
+write: false
+vars:
+  iteration_id: ""
+steps:
+  - id: iteration
+    uses: tapd_get_iterations
+    args:
+      id: "${vars.iteration_id}"
+      fields: "id,name,startdate,enddate,status"
+
+  - id: stories
+    uses: tapd_get_stories
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,effort,effort_completed,remain,completed"
+      limit: 200
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: tasks
+    uses: tapd_get_tasks
+    args:
+      iteration_id: "${vars.iteration_id}"
+      fields: "id,name,owner,status,effort,effort_completed,remain,completed"
+      limit: 200
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  - id: dates
+    expr: "(() => { return { today: today }; })()"
+
+  - id: story_ids
+    expr: "(steps.stories.data.length > 0 ? steps.stories.data.map(s => String(s.id)).join(',') : '0')"
+    depends_on: [stories]
+
+  - id: task_ids
+    expr: "(steps.tasks.data.length > 0 ? steps.tasks.data.map(t => String(t.id)).join(',') : '0')"
+    depends_on: [tasks]
+
+  - id: story_changes
+    uses: tapd_get_story_changes
+    args:
+      story_id: "${steps.story_ids.data}"
+      fields: "story_id,field,new_value,created"
+      limit: 200
+    depends_on: [story_ids]
+
+  - id: task_changes
+    uses: tapd_get_task_changes
+    args:
+      task_id: "${steps.task_ids.data}"
+      fields: "task_id,field,new_value,created"
+      limit: 200
+    depends_on: [task_ids]
+
+  - id: burndown
+    expr: "(() => { const arr = v => Array.isArray(v) ? v : (v && Array.isArray(v.data) ? v.data : []); const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; }; const DONE = ['done', 'closed', 'close', 'completed', 'finish', 'finished', 'delivered', 'resolved']; const isDone = st => DONE.includes(String(st ?? '').toLowerCase()); const s = arr(steps.stories.data), t = arr(steps.tasks.data); const sc = arr(steps.story_changes.data), tc = arr(steps.task_changes.data); const td = steps.dates.data.today; const it = (steps.iteration.data ?? [])[0] ?? {}; const ents = [...s.map(x => ({ id: String(x.id), effort: num(x.effort), completed: x.completed ?? '' })), ...t.map(x => ({ id: String(x.id), effort: num(x.effort), completed: x.completed ?? '' }))]; const chg = [...sc.map(c => ({ id: String(c.story_id), field: c.field, nw: c.new_value, created: String(c.created ?? '').slice(0, 10) })), ...tc.map(c => ({ id: String(c.task_id), field: c.field, nw: c.new_value, created: String(c.created ?? '').slice(0, 10) }))]; const dayMap = {}; for (const e of ents) { const hits = chg.filter(c => c.id === e.id && c.field === 'status' && isDone(c.nw) && c.created !== '').map(c => c.created).sort(); const fb = String(e.completed ?? '').slice(0, 10); dayMap[e.id] = hits.length > 0 ? hits[0] : (fb !== '' ? fb : ''); } const totalEffort = ents.reduce((a, e) => a + e.effort, 0); let cur = it.startdate ? String(it.startdate).slice(0, 10) : td; const days = []; const nextDay = d => new Date(new Date(d + 'T00:00:00Z').getTime() + 86400000).toISOString().slice(0, 10); let guard = 0; while (cur <= td && guard < 120) { days.push(cur); cur = nextDay(cur); guard++; } if (days.length === 0) days.push(td); const doneByDay = e => { const dd = dayMap[e.id]; return dd !== undefined && dd !== '' && dd <= days[days.length - 1] ? dd : ''; }; const trend = days.map(d => { const doneList = ents.filter(e => { const dd = doneByDay(e); return dd !== '' && dd <= d; }); const burn = doneList.reduce((a, e) => a + e.effort, 0); return { date: d, doneEntities: doneList.length, remainEntities: ents.length - doneList.length, burnEffort: Math.round(burn * 100) / 100, remainEffort: Math.round((totalEffort - burn) * 100) / 100 }; }); const dist = days.map((d, i) => ({ date: d, completed: trend[i].doneEntities - (i > 0 ? trend[i - 1].doneEntities : 0) })); const all = [...s, ...t]; return { totals: { totalStories: s.length, totalTasks: t.length, doneStories: s.filter(x => isDone(x.status)).length, doneTasks: t.filter(x => isDone(x.status)).length, totalEffort: totalEffort, effortCompleted: all.reduce((a, x) => a + num(x.effort_completed), 0), remain: all.reduce((a, x) => a + num(x.remain), 0) }, trend: trend, dist: dist, meta: { from: days[0], to: days[days.length - 1], days: days.length, entities: ents.length } }; })()"
+    depends_on: [iteration, dates, story_changes, task_changes]
+
+report:
+  format: markdown
+  template: |
+    # 迭代燃尽数据 — ${steps.iteration.data.0.name}（${steps.iteration.data.0.startdate} ~ ${steps.iteration.data.0.enddate}）
+
+    - 总量快照: 需求 ${steps.burndown.data.totals.totalStories}（done ${steps.burndown.data.totals.doneStories}），任务 ${steps.burndown.data.totals.totalTasks}（done ${steps.burndown.data.totals.doneTasks}）
+    - 工时: 总预估 ${steps.burndown.data.totals.totalEffort} h / 已完成 ${steps.burndown.data.totals.effortCompleted} h / 剩余 ${steps.burndown.data.totals.remain} h
+    - 趋势窗口: ${steps.burndown.data.meta.from} ~ ${steps.burndown.data.meta.to}（${steps.burndown.data.meta.days} 天，${steps.burndown.data.meta.entities} 个实体，已剔除 zzz-delete-me* 测试数据）
+
+    ## 按日趋势（完成日回放）
+    | 日期 | 累计完成(件) | 剩余(件) | 累计消耗工时(h) | 剩余工时(h) |
+    |---|---|---|---|---|
+    ${steps.burndown.data.trend | rows date,doneEntities,remainEntities,burnEffort,remainEffort}
+
+    ## 完成量按日分布
+    | 日期 | 当日完成(件) |
+    |---|---|
+    ${steps.burndown.data.dist | rows date,completed}
+
+    ---
+    口径：剩余量按「完成日回放」近似，非实时小时级燃尽——实体完成日取变更记录 status→done 的最早时间，缺失时回退实体 completed 字段；当日消耗工时按实体 effort 预估整额计入完成日（故与 effort_completed 口径的快照值可能不等）；趋势窗口取迭代 startdate~今日（上限 120 天，未来开始的迭代退化为今日单点）；变更查询按迭代实体 id 合并多 ID 查询（limit 200，超限截断不翻页）。
