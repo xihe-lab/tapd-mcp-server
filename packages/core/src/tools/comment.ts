@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+import { RAW_HTML_FIELD } from '../registry/richtext.js';
 
 export const commentTools: ToolDef[] = [
   {
@@ -37,6 +38,7 @@ export const commentTools: ToolDef[] = [
       entry_type: z.string().describe("Entity type: bug, bug_remark, stories, or tasks"),
       entry_id: z.string().describe('Entity ID to comment on；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       description: z.string().describe("Comment content"),
+      raw_html: RAW_HTML_FIELD,
       author: z.string().optional().describe("Author (defaults to TAPD_NICK_NAME env)"),
       cc: z.string().optional().describe("Copy to users, separated by |"),
       attachments: z.string().optional().describe("Attachment file IDs, separated by |"),
@@ -81,6 +83,7 @@ export const commentTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       id: z.string().describe('评论ID (必填)；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
       description: z.string().optional().describe("评论内容"),
+      raw_html: RAW_HTML_FIELD,
       author: z.string().optional().describe("作者"),
     }),
     handler: async (client, params) => {

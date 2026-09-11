@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+import { RAW_HTML_FIELD } from '../registry/richtext.js';
 
 export const wikiTools: ToolDef[] = [
   {
@@ -39,6 +40,7 @@ export const wikiTools: ToolDef[] = [
       name: z.string().describe("Wiki page title"),
       creator: z.string().optional().describe("Creator name (defaults to TAPD_NICK_NAME env)"),
       description: z.string().optional().describe("Rich text content"),
+      raw_html: RAW_HTML_FIELD,
       markdown_description: z.string().optional().describe("Markdown content"),
       note: z.string().optional().describe("Note/remark"),
       parent_wiki_id: z.string().optional().describe('Parent wiki ID for nested pages；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),
@@ -79,6 +81,7 @@ export const wikiTools: ToolDef[] = [
       name: z.string().optional().describe("Wiki page title"),
       modifier: z.string().optional().describe("Modifier name (defaults to TAPD_NICK_NAME env)"),
       description: z.string().optional().describe("Rich text content"),
+      raw_html: RAW_HTML_FIELD,
       markdown_description: z.string().optional().describe("Markdown content"),
       note: z.string().optional().describe("Note/remark"),
       parent_wiki_id: z.string().optional().describe('Parent wiki ID for nested pages；必须以字符串（带引号）传递，禁止传数值，20 位 ID 超出 JS 安全整数范围会丢精度'),

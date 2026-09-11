@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+import { RAW_HTML_FIELD } from '../registry/richtext.js';
 
 export const storyTools: ToolDef[] = [
   // 需求 CRUD
@@ -71,6 +72,7 @@ export const storyTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().describe('需求标题 (必填)'),
       description: z.string().optional().describe('详细描述'),
+      raw_html: RAW_HTML_FIELD,
       priority: z.string().optional().describe('优先级'),
       priority_label: z.string().optional().describe('优先级标签（推荐）'),
       owner: z.string().optional().describe('处理人（默认当前用户）'),
@@ -140,6 +142,7 @@ export const storyTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().optional().describe('需求标题'),
       description: z.string().optional().describe('详细描述'),
+      raw_html: RAW_HTML_FIELD,
       status: z.string().optional().describe('状态'),
       owner: z.string().optional().describe('处理人'),
       priority: z.string().optional().describe('优先级'),

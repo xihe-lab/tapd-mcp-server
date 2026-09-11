@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ToolDef } from '../types.js';
 import { TapdClient } from '../tapd-client.js';
+import { RAW_HTML_FIELD } from '../registry/richtext.js';
 
 export const taskTools: ToolDef[] = [
   {
@@ -56,6 +57,7 @@ export const taskTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().optional().describe('Task name'),
       description: z.string().optional().describe('Detailed description'),
+      raw_html: RAW_HTML_FIELD,
       owner: z.string().optional().describe('Owner (defaults to TAPD_NICK_NAME env)'),
       creator: z.string().optional().describe('Creator'),
       cc: z.string().optional().describe('CC person'),
@@ -95,6 +97,7 @@ export const taskTools: ToolDef[] = [
       workspace_id: z.number().optional().describe('项目ID（可省略，使用默认配置）'),
       name: z.string().optional().describe('Task name'),
       description: z.string().optional().describe('Detailed description'),
+      raw_html: RAW_HTML_FIELD,
       owner: z.string().optional().describe('Owner'),
       cc: z.string().optional().describe('CC person'),
       priority: z.string().optional().describe('Priority'),

@@ -27,6 +27,11 @@ export interface ToolDef<TInputSchema extends z.ZodTypeAny = z.ZodTypeAny> {
   handler: (client: TapdClient, params: z.infer<TInputSchema>) => Promise<unknown>;
   cli?: CliMeta;
   write?: boolean;
+  /**
+   * 显式副作用标注（FSD §3.4）：不计入实体写闸门（resolveWrite 不受影响），
+   * 仅供审计与 CLI 提示（如 tapd_md_to_html --upload-images 的图片上传）。
+   */
+  side_effect?: 'upload';
 }
 
 /**
