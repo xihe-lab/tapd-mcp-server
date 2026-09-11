@@ -1,0 +1,159 @@
+# 沟通管理 · 迭代周报数据稿（纯只读，L0 直接执行）
+# 用法: tapd pm communication weekly [--iteration <id>]
+#   等价: tapd pipeline run templates/pm/communication-weekly.yaml --iteration <id>
+# 多源聚合: 迭代 stories（状态分布 + 本周新增/关闭，近 7 天 changes 近似核对）
+#           + bugs 开闭 + tasks 进度 + timesheets 工时消耗 → markdown 数据稿到 stdout。
+# 人工补充「主观补充」段后，可选 tapd wiki create 落库（本模板不写任何对象）。
+name: communication-weekly
+domain: communication
+title: 迭代周报数据稿（多源聚合到 stdout，人工补充后可选 wiki 落库）
+write: false
+vars:
+  iteration_id: ""
+steps:
+  # ---- 迭代元信息 ----
+  - id: iteration
+    uses: tapd_get_iterations
+    args: { id: "${vars.iteration_id}", fields: "id,name,startdate,enddate,status" }
+
+  # ---- 统计窗口（近 7 天，本地计算不触 API）----
+  - id: window
+    expr: |-
+      (() => {
+        const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        return { today: today, week_start: weekStart };
+      })()
+
+  # ---- 需求（zzz 脏数据剔除 + 风险项剔除：label 含 risk 或名称以【风险】开头）----
+  - id: stories
+    uses: tapd_get_stories
+    args: { iteration_id: "${vars.iteration_id}", fields: "id,name,owner,status,priority_label,created,completed,label", limit: 200 }
+    filter: "!item.name.startsWith('zzz-delete-me') && !(String(item.label || '').includes('risk') || String(item.name).startsWith('【风险】'))"
+
+  # ---- 需求变更（workspace 级采样，仅用于「本周活跃需求」近似核对）----
+  - id: story_changes
+    uses: tapd_get_story_changes
+    args: { limit: 200, fields: "story_id,created,author" }
+    filter: "String(item.created || '').slice(0, 10) >= steps.window.data.week_start"
+    depends_on: [window]
+
+  # ---- 缺陷（开闭口径）----
+  - id: bugs
+    uses: tapd_get_bugs
+    args: { iteration_id: "${vars.iteration_id}", fields: "id,title,severity,current_owner,status,created,closed", limit: 200 }
+    filter: "!item.title.startsWith('zzz-delete-me')"
+
+  # ---- 任务（进度）----
+  - id: tasks
+    uses: tapd_get_tasks
+    args: { iteration_id: "${vars.iteration_id}", fields: "id,name,owner,status,progress,due", limit: 200 }
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # ---- 工时（近 7 天，spentdate 时间查询；工时不分实体类型，与迭代弱耦合按窗口口径统计）----
+  - id: timesheets
+    uses: tapd_get_timesheets
+    args: { spentdate: ">= ${steps.window.data.week_start}", fields: "owner,spentdate,timespent,entity_type,entity_id", limit: 200 }
+    depends_on: [window]
+
+  # ---- 汇总（本地计算；一切比率保留分母）----
+  - id: weekly
+    expr: |-
+      (() => {
+        const day = v => String(v || '').slice(0, 10);
+        const doneStatus = s => ['done', 'closed', 'complete', 'completed'].includes(String(s || ''));
+        const ws = steps.window.data.week_start;
+        const byKey = (rows, key) => {
+          const out = {};
+          for (const r of rows) { const k = String(r[key] || '(未设置)'); out[k] = (out[k] || 0) + 1; }
+          return out;
+        };
+        const sd = steps.stories.data;
+        const doneStories = sd.filter(s => doneStatus(s.status)).length;
+        const changedIds = [...new Set(steps.story_changes.data.map(c => String(c.story_id || '')).filter(Boolean))];
+        const bd = steps.bugs.data;
+        const openBugs = bd.filter(b => !['closed', 'resolved', 'rejected'].includes(String(b.status || ''))).length;
+        const td = steps.tasks.data;
+        const doneTasks = td.filter(t => doneStatus(t.status)).length;
+        const perPerson = {};
+        for (const r of steps.timesheets.data) {
+          const who = String(r.owner || '(未设置)');
+          const e = perPerson[who] || (perPerson[who] = { owner: who, hours: 0, records: 0 });
+          e.hours += Number(r.timespent || 0);
+          e.records += 1;
+        }
+        const rows = Object.values(perPerson).sort((a, b) => b.hours - a.hours);
+        const totalHours = Math.round(rows.reduce((a, r) => a + r.hours, 0) * 100) / 100;
+        return {
+          iteration: (steps.iteration.data && steps.iteration.data[0]) || {},
+          window: steps.window.data,
+          stories: {
+            total: sd.length,
+            done: doneStories,
+            ratio: doneStories + '/' + sd.length,
+            by_status: byKey(sd, 'status'),
+            new_this_week: sd.filter(s => day(s.created) >= ws).length,
+            closed_this_week: sd.filter(s => s.completed && day(s.completed) >= ws).length,
+            changed_this_week: changedIds.length
+          },
+          bugs: {
+            total: bd.length,
+            open: openBugs,
+            ratio: (bd.length - openBugs) + '/' + bd.length,
+            new_this_week: bd.filter(b => day(b.created) >= ws).length,
+            closed_this_week: bd.filter(b => b.closed && day(b.closed) >= ws).length,
+            by_severity: byKey(bd, 'severity')
+          },
+          tasks: {
+            total: td.length,
+            done: doneTasks,
+            ratio: doneTasks + '/' + td.length,
+            not_started: td.filter(t => !doneStatus(t.status) && Number(t.progress || 0) === 0).length,
+            overdue: td.filter(t => !doneStatus(t.status) && t.due && day(t.due) < today).length,
+            avg_progress: td.length ? Math.round(td.reduce((a, t) => a + Number(t.progress || 0), 0) / td.length) : 0
+          },
+          timesheets: { hours: totalHours, people: rows.length, rows: rows }
+        };
+      })()
+    depends_on: [iteration, window, stories, story_changes, bugs, tasks, timesheets]
+
+report:
+  format: markdown
+  template: |
+    # 迭代周报（数据稿）
+    > 本稿由 `tapd pm communication weekly` 只读聚合生成，为**数据稿，人工补充后可选 wiki 落库**（如 `tapd wiki create`）。
+
+    - 迭代: ${steps.weekly.data.iteration.name}（${steps.weekly.data.iteration.startdate} ~ ${steps.weekly.data.iteration.enddate}）
+    - 统计窗口: ${steps.weekly.data.window.week_start} ~ ${steps.weekly.data.window.today}（近 7 天）
+
+    ## 需求
+    - 总数 ${steps.weekly.data.stories.total}，完成度 ${steps.weekly.data.stories.ratio}
+    - 状态分布: ${steps.weekly.data.stories.by_status | json}
+    - 本周新增 ${steps.weekly.data.stories.new_this_week} / 本周关闭 ${steps.weekly.data.stories.closed_this_week}（changes 近似核对: ${steps.weekly.data.stories.changed_this_week} 条需求在窗口内有变更记录）
+
+    ## 缺陷
+    - 总数 ${steps.weekly.data.bugs.total}，已关闭 ${steps.weekly.data.bugs.ratio}，现存未关闭 ${steps.weekly.data.bugs.open}
+    - 本周新增 ${steps.weekly.data.bugs.new_this_week} / 本周关闭 ${steps.weekly.data.bugs.closed_this_week}
+    - 严重度分布: ${steps.weekly.data.bugs.by_severity | json}
+
+    ## 任务
+    - 总数 ${steps.weekly.data.tasks.total}，完成 ${steps.weekly.data.tasks.ratio}，未启动 ${steps.weekly.data.tasks.not_started}，逾期未完成 ${steps.weekly.data.tasks.overdue}
+    - 平均进度 ${steps.weekly.data.tasks.avg_progress}%
+
+    ## 工时（近 7 天）
+    - 合计 ${steps.weekly.data.timesheets.hours} 小时 / ${steps.weekly.data.timesheets.people} 人
+    | 成员 | 工时(h) | 记录数 |
+    |------|---------|--------|
+    ${steps.weekly.data.timesheets.rows | rows owner,hours,records}
+
+    ## 口径脚注
+    - 统计范围: 迭代 ${vars.iteration_id}（需求/缺陷/任务按 iteration_id 归属；工时按 spentdate 落入近 7 天窗口，跨迭代工时不剔重）
+    - 过滤项: 标题 zzz-delete-me* 数据已剔除；范围类度量剔除风险项（label 含 risk 或名称以【风险】开头）
+    - 数据时间: ${steps.weekly.data.window.today}；「本周」= ${steps.weekly.data.window.week_start} 起（7 个自然日）
+    - 完成度定义: 需求 status ∈ {done, closed, complete, completed} 的数量 / 需求总数，分母保留不省略
+    - 局限: story_changes 为 workspace 级近 200 条采样，仅作「本周活跃需求」近似核对；周新增/关闭以需求 created/completed 字段为准
+
+    ## 主观补充
+    （以下由人工填写后再落库：本周亮点 / 风险与求助 / 下周计划）
+    - 亮点：
+    - 风险与求助：
+    - 下周计划：

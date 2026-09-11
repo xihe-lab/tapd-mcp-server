@@ -1,0 +1,120 @@
+# 干系人管理 · 参与矩阵（纯只读，L0 直接执行）
+# 用法: tapd pm stakeholder map [--iteration <id>] [--input '{"skip_users":true}']
+#   等价: tapd pipeline run templates/pm/stakeholder-map.yaml --iteration <id>
+# 数据源: tapd_get_workspace_users + 迭代 stories/tasks（owner/cc/participator 字段）
+# 权限降级: users 接口可能 403（需要 users::_get 权限）——此时执行会在 users 步骤报
+#   STEP_FAILED 并给出 API 错误；带 --input '{"skip_users":true}' 重跑即降级为仅从
+#   存量 owner/cc/participator 字段反推矩阵（无名单零参与分析）。
+#   实现注记: 聚合步骤用 steps['users'] 方括号取数、刻意不建硬依赖——引擎对
+#   「上游非 ok 即连锁跳过」，users 步骤被 where 跳过时若建了依赖会连带跳过聚合，
+#   降级路径就断了。
+# 沉默口径（简化版）: 人员名下存在「未完成且 progress=0 且 due 已过」的任务 → 标沉默；
+#   users 名单可用时另列「零参与名单成员」（在册但未出现在任何参与字段）。
+name: stakeholder-map
+domain: stakeholder
+title: 干系人参与矩阵（人×参与对象数×角色视角；users 接口可能 403（权限），此时报告降级为仅从存量 owner 字段反推）
+write: false
+vars:
+  iteration_id: ""
+  skip_users: false
+steps:
+  # ---- 项目成员名单（403 风险步骤；skip_users=true 时跳过走降级）----
+  - id: users
+    uses: tapd_get_workspace_users
+    args: { fields: "user,role_id,email" }
+    where: "!vars.skip_users"
+
+  # ---- 迭代需求（保留风险项：风险 owner 属于必须沟通的干系人）----
+  - id: stories
+    uses: tapd_get_stories
+    args: { iteration_id: "${vars.iteration_id}", fields: "id,name,owner,cc,participator,status", limit: 200 }
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # ---- 迭代任务（沉默判定数据源）----
+  - id: tasks
+    uses: tapd_get_tasks
+    args: { iteration_id: "${vars.iteration_id}", fields: "id,name,owner,status,progress,due", limit: 200 }
+    filter: "!item.name.startsWith('zzz-delete-me')"
+
+  # ---- 聚合：人 × 参与对象数 × 角色视角（本地计算）----
+  - id: matrix
+    expr: |-
+      (() => {
+        const names = v => String(v || '').split(/[;；,，|]/).map(s => s.trim()).filter(Boolean);
+        const doneStatus = s => ['done', 'closed', 'complete', 'completed'].includes(String(s || ''));
+        const people = new Map();
+        const touch = (who, kind) => {
+          if (!who) return;
+          const p = people.get(who) || { name: who, story_owner: 0, story_cc: 0, story_partner: 0, task_owner: 0, blocked_tasks: 0, blocked_names: [] };
+          p[kind] += 1;
+          people.set(who, p);
+        };
+        for (const s of steps.stories.data) {
+          for (const w of names(s.owner)) touch(w, 'story_owner');
+          for (const w of names(s.cc)) touch(w, 'story_cc');
+          for (const w of names(s.participator)) touch(w, 'story_partner');
+        }
+        for (const t of steps.tasks.data) {
+          for (const w of names(t.owner)) {
+            touch(w, 'task_owner');
+            const stale = !doneStatus(t.status) && Number(t.progress || 0) === 0 && Boolean(t.due) && String(t.due).slice(0, 10) < today;
+            if (stale) {
+              const p = people.get(w);
+              p.blocked_tasks += 1;
+              p.blocked_names.push(String(t.name || t.id || '(未命名)'));
+            }
+          }
+        }
+        const rows = [...people.values()].map(p => ({
+          name: p.name,
+          story_owner: p.story_owner,
+          story_cc: p.story_cc,
+          story_partner: p.story_partner,
+          task_owner: p.task_owner,
+          blocked_tasks: p.blocked_tasks,
+          blocked_names: p.blocked_names,
+          objects: p.story_owner + p.story_cc + p.story_partner + p.task_owner,
+          silent_label: p.blocked_tasks > 0 ? '是（' + p.blocked_names.join('、') + '）' : ''
+        }));
+        rows.sort((a, b) => b.objects - a.objects || a.name.localeCompare(b.name));
+
+        const rosterRaw = steps['users'] && Array.isArray(steps['users'].data) ? steps['users'].data : [];
+        const roster = [...new Set(rosterRaw.map(u => String((u && (u.user || u.name)) || '').trim()).filter(Boolean))];
+        const involved = new Set(rows.map(r => r.name));
+        const idleMembers = roster.filter(n => !involved.has(n));
+        const silentRows = rows.filter(r => r.blocked_tasks > 0);
+        return {
+          users_loaded: rosterRaw.length > 0,
+          roster_size: rosterRaw.length,
+          people: rows,
+          silent_count: silentRows.length,
+          silent_lines: silentRows.length
+            ? silentRows.map(r => '- ' + r.name + '（停滞任务: ' + r.blocked_names.join('、') + '）').join('\n')
+            : '-（无：迭代内没有「任务 progress=0 且 due 已过」的负责人）',
+          idle_lines: idleMembers.length
+            ? idleMembers.map(n => '- ' + n).join('\n')
+            : '-（无：名单成员均出现在 owner/cc/participator 字段中）',
+          users_note: rosterRaw.length > 0
+            ? '名单接口可用，共 ' + rosterRaw.length + ' 人'
+            : '降级模式：users 未加载（接口可能 403 或已声明 skip_users），本矩阵仅从存量 owner/cc/participator 字段反推，无名单零参与分析'
+        };
+      })()
+    depends_on: [stories, tasks]
+
+report:
+  format: markdown
+  template: |
+    # 干系人参与矩阵
+    - 迭代: ${vars.iteration_id}
+    - 名单: ${steps.matrix.data.users_note}
+    - 计入口径: 出现在迭代需求/任务的 owner、cc、participator 字段即计入；「参与对象数」为四类视角去重前合计
+
+    | 人员 | 需求负责 | 需求关注(cc) | 需求参与 | 任务负责 | 停滞任务 | 参与对象数 | 沉默标记 |
+    |------|---------|-------------|---------|---------|---------|-----------|---------|
+    ${steps.matrix.data.people | rows name,story_owner,story_cc,story_partner,task_owner,blocked_tasks,objects,silent_label}
+
+    ## 沉默干系人（有 owner 任务但 progress=0 且 due 已过）
+    ${steps.matrix.data.silent_lines}
+
+    ## 零参与名单成员（名单在册但未出现在任何参与字段）
+    ${steps.matrix.data.idle_lines}
