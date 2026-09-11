@@ -37,14 +37,15 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
+      # 先构建：mcp/cli 的类型检查依赖 core/dist（workspace 包产物）
+      - name: 构建
+        run: pnpm -r build
+
       - name: 类型检查
         run: pnpm -r type-check
 
       - name: Lint
         run: pnpm lint
-
-      - name: 构建
-        run: pnpm -r build
 
       - name: SDK 路由表校验
         run: pnpm validate:sdk-routes
