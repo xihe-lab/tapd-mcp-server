@@ -1,0 +1,34 @@
+# CI 类 · cli 场景：packages/cli 变更触发，只测 cli（core 未动不需深测）
+# 拆仓（TAPD 1537）后本文件整体迁往 cli 仓库
+name: CI · cli
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'releases/**']
+    paths: ['packages/cli/**']
+  pull_request:
+    paths: ['packages/cli/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cli:
+    name: cli 门禁
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm --filter @xihe-lab/tapd-cli type-check
+      - run: pnpm --filter @xihe-lab/tapd-cli test
+      - run: npx eslint packages/cli

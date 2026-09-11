@@ -1,0 +1,40 @@
+# CI 类 · core 场景：packages/core 变更触发（core 是根基，须冒烟下游 cli）
+# 拆仓（TAPD 1537）后本文件整体迁往 core 仓库，去掉 downstream 冒烟即可
+name: CI · core
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'releases/**']
+    paths: ['packages/core/**', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json']
+  pull_request:
+    paths: ['packages/core/**', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: core 门禁 + 下游冒烟
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: pnpm install --frozen-lockfile
+      # 先构建：cli/mcp 类型检查依赖 core/dist
+      - run: pnpm -r build
+      - run: pnpm --filter @xihe-lab/tapd-core type-check
+      - run: pnpm --filter @xihe-lab/tapd-core test
+      - run: npx eslint packages/core
+      - run: pnpm validate:sdk-routes
+
+      # 下游冒烟：core 变更影响 cli/mcp，跑 cli 全测（mcp 无凭证仅构建已覆盖）
+      - name: 下游冒烟（cli 全测）
+        run: pnpm --filter @xihe-lab/tapd-cli test

@@ -1,0 +1,37 @@
+# CI 类 · mcp 场景：packages/mcp 变更触发（本仓主体包）
+# 凭证可选：配 TAPD_CI_TOKEN secret 后 integration-test 才真实执行，否则豁免
+name: CI · mcp
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'releases/**']
+    paths: ['packages/mcp/**', 'test/**']
+  pull_request:
+    paths: ['packages/mcp/**', 'test/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-mcp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mcp:
+    name: mcp 门禁
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm --filter @xihe-lab/tapd-mcp-server type-check
+      - run: npx eslint packages/mcp
+      - name: mcp 测试（凭证可选）
+        env:
+          TAPD_ACCESS_TOKEN: ${{ secrets.TAPD_CI_TOKEN }}
+        run: pnpm --filter @xihe-lab/tapd-mcp-server test || echo '::warning::mcp integration-test 需 TAPD_CI_TOKEN，已跳过'

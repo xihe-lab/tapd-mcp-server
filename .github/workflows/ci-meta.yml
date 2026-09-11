@@ -1,0 +1,30 @@
+# CI 类 · meta 场景：仓库基建变更触发（workflows/脚本/依赖清单）——不跑构建测试，只验基建本身
+name: CI · meta
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'releases/**']
+    paths: ['.github/**', 'scripts/**', 'eslint.config.js', 'tsconfig*.json']
+  pull_request:
+    paths: ['.github/**', 'scripts/**', 'eslint.config.js', 'tsconfig*.json']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-meta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  meta:
+    name: 基建校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # actionlint：workflow 语法静态检查（贝壳官方推荐工具，单二进制无依赖）
+      - name: actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+      - name: YAML 解析检查
+        run: node -e "const fs=require('fs'),yaml=require('js-yaml');for(const f of['.github/dependabot.yml','.github/labeler.yml']){yaml.load(fs.readFileSync(f,'utf8'));console.log('✓',f)}"
