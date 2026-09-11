@@ -202,7 +202,9 @@ export async function runPipeline(
   const ctx: { vars: Record<string, unknown>; steps: Record<string, { data: unknown }> } = { vars, steps: {} };
 
   const writeStepIds = nodes.filter(n => n.write).map(n => n.id);
-  const gateBlocked = writeStepIds.length > 0 && !opts.yes;
+  // 显式 --dry-run 绝不落库，闸门（拒绝执行写步骤）随之失去意义：预览即结果，exit 0。
+  // 闸门仅在「真要执行但未确认」时拦截；--yes --dry-run 并存时 dry-run 优先（最安全侧）。
+  const gateBlocked = writeStepIds.length > 0 && !opts.yes && opts.dryRun !== true;
   const dryRun = opts.dryRun === true || gateBlocked;
 
   // ---- 分支一：dry-run / 写闸门拦截 —— 只产计划预览，不执行任何步骤 ----
