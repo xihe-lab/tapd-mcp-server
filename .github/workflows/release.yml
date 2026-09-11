@@ -1,0 +1,75 @@
+# 子仓 Release 流水线：tag 与 GitHub Release 由各子仓独立维护（配置随仓走）
+# 触发：基座 tapd-node cd-release 发布成功后 dispatch（version + sha）；也可手动补历史 tag
+# 校验三重闸：版本一致 / sha 为 ref HEAD / npm 已发布——发布失败的版本绝不打 tag
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本（须与本仓 package.json 一致）'
+        required: true
+      sha:
+        description: '发布提交（须为触发 ref 的 HEAD）'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Tag & GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout（全历史，changelog 需要）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 前置校验
+        run: |
+          PV=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          if [ "$PV" != "${{ inputs.version }}" ]; then
+            echo "::error::版本不一致：package.json=$PV，dispatch=${{ inputs.version }}"
+            exit 1
+          fi
+          if [ "$(git rev-parse HEAD)" != "${{ inputs.sha }}" ]; then
+            echo "::error::sha 非 ref HEAD——子仓已前进，请核对指针"
+            exit 1
+          fi
+          if ! npm view "$NAME@$PV" version >/dev/null 2>&1; then
+            echo "::error::npm 上尚无 $NAME@$PV——发布成功才可打 tag"
+            exit 1
+          fi
+          echo "✓ $NAME@$PV @ $(git rev-parse --short HEAD)"
+
+      # 独立追溯：changelog = 本仓上一 tag → 本次提交；依赖声明 = 本仓 package.json 实际范围
+      - name: Tag & Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V='${{ inputs.version }}'
+          CORE_RANGE=$(node -p "require('./package.json').dependencies['@xihe-lab/tapd-core'] || ''")
+          if [ -n "$CORE_RANGE" ]; then
+            DEP="依赖 \`@xihe-lab/tapd-core ${CORE_RANGE}\`"
+          else
+            DEP="无内部依赖（内核根基）"
+          fi
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "$PREV_TAG..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges -15)
+          fi
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+            echo "::notice::tag v$V 已存在，跳过"
+          else
+            git tag -a "v$V" -m "Release v$V"
+            git push origin "v$V"
+          fi
+          PRE_FLAG=""
+          case "$V" in *-*) PRE_FLAG="--prerelease" ;; esac
+          NOTES_BODY=$(printf '## 依赖\n%s\n\n## Changelog\n%s' "$DEP" "$NOTES")
+          gh release view "v$V" >/dev/null 2>&1 || \
+            gh release create "v$V" --title "v$V" $PRE_FLAG --notes "$NOTES_BODY"
