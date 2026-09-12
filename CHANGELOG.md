@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.3] - 2026-09-13
+
+### Changed
+
+- 版本前进对齐内核 rc.3：错误降级详情（智能体可直接读 hint/takeover 人工接管信息）、工具描述优化（210 工具选择更准）、只读 TTL 缓存；依赖 @xihe-lab/tapd-core ^2.0.0-rc.3
+
+### Note
+
+- 2.0.0-rc.2 因发布管道事故未上架 npm（mcp 包版本序列 rc.1 → rc.3），其内容（富媒体协作四件套等）均已随 rc.1/本版本可用
+
 ## [2.0.0-rc.2] - 2026-09-12
 
 ### Added
