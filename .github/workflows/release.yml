@@ -134,10 +134,13 @@ jobs:
         run: |
           # Trusted Publishing 专用通道：残留 token 会让 npm 弃用 OIDC——强制清空
           unset NODE_AUTH_TOKEN NPM_TOKEN
+          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG" 2>/dev/null || true
+          # npm CLI 显式 --no-provenance：私有源仓的 provenance 会被 npm 422 拒收
+          #（基座时代实测；pnpm 在子仓上下文会自动签名，npm CLI 可确定性关闭）
           V=$(node -p "require('./package.json').version")
           DIST_TAG=""
           case "$V" in *-*) DIST_TAG="--tag rc" ;; esac
-          pnpm publish --access public $DIST_TAG --no-git-checks
+          npm publish --access public $DIST_TAG --no-provenance
 
       # 独立追溯：changelog = 本仓上一 tag → 本次提交；依赖声明 = 本仓 package.json 实际范围
       - name: Tag & GitHub Release（幂等）
