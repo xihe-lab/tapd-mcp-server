@@ -50,10 +50,5 @@
     "@xihe-lab/tapd-core": "^2.0.0-rc.2",
     "zod": "^3.25.76"
   },
-  "devDependencies": {
-    "@types/node": "^22.13.10",
-    "tsx": "^4.19.2",
-    "typescript": "^5.8.3"
-  },
   "packageManager": "pnpm@12.3.4"
 }

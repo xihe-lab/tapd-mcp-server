@@ -53,7 +53,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
       # npm Trusted Publishing（OIDC）需要 npm ≥ 11.5 原生支持
@@ -63,10 +62,18 @@ jobs:
       - name: Install dependencies（独立解析：cli/mcp 的 core 依赖来自 registry）
         run: pnpm install --no-frozen-lockfile
 
+      # 工具链临时注入：main 保持纯源码（零工具链 devDeps），构建所需 typescript/@types/node
+      # 仅在流水线内临时安装；构建后还原 package.json——发布 tarball 携带纯净清单
+      - name: 注入构建工具链（临时）
+        run: pnpm add -D --ignore-scripts typescript@^5.8.3 @types/node@^22.13.10
+
       - name: Build & Type check
         run: |
           pnpm build
           pnpm type-check
+
+      - name: 还原纯源码 package.json
+        run: git checkout -- package.json
 
       # push 触发（单包自主发布）时的基座门禁：指针已指到本提交 + 基座 main CI 在该提交上绿。
       # dispatch（基座编排/手动）跳过——基座编排前已过全量门禁，手动补历史由人工担责。
