@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # npm 依赖（monorepo 三包 + 根）
+  # npm 依赖（本仓单包 @xihe-lab/tapd-mcp-server）
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -9,14 +9,14 @@ updates:
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
     groups:
-      # 生产依赖按包分组，安全更新单开（快通道）
+      # 生产依赖一组，安全更新单开（快通道）；devDeps（@types/*、typescript、tsx）单独一组
       prod-deps:
         applies-to: version-updates
         patterns: ['*']
-        exclude-patterns: ['eslint*', 'typescript', 'tsx', '@types/*', 'typescript-eslint*']
+        exclude-patterns: ['@types/*', 'typescript', 'tsx']
       dev-deps:
         applies-to: version-updates
-        patterns: ['eslint*', 'typescript', 'tsx', '@types/*', 'typescript-eslint*']
+        patterns: ['@types/*', 'typescript', 'tsx']
       security-patches:
         applies-to: security-updates
         patterns: ['*']
@@ -24,10 +24,12 @@ updates:
     commit-message:
       prefix: chore(deps)
       prefix-development: chore(deps-dev)
-    # runtime high → rc 线；major 版本留 GA 决策（对齐 TAPD 1538 策略）
     ignore:
+      # runtime high → rc 线；major 版本留 GA 决策（对齐 TAPD 1538 策略）
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      # 内部互依（@xihe-lab/tapd-core 等）版本由家族发布流水线推进（core → cli → mcp 依赖序），不走 dependabot
+      - dependency-name: '@xihe-lab/*'
 
   # GitHub Actions 版本更新（含 actions/checkout 等）
   - package-ecosystem: github-actions
