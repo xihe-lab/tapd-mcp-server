@@ -18,6 +18,9 @@ on:
       sha:
         description: '发布提交（tag 落点；缺省为 ref HEAD）'
         required: false
+      dep_pins:
+        description: '内部依赖精确 pin（基座 lockstep 编排注入；JSON {"包名":"版本"}；缺省不动依赖声明）'
+        required: false
 
 permissions:
   contents: write
@@ -74,6 +77,33 @@ jobs:
 
       - name: 还原纯源码 package.json
         run: git checkout -- package.json
+
+      # 基座 lockstep 编排注入的内部依赖精确 pin：发布 tarball 携带精确版本依赖，
+      # npx 安装时不会被缓存树内旧版本满足（基座已在自身工作区以 pin 后声明构建验证）。
+      # 仅 dispatch 携带 dep_pins 时生效——push 自主发布 / 手动补历史不触碰依赖声明。
+      - name: 应用基座依赖精确 pin（发版临时替换，不回写 main）
+        if: inputs.dep_pins != ''
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const pins = JSON.parse(process.argv[1]);
+            if (pins === null || typeof pins !== "object" || Array.isArray(pins)) {
+              console.error("dep_pins 必须是 JSON 对象"); process.exit(1);
+            }
+            for (const [name, ver] of Object.entries(pins)) {
+              if (typeof ver !== "string" || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(ver)) {
+                console.error("非法 pin: " + name + " = " + ver); process.exit(1);
+              }
+            }
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            const missing = Object.keys(pins).filter((name) => !(name in (pkg.dependencies ?? {})));
+            if (missing.length > 0) {
+              console.error("pin 目标不在 dependencies 中: " + missing.join(", ")); process.exit(1);
+            }
+            for (const [name, ver] of Object.entries(pins)) pkg.dependencies[name] = ver;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            console.log("依赖已精确 pin: " + JSON.stringify(pins));
+          ' '${{ inputs.dep_pins }}'
 
       # push 触发（单包自主发布）时的基座门禁：指针已指到本提交 + 基座 main CI 在该提交上绿。
       # dispatch（基座编排/手动）跳过——基座编排前已过全量门禁，手动补历史由人工担责。
