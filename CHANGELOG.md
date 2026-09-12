@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.4] - 2026-09-13
+
+### Added
+
+- **启动版本自检**：连接后异步比对 registry @rc dist-tags，有新版经 MCP logging notification 提示「重启 MCP 会话即可更新」（TAPD_MCP_UPDATE_CHECK=off 可关；断网/镜像静默跳过）
+
+### Changed
+
+- 版本前进对齐家族 lockstep rc.4；依赖 @xihe-lab/tapd-core ^2.0.0-rc.4
+- 发布管道升级：lockstep 原子发版 + 内部依赖精确 pin + dep_pins 注入通道
+
 ## [2.0.0-rc.3] - 2026-09-13
 
 ### Changed
