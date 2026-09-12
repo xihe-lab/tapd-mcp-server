@@ -1,5 +1,5 @@
 name: 功能建议
-description: 新工具、新场景、管道/CLI 体验改进
+description: 新工具、新场景、MCP 消费体验改进
 labels: ["type/feature", "flow/needs-triage"]
 body:
   - type: textarea
@@ -13,7 +13,7 @@ body:
     id: solution
     attributes:
       label: 建议方案
-      description: 期望的能力形态（工具参数 / CLI 命令 / pm 场景均可）
+      description: 期望的能力形态（MCP 工具 / 工具参数 / Server 行为均可）
     validations:
       required: true
   - type: textarea
@@ -23,16 +23,16 @@ body:
       placeholder: |
         > 把迭代里未完成的需求列出来，@负责人 确认后移到下迭代
 
-        或 CLI：
-        $ tapd attachment upload ./report.pdf --entity-type story --entity-id 1139...
+        即依次调用 tapd_get_stories（按迭代过滤）→ 逐条 tapd_update_story 改负责人
   - type: dropdown
-    id: pkg
+    id: area
     attributes:
-      label: 受益入口（可多选的写主入口）
+      label: 期望落点
+      description: 单包仓视角；内核新能力（TapdClient/registry）请在 xihe-lab/tapd-core 仓提
       options:
-        - 双入口（core 新工具）
-        - cli（命令体验 / pm 场景 / pipeline）
-        - mcp（agent 消费体验）
+        - mcp 包体（新 MCP 工具 / agent 消费体验）
+        - 仓库级（构建 / 发布 / 安装）
+        - 上游 tapd-core 新内核能力（将引导你到对应仓提）
         - 文档 / 其他
   - type: input
     id: tapd

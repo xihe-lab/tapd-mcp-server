@@ -16,25 +16,21 @@
 - [ ] test
 - [ ] ci / chore
 
-## 影响包（分层归属，见 FSD §2）
+## 影响范围（单包仓，与 labeler 自动打标对照）
 
-- [ ] `pkg/core`——工具内核 / TapdClient / registry / richtext
-- [ ] `pkg/cli`——命令 / pm 层 / pipeline / advisor
-- [ ] `pkg/mcp`——⚠️ 勾选请说明理由（分层验收要求 mcp 业务增量 = 0）
-- [ ] `pkg/repo`——monorepo / CI / 发布
+- [ ] `pkg/mcp`——本仓包体改动（`src/**`：MCP Server / 工具装配）
+- [ ] `pkg/repo`——仓库级（CI / 发布 / 文档 / 配置）
 
 ## 兼容性声明
 
 - [ ] 存量工具 schema 与默认行为零变化（改了工具参数请说明）
-- [ ] D8 富文本双写策略未受影响（动了 richtext/comment 管道请附 round-trip 证据）
+- [ ] 与 `@xihe-lab/tapd-core` 的依赖边界未受影响（动了内核交互或富文本管道请附 round-trip 证据）
 - [ ] 无破坏性变更；如有，已在 CHANGELOG **Removed/Changed** 预记
 
 ## 测试证据
 
-- [ ] `pnpm -r build` / `pnpm -r type-check` 双绿
-- [ ] 新增/修改测试已通过（未接线 package.json 的请在下条说明）
-- [ ] 新测试已接入对应包 test 脚本
-- [ ] 真机 e2e（涉 API 行为时必填，凭证脱敏）：
+- [ ] `pnpm build` / `pnpm type-check` 双绿
+- [ ] 真机 e2e（涉 API 行为时必填，凭证脱敏；`pnpm test:integration` 或 MCP 客户端实测）：
   ```
   粘贴关键输出（dry-run 预览 / sha1 / 渲染验证等）
   ```
@@ -43,7 +39,7 @@
 
 - [ ] 提交信息符合 `feat|fix|docs|test|chore(<TAPD短ID>): <描述>`
 - [ ] 无敏感信息（token/密码一律 `***`）
-- [ ] 相关文档已同步（工具描述 / README / skill / CHANGELOG）
+- [ ] 相关文档已同步（工具描述 / README / CHANGELOG）
 
 <!-- 代理协作产生的 PR 请保留：
 🤖 Generated with [Claude Code](https://claude.com/claude-code) -->

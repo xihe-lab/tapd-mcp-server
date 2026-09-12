@@ -1,5 +1,5 @@
 name: 缺陷报告
-description: 报告工具、CLI、MCP 或管道的行为问题
+description: 报告 MCP Server 或其工具的行为问题
 labels: ["type/bug", "flow/needs-triage"]
 body:
   - type: textarea
@@ -14,7 +14,7 @@ body:
     attributes:
       label: 复现步骤
       placeholder: |
-        1. 调用 tapd_xxx / 执行 tapd xxx ...
+        1. 在 MCP 客户端（Claude Code、Cursor…）调用 tapd_xxx
         2. 传参 ...
         3. 观察 ...
     validations:
@@ -26,27 +26,28 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: pkg
+    id: area
     attributes:
-      label: 影响包
+      label: 影响层面
+      description: 单包仓视角；内核（TapdClient/registry/richtext）问题请到 xihe-lab/tapd-core 仓反馈
       options:
-        - core（工具内核 / TapdClient / registry / richtext）
-        - cli（命令 / pm 层 / pipeline / advisor）
-        - mcp（MCP Server 入口）
-        - 不确定 / 跨包
+        - mcp 包体（工具行为 / Server 装配 / 传参）
+        - 仓库级（构建 / 发布 / 安装 / 文档）
+        - 疑似上游 tapd-core（将引导你到对应仓反馈）
+        - 不确定
     validations:
       required: true
   - type: input
     id: tool
     attributes:
-      label: 相关工具名 / 命令（如适用）
-      placeholder: 如 tapd_create_comment、tapd pm risk scan
+      label: 相关工具名（如适用）
+      placeholder: 如 tapd_create_comment、tapd_get_stories
   - type: dropdown
     id: version
     attributes:
       label: 版本
       options:
-        - 2.0.0-rc.2 及以上（2.x monorepo）
+        - 2.0.0-rc.2 及以上（2.x 线）
         - 2.0.0-rc.1
         - 1.4.x（1.x 线）
         - 未发布（main/分支自建）
@@ -64,7 +65,7 @@ body:
     id: env
     attributes:
       label: 环境信息
-      placeholder: Node 版本 / OS / MCP 客户端（Claude Code、Cursor…）或 CLI 直用
+      placeholder: Node 版本 / OS / MCP 客户端（Claude Code、Cursor…）
   - type: textarea
     id: logs
     attributes:
