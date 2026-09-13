@@ -3,12 +3,11 @@
   "version": "2.0.0-rc.5",
   "description": "MCP server for TAPD project management API, enabling AI assistants to manage stories, bugs, tasks, iterations and more via natural language",
   "type": "module",
-  "main": "dist/bin/tapd-mcp-server.js",
   "bin": {
     "tapd-mcp-server": "./dist/bin/tapd-mcp-server.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/bin/tapd-mcp-server.js",
     "dev": "tsx src/bin/tapd-mcp-server.ts",
     "test": "tsx src/update-check.test.ts",
