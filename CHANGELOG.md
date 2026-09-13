@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.7] - 2026-09-13
+
+### Changed
+
+- 版本前进对齐内核 rc.7：读侧无损投影（GFM 不可表达标签行内保留，`TAPD_RICHTEXT_LOSSLESS=0` 可回退有损）——智能体现在能「看见」并保真编辑 sub/sup/mark 等样式内容；HTML 旁路启发式修复（bug 0111）
+
 ## [2.0.0-rc.6] - 2026-09-13
 
 ### Changed
