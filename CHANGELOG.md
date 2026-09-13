@@ -218,6 +218,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `tapd_batch_update_tasks`: New tool for batch updating multiple tasks (supports updating `story_id`)
 
+## [1.0.1] - 2026-04-21
+
+早期预发布版本（CHANGELOG 自 1.0.3 起开始记录）。
+
+## [1.0.0] - 2026-04-21
+
+首个 npm 发布（预发布形态，功能基线见 1.0.3 条目）。
+
 ## [1.0.3] - 2026-04-21
 
 ### Added
