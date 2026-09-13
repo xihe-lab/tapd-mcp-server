@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.6] - 2026-09-13
+
+### Changed
+
+- 版本前进对齐内核 rc.6：写路径 mention 成员校验守卫（bug 0103）随内核生效——正文 `@短语` 不再误转 at-who 角标
+- 发布资产体检修复：tarball 剔除测试产物（23→15 文件）、移除指向 bin 入口的误导 `main`、LICENSE 补齐标准 APPENDIX
+
+### Note
+
+- 2.0.0-rc.5 未单独记 CHANGELOG：内容仅为 lockstep 干净首发（管道修复），无功能变化
+
 ## [2.0.0-rc.4] - 2026-09-13
 
 ### Added
