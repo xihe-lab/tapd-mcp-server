@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-13
+
+### GA 正式版
+
+- rc 线（rc.1 ~ rc.8）全量内容；发布资产定稿（tarball 瘦身、exports/CHANGELOG 全覆盖、README 客户端配置含 WorkBuddy 专节）
+- GA 前六层验证全绿（验收计划 1139814312001000019、报告 wiki 1139814312001000094）
+- **latest dist-tag 自本版归位**（2.x 线接替 1.4.4 成为默认安装版）
+
 ## [2.0.0-rc.8] - 2026-09-13
 
 ### Fixed
