@@ -131,7 +131,7 @@ const checks: [string, () => Promise<void> | void][] = [
     await checkForUpdate({
       env: {},
       fromUrl: import.meta.url,
-      fetchRc: (name) => (name === '@xihe-lab/tapd-core' ? '2.0.0-rc.99' : null),
+      fetchRc: (name) => (name === '@xihe-lab/tapd-core' ? '2.0.1' : null),
       notify: (message) => {
         messages.push(message);
       },
@@ -147,7 +147,7 @@ const checks: [string, () => Promise<void> | void][] = [
       fromUrl: import.meta.url,
       fetchRc: () => {
         probed += 1;
-        return '2.0.0-rc.99';
+        return '2.0.1';
       },
       notify: (message) => {
         messages.push(message);
