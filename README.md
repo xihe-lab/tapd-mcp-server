@@ -80,8 +80,24 @@ claude mcp remove tapd
 
 - **Claude Desktop**：编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）
 - **Cursor / VS Code**：在项目根目录创建 `.cursor/mcp.json` 或 `.vscode/mcp.json`
+- **WorkBuddy（腾讯 CodeBuddy 办公客户端）**：见下方专节
 
 配置格式与上方相同。
+
+#### WorkBuddy（腾讯 CodeBuddy 办公客户端）
+
+WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
+
+| 级别 | 配置文件路径 | 适用场景 |
+|------|-------------|---------|
+| 用户级 | `~/.workbuddy/mcp.json` | 配置一次，所有项目复用（推荐） |
+| 项目级 | `<项目目录>/.workbuddy/mcp.json` | 仅当前项目生效 |
+
+操作入口：侧边栏 **插件** → 右上角 **MCP 服务器** → **配置 MCP**，在可视化编辑器中粘贴与上方相同的 `mcpServers` 配置并保存（也可直接编辑上述路径的 JSON 文件）。
+
+保存后检查 MCP Server 状态灯：🟢 连接成功；🔴 配置异常（依次检查 JSON 格式、`npx` 环境、凭证有效性）。
+
+> 安全提示：`TAPD_ACCESS_TOKEN` 是调用凭证。使用项目级配置时，请将 `.workbuddy/` 加入 `.gitignore`，避免提交到仓库。
 
 ### 3. 开始使用
 
@@ -227,22 +243,7 @@ claude mcp add -s user tapd \
 
 ### Claude Desktop / Cursor
 
-修改配置文件中的版本号为 `@latest` 或删除版本锁定（WorkBuddy 的配置文件路径见下文「WorkBuddy」小节）：
-
-#### WorkBuddy（腾讯 CodeBuddy 办公客户端）
-
-WorkBuddy 采用标准 `mcpServers` 配置，支持两级配置文件：
-
-| 级别 | 配置文件路径 | 适用场景 |
-|------|-------------|---------|
-| 用户级 | `~/.workbuddy/mcp.json` | 配置一次，所有项目复用（推荐） |
-| 项目级 | `<项目目录>/.workbuddy/mcp.json` | 仅当前项目生效 |
-
-操作入口：侧边栏 **插件** → 右上角 **MCP 服务器** → **配置 MCP**，在可视化编辑器中粘贴与上方相同的 `mcpServers` 配置并保存（也可直接编辑上述路径的 JSON 文件）。
-
-保存后检查 MCP Server 状态灯：🟢 连接成功；🔴 配置异常（依次检查 JSON 格式、`npx` 环境、凭证有效性）。
-
-> 安全提示：`TAPD_ACCESS_TOKEN` 是调用凭证。使用项目级配置时，请将 `.workbuddy/` 加入 `.gitignore`，避免提交到仓库。
+修改配置文件中的版本号为 `@latest` 或删除版本锁定（WorkBuddy 的配置文件路径见「配置 MCP 客户端 → WorkBuddy」小节）：
 
 ```json
 {

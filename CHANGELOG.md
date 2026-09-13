@@ -24,16 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 版本前进对齐内核 rc.7：读侧无损投影（GFM 不可表达标签行内保留，`TAPD_RICHTEXT_LOSSLESS=0` 可回退有损）——智能体现在能「看见」并保真编辑 sub/sup/mark 等样式内容；HTML 旁路启发式修复（bug 0111）
 
+## [2.0.0-rc.5] - 2026-09-13
+
+### Fixed
+
+- lockstep 发布管道修复后的干净首发：内部依赖精确 pin 经 `dep_pins` 通道注入子仓发布（rc.4 曾因依赖残留 caret 范围被发布后断言拦截）；无功能变化
+
 ## [2.0.0-rc.6] - 2026-09-13
 
 ### Changed
 
 - 版本前进对齐内核 rc.6：写路径 mention 成员校验守卫（bug 0103）随内核生效——正文 `@短语` 不再误转 at-who 角标
 - 发布资产体检修复：tarball 剔除测试产物（23→15 文件）、移除指向 bin 入口的误导 `main`、LICENSE 补齐标准 APPENDIX
-
-### Note
-
-- 2.0.0-rc.5 未单独记 CHANGELOG：内容仅为 lockstep 干净首发（管道修复），无功能变化
 
 ## [2.0.0-rc.4] - 2026-09-13
 
@@ -87,6 +89,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 全部 260 处长 ID 参数（`id`/`story_id`/`bug_id`/`iteration_id` 等，含 optional 字段）描述追加「必须以字符串（带引号）传递」引导，从源头避免 LLM 按直觉生成 JSON 数值
   - `ToolRegistry` 注册期统一为字符串型 ID 参数包装 `z.preprocess` 防御层（MCP 与 CLI 双入口共用）：安全整数范围内的数值自动转字符串救回；超出安全范围的数值返回明确错误「请以字符串（带引号）重传」，optional/nullable 包裹形态均覆盖
   - 全量 210 工具 schema 校验：`type:"string"` 输出与 required 语义零变化，`workspace_id` 等数值型短 ID 参数行为不变
+
+## [1.4.4] - 2026-09-11
+
+### Fixed
+
+- `tapd_get_attachment_download_url` 改走 `/attachments/down`——修复 OAuth 凭证下 403（原 `/attachments/documents_down` 端点需额外授权）
+
+## [1.4.3] - 2026-09-04
+
+### Fixed
+
+- **长 ID 精度丢失修复（TAPD 1410）**：长 ID 参数描述追加「以字符串传递」引导 + 服务端统一预处理防御层（安全整数范围内数值自动转字符串；超范围返回明确错误），防御层覆盖 optional/nullable 包裹形态
+
+## [1.4.1] - 2026-05-19
+
+### Documentation
+
+- README 更新工具数量与 `@latest` 版本号
+
+> 1.4.2 仅含 ESLint/TypeScript 修复，发布未上架（npm 版本序列 1.4.1 → 1.4.3）
 
 ## [1.4.0] - 2026-05-19
 
