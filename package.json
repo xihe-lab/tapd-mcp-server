@@ -51,5 +51,8 @@
     "@xihe-lab/tapd-core": "^2.0.0-rc.5",
     "zod": "^3.25.76"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.3.4",
+  "mirrors": {
+    "gitee": "git+https://gitee.com/xihe-lab/tapd-mcp-server.git"
+  }
 }
