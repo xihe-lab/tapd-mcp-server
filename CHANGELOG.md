@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc.8] - 2026-09-13
+
+### Fixed
+
+- 版本前进对齐内核 rc.8：P0 端点参数错配修复（测试模块全链路 + 报表/代码提交/发布评审簇，bugs 0104-0108）
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [2.0.0-rc.7] - 2026-09-13
 
 ### Changed
