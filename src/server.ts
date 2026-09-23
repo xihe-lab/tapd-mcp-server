@@ -1,7 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolDef } from '@xihe-lab/tapd-core';
-import { ToolRegistry, TapdClient } from '@xihe-lab/tapd-core';
+import { ToolRegistry, TapdClient, buildToolsListPayload } from '@xihe-lab/tapd-core';
 import { checkForUpdate } from './update-check.js';
 
 let client: TapdClient | null = null;
@@ -60,6 +61,15 @@ export function registerTools(server: McpServer, tools: ToolDef[]): void {
       }
     );
   }
+
+  // P0-1/P0-3（迭代 1139814312001000122）：覆写 ListTools 处理器——
+  // SDK 内部 zod→JSON 转换不可注入 slim 逻辑，改由 core 的 buildToolsListPayload
+  // 一体产出（转换 + slim + annotations），与 exportSchemas 字节级一致。
+  // CallTool 路由仍走 SDK 注册路径，不受本覆写影响。
+  // eslint-disable-next-line @typescript-eslint/require-await
+  server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: buildToolsListPayload(tools),
+  }));
 }
 
 export async function start(tools: ToolDef[]): Promise<void> {
