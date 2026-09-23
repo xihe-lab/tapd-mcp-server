@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-09-24
+
+### Fixed
+
+- **update-check 探测 latest 与 rc 双 dist-tag 取更高**——GA 后新版本发在 latest 而 rc tag 停留旧 rc，原探针只看 @rc 致 2.0.1 发布后用户无升级提示
+
 ## [2.0.1] - 2026-09-24
 
 ### Added
