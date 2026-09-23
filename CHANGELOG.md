@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0-rc.1] - 2026-09-24
+
+### Added
+
+- **分级挂载 + tapd_discover_tools 元工具**（P1-3/P1-4）：启动按 resolveStartupTools 只注册「默认集 ∪ env 指定」（工作台 8 域 85 工具）；discover 无参列出 27 域（id/label/toolCount/active/isDefault + 引导 hint），{"toolset":"<id>"} 激活即注册并发出 notifications/tools/list_changed（幂等）；TAPD_TOOLSETS=all 恢复 2.0 全量挂载
+- **TAPD_PERMISSION_MODE=readonly**（P2-1）：写工具不注册（写资格按 registry 解析视图判定，含 EXPLICIT_WRITE 类），discover 也只激活读工具
+- WORKFLOWS.md 典型工作流手册（P2-2）：需求交付闭环 / 迭代日报周报 / 测试计划执行 / 发布评审与知识沉淀 4 场景，工具按 [默认]/[discover] 标注
+- README 增「工具集分级」章节、TAPD_TOOLSETS/TAPD_TOOLS/readonly 配置说明与升级 FAQ
+
+### Changed
+
+- update-check 升级提示：升级目标 ≥ 2.1.0-rc.0 时附分级挂载行为变更预告（tapd_discover_tools 按需激活 / TAPD_TOOLSETS=all 恢复旧行为）（P1-7）
+- capabilities 增补 tools.listChanged；默认 tools/list 载荷实测 86 工具 / 68,020 字符 ≈ 17,005 token，较 2.0.2 基线降 59.1%（P1-6）
+
 ## [2.0.2] - 2026-09-24
 
 ### Fixed
