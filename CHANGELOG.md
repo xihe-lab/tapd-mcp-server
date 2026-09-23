@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-09-24
+
+### Added
+
+- **tools/list 载荷瘦身 -12.7%**（166,334 → 145,292 字符，迭代 1139814312001000122 P0）：
+  - `slimJsonSchema`——递归剥 $schema 与 additionalProperties（服务端 zod 校验行为不变，客户端侧校验更宽松）
+  - 长 ID 警告压缩（291 处，47→4 字符；运行时防御层不变）
+  - **annotations 注入**——readOnlyHint/destructiveHint 从 resolveWrite 派生，客户端可对写操作弹确认（省默认值：readOnlyHint:false / destructiveHint:false 不序列化）
+  - `buildToolsListPayload` core 导出——MCP ListTools 覆写与 exportSchemas 字节级一致
+  - 测量脚本 `pnpm measure:payload` 入库（每版出数，基线 166,334）
+
+### Changed
+
+- mcp ListTools 处理器覆写——SDK 内部 zod→JSON 转换不可注入 slim，改由 core 一体产出；CallTool 路由不受影响
+
 ## [2.0.0] - 2026-09-13
 
 ### GA 正式版
