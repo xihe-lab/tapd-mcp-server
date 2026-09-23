@@ -4,7 +4,7 @@
  * 背景（调研：tapd-knowledge-base/.claude/mcp-autoupdate-research.md）：
  * npx 缓存树只以「根包 spec 的 manifest」为新鲜度探针——`@xihe-lab/tapd-mcp-server@rc`
  * 的 dist-tag 不动，整棵缓存树原样复用，用户可能长期跑在旧版本上而不自知。
- * 本模块在 server 启动后异步查询 npm registry 的 @rc dist-tag，发现新版本时
+ * 本模块在 server 启动后异步查询 npm registry 的 latest 与 rc dist-tag，发现新版本时
  * 通过 MCP logging notification（notifications/message）提示用户「重启即更新」。
  *
  * 硬约束：
@@ -175,7 +175,11 @@ export function readLocalVersions(fromUrl: string): LocalVersions | null {
 // registry 探针（https 直连，不走 npm CLI）
 // ---------------------------------------------------------------------------
 
-/** 查询包在 npm registry 上 @rc dist-tag 指向的版本；任何失败返回 null（静默） */
+/**
+ * 查询包在 npm registry 上 `latest` 与 `rc` dist-tag 中**较新**的版本。
+ * GA 后新版本发在 latest（rc 时代只探 @rc 的设计已过时——2.0.1 发 latest 时静默）。
+ * 任何失败返回 null（静默）。
+ */
 export function fetchRcVersion(
   registryBase: string,
   pkgName: string,
@@ -221,8 +225,15 @@ export function fetchRcVersion(
               const doc = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
                 'dist-tags'?: Record<string, unknown>;
               };
+              const latest = doc['dist-tags']?.latest;
               const rc = doc['dist-tags']?.rc;
-              done(typeof rc === 'string' ? rc : null);
+              const latestStr = typeof latest === 'string' ? latest : null;
+              const rcStr = typeof rc === 'string' ? rc : null;
+              if (latestStr !== null && rcStr !== null) {
+                done(compareVersions(latestStr, rcStr) >= 0 ? latestStr : rcStr);
+              } else {
+                done(latestStr ?? rcStr);
+              }
             } catch {
               done(null);
             }
