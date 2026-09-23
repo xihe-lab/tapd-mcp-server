@@ -256,6 +256,16 @@ export function fetchRcVersion(
 // 组装与入口
 // ---------------------------------------------------------------------------
 
+/**
+ * 行为变更版本：2.1.0 起默认仅挂载工作台 8 域 85 工具（分级挂载，FSD §3.4）。
+ * 2.1.0 的 rc prerelease 同样携带该变更，故阈值取 '2.1.0-rc.0'——任何 2.1.0 系列
+ * （rc / GA 及其后）都 ≥ 该值，2.0.x 均小于它。
+ */
+const BEHAVIOR_CHANGE_VERSION = '2.1.0-rc.0';
+const BEHAVIOR_CHANGE_NOTICE =
+  '注意：2.1.0 起默认仅挂载工作台常用工具（8 域 85 个，原为全量挂载）；' +
+  '其余工具可让 AI 助手调用 tapd_discover_tools 按需激活，或在 env 设 TAPD_TOOLSETS=all 恢复旧行为。';
+
 /** 本地任一包落后于 registry @rc 时返回提示文案；否则返回 null */
 export function buildUpdateNotice(
   local: LocalVersions,
@@ -273,7 +283,17 @@ export function buildUpdateNotice(
     }
   }
   if (parts.length === 0) return null;
-  return `${parts.join('；')}——重启 MCP 会话即可更新（Claude Code 可用 /mcp 菜单 Reconnect）。`;
+  // 升级目标取两个远端中较新者：行为变更随 core+server lockstep 落地，
+  // 任一指向 2.1.0 系列即应预告（例如 server 未落后但 core 先行发版）。
+  const candidates = [remote.server, remote.core]
+    .filter((v): v is string => v !== null)
+    .sort(compareVersions);
+  const target = candidates[candidates.length - 1] ?? null;
+  const behaviorNote =
+    target !== null && compareVersions(target, BEHAVIOR_CHANGE_VERSION) >= 0
+      ? BEHAVIOR_CHANGE_NOTICE
+      : '';
+  return `${parts.join('；')}——重启 MCP 会话即可更新（Claude Code 可用 /mcp 菜单 Reconnect）。${behaviorNote}`;
 }
 
 /**

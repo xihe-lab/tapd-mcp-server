@@ -124,6 +124,36 @@ const checks: [string, () => Promise<void> | void][] = [
     assert.ok(notice !== null);
     assert.match(notice, /tapd-core 有新版本可用（2\.0\.0-rc\.9）/);
   }],
+  ['buildUpdateNotice: 升级目标为 2.1.0 系列（含 rc prerelease）时附带分级挂载行为变更提示', () => {
+    // GA 与 rc prerelease 均携带行为变更：2.1.0-rc.1 起默认仅挂载工作台 8 域
+    for (const remote of ['2.1.0-rc.1', '2.1.0', '2.2.0']) {
+      const notice = buildUpdateNotice(
+        { server: '2.0.2', core: '2.0.2' },
+        { server: remote, core: remote },
+      );
+      assert.ok(notice !== null);
+      assert.match(notice, /默认仅挂载工作台常用工具/);
+      assert.match(notice, /tapd_discover_tools/);
+      assert.match(notice, /TAPD_TOOLSETS=all/);
+    }
+  }],
+  ['buildUpdateNotice: 升级目标为 2.0.x 时不附带行为变更提示', () => {
+    const notice = buildUpdateNotice(
+      { server: '2.0.2', core: '2.0.2' },
+      { server: '2.0.3', core: '2.0.3' },
+    );
+    assert.ok(notice !== null);
+    assert.doesNotMatch(notice, /默认仅挂载/);
+    assert.doesNotMatch(notice, /TAPD_TOOLSETS/);
+  }],
+  ['buildUpdateNotice: 仅内核指向 2.1.0 系列也提示行为变更（lockstep 任一先行）', () => {
+    const notice = buildUpdateNotice(
+      { server: '2.0.2', core: '2.0.2' },
+      { server: null, core: '2.1.0-rc.1' },
+    );
+    assert.ok(notice !== null);
+    assert.match(notice, /TAPD_TOOLSETS=all/);
+  }],
 
   // ---- 端到端（注入探针与出口） ----
   ['checkForUpdate: 有更新时经 notify 发出一条提示', async () => {
@@ -131,7 +161,8 @@ const checks: [string, () => Promise<void> | void][] = [
     await checkForUpdate({
       env: {},
       fromUrl: import.meta.url,
-      fetchRc: (name) => (name === '@xihe-lab/tapd-core' ? '2.0.3' : null),
+      // 远端取远高于本地任一版本的固定值——本地版本随发版前进，硬编码具体版本会失效
+      fetchRc: (name) => (name === '@xihe-lab/tapd-core' ? '99.0.0' : null),
       notify: (message) => {
         messages.push(message);
       },
