@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-24
+
+### GA 正式版
+
+- rc.1 全量内容：分级挂载 + `tapd_discover_tools` 元工具、TAPD_PERMISSION_MODE=readonly 档、WORKFLOWS.md 手册、README 分级章节（迭代 1139814312001000122 P1/P2）
+- **默认 tools/list 载荷 86 工具 / 68,020 字符 ≈ 17k token，较 2.0.x 全量基线（216 工具 / 166,334 字符）降 59.1%**；rc.1 真机验收：可见性=权限边界、discover 激活幂等且 list_changed 同轮生效、TAPD_TOOLSETS=all 恢复 217 全量、readonly 启动面 58 全只读且 discover 只激活读工具
+- **serverInfo.version 改读 package.json**——此前硬编码 1.0.0，客户端面板版本显示与实际脱节
+- **latest dist-tag 自本版归位**（2.1.0 接替 2.0.2 成为默认安装版）；2.0.x 用户重启 MCP 会话将收到升级提示（含分级挂载行为变更预告）
+
 ## [2.1.0-rc.1] - 2026-09-24
 
 ### Added

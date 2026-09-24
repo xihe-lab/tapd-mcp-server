@@ -1,6 +1,6 @@
 {
   "name": "@xihe-lab/tapd-mcp-server",
-  "version": "2.1.0-rc.1",
+  "version": "2.1.0",
   "description": "MCP server for TAPD project management API, enabling AI assistants to manage stories, bugs, tasks, iterations and more via natural language",
   "type": "module",
   "bin": {
@@ -47,7 +47,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "@xihe-lab/tapd-core": "^2.1.0-rc.1",
+    "@xihe-lab/tapd-core": "^2.1.0",
     "zod": "^3.25.76"
   },
   "packageManager": "pnpm@12.3.4",
