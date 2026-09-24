@@ -29,7 +29,7 @@ import {
   resolveStartupTools,
   resolveWrite,
 } from '@xihe-lab/tapd-core';
-import { checkForUpdate } from './update-check.js';
+import { checkForUpdate, readLocalVersions } from './update-check.js';
 
 /** discover 元工具名（工具清单内常驻，不计入工具集成员） */
 export const DISCOVER_TOOL_NAME = 'tapd_discover_tools';
@@ -84,7 +84,7 @@ export function createServer(): McpServer {
   const server = new McpServer(
     {
       name: 'tapd-mcp-server',
-      version: '1.0.0',
+      version: readLocalVersions(import.meta.url)?.server ?? 'unknown',
     },
     // 声明 logging 能力：SDK 的 sendLoggingMessage 仅在 capabilities.logging
     // 存在时才真正发出 notifications/message，否则静默丢弃。
