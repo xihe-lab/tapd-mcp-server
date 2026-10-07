@@ -262,7 +262,10 @@ TAPD_PERMISSION_MODE=readonly
 
 ### 工具返回权限不足 (403)
 
-在 TAPD 开放平台检查应用权限，确保已勾选所需 API 的访问权限。
+按错误 JSON 的 `code` 分诊：
+
+- **`TAPD_AUTH_METHOD_MISMATCH`**：当前凭证是 Basic Auth（仅支持读接口），写操作必须配置 `TAPD_ACCESS_TOKEN`（OAuth access token）。常见于「同时配了双凭证但 token 没生效」——检查变量名拼写与值非空（空串会回落 Basic）、配置作用域（项目级 `.mcp.json` 与用户级配置是两处）、改配置后必须重连 MCP/重启 CLI；重连后用 `tapd_get_current_user` 验证凭证身份
+- **`TAPD_HTTP_403`**：读 `tapdMessage` 字段看 TAPD 原始原因——`company does not match workspace` 表示 token 所属企业与目标项目不匹配（或 workspace_id 传错）；其余在 TAPD 开放平台检查应用权限，确认已勾选所需 API 模块且对目标项目有授权
 
 ### 创建任务时提示权限不足
 
@@ -280,7 +283,7 @@ TAPD 的需求/缺陷/任务等实体长 ID 为 19-20 位数字（如 `113981431
 
 ### 支持 Basic Auth 吗
 
-支持。设置 `TAPD_API_USER` 和 `TAPD_API_PASSWORD` 即可，与 Access Token 二选一。
+支持。设置 `TAPD_API_USER` 和 `TAPD_API_PASSWORD` 即可，与 Access Token 二选一。注意：TAPD 权限模型下 Basic Auth **仅支持读取类接口**，写操作（create/update 等）会直接返回 `TAPD_AUTH_METHOD_MISMATCH` 指引错误；写场景请使用 Access Token。双凭证并存时 Access Token 优先。
 
 ## 更新
 
