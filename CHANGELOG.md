@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-10-07
+
+### Fixed
+
+- 版本前进对齐内核补丁：SDK 错误详情透传 + Basic 凭证写请求前置拦截（外部团队「配了 OAuth 仍写操作 403」issue：实际为 token 未注入进程回落 Basic；修复后该场景错误直接自诊断）
+- README FAQ：403 条目重写为按 `code` 分诊（TAPD_AUTH_METHOD_MISMATCH / TAPD_HTTP_403 + tapdMessage）；Basic Auth 条目补只读约束与优先级说明
+
 ## [2.1.0] - 2026-09-24
 
 ### GA 正式版
